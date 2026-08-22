@@ -1,0 +1,32 @@
+SMART SHOP — PWA INSTALÁVEL
+
+IMPORTANTE
+Para o botão "Instalar app" funcionar corretamente, a PWA precisa ser publicada em um endereço HTTPS.
+Abrir os arquivos diretamente do celular (file://) normalmente não habilita a instalação PWA completa.
+
+ARQUIVOS
+- index.html: aplicativo demonstrativo
+- manifest.webmanifest: configura nome, ícone e modo de instalação
+- sw.js: permite cache/offline básico
+- icons/: ícones do aplicativo
+
+COMO PUBLICAR GRATUITAMENTE
+Opção 1 — Netlify:
+1. Acesse netlify.com.
+2. Crie uma conta.
+3. Use a opção de publicar um site arrastando uma pasta ou ZIP.
+4. Envie o conteúdo deste pacote.
+5. O Netlify criará um endereço HTTPS.
+6. Abra esse endereço no Chrome do Android.
+7. Toque em "Instalar Smart Shop" quando aparecer.
+
+Opção 2 — GitHub Pages:
+Pode ser publicado como site estático, desde que os arquivos permaneçam na mesma estrutura.
+
+IPHONE
+No Safari, abra o endereço HTTPS > Compartilhar > Adicionar à Tela de Início.
+
+ANDROID
+No Chrome, abra o endereço HTTPS > menu ⋮ > Instalar app ou Adicionar à tela inicial.
+
+Este protótipo não processa pagamentos nem pedidos reais.

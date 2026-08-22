@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b4ea2">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Smart Shop">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <title>Smart Shop</title>
+  <style>
+    :root{--blue:#0b4ea2;--blue2:#07346f;--orange:#ff8a00;--bg:#f5f7fb;--text:#18202a;--muted:#6b7280;--card:#fff;--line:#e6e9ef;--shadow:0 8px 24px rgba(14,49,90,.10)}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#dfe7f3;color:var(--text)}
+    .phone{max-width:430px;min-height:100vh;margin:0 auto;background:var(--bg);position:relative;overflow-x:hidden}
+    header{background:linear-gradient(150deg,var(--blue2),var(--blue));color:#fff;padding:18px 18px 22px;position:sticky;top:0;z-index:20}
+    .top{display:flex;justify-content:space-between;align-items:center;font-size:14px;opacity:.95}
+    .brand{display:flex;align-items:center;gap:10px;margin:14px 0 12px}.logo{width:44px;height:44px;border-radius:14px;background:var(--orange);display:grid;place-items:center;font-weight:900;font-size:26px}
+    .brand h1{margin:0;font-size:25px;line-height:1}.brand small{display:block;font-size:12px;opacity:.9;margin-top:4px}
+    .search{display:flex;background:#fff;border-radius:16px;padding:12px 14px;color:#87909b;gap:10px;align-items:center;box-shadow:0 4px 16px rgba(0,0,0,.12)}
+    main{padding:16px 16px 96px}.section-title{display:flex;justify-content:space-between;align-items:center;margin:18px 0 10px}.section-title h2{margin:0;font-size:19px}.link{font-size:13px;color:var(--blue);font-weight:700}
+    .chips,.stores{display:flex;gap:10px;overflow:auto;padding-bottom:4px;scrollbar-width:none}.chip{min-width:82px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px 9px;text-align:center;box-shadow:var(--shadow)}.chip .ico{font-size:25px}.chip span{display:block;font-size:12px;margin-top:6px;font-weight:700}
+    .banner{background:linear-gradient(135deg,var(--blue),#1976d2);border-radius:20px;color:#fff;padding:16px;display:flex;justify-content:space-between;align-items:center;box-shadow:var(--shadow)}.banner b{font-size:20px}.banner p{font-size:13px;margin:6px 0}.banner .badge{background:var(--orange);padding:10px 12px;border-radius:13px;font-weight:800}
+    .store{min-width:160px;background:#fff;border-radius:18px;padding:13px;border:1px solid var(--line);box-shadow:var(--shadow);cursor:pointer}.store-logo{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;background:#111;color:#fff;font-weight:800;margin-bottom:9px}.store h3{font-size:14px;margin:0 0 4px}.store p{font-size:12px;margin:3px 0;color:var(--muted)}.rating{color:#e69500;font-weight:700}
+    .products{display:grid;grid-template-columns:1fr 1fr;gap:12px}.product{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);cursor:pointer}.product-img{height:130px;background:linear-gradient(135deg,#eef2f7,#d8e1ec);display:grid;place-items:center;font-size:58px;position:relative}.discount{position:absolute;left:8px;top:8px;background:var(--orange);color:#fff;font-size:11px;font-weight:800;padding:5px 7px;border-radius:8px}.product-body{padding:11px}.product h3{font-size:13px;margin:0 0 5px}.price{font-weight:900}.old{font-size:11px;text-decoration:line-through;color:#8b95a1;margin-left:5px}.meta{font-size:11px;color:var(--muted);margin-top:4px}
+    nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(430px,100%);background:#fff;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);padding:8px 6px 12px;z-index:30}nav button{border:0;background:none;font-size:11px;color:#66717e;padding:5px 2px}nav .nicon{font-size:21px;display:block;margin-bottom:2px}nav button.active{color:var(--blue);font-weight:800}
+    .screen{display:none}.screen.active{display:block}.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:15px;box-shadow:var(--shadow);margin-bottom:12px}.back{display:inline-flex;align-items:center;gap:5px;color:var(--blue);font-weight:800;cursor:pointer;margin-bottom:10px}.hero-prod{height:250px;background:linear-gradient(135deg,#edf1f7,#d5deea);border-radius:22px;display:grid;place-items:center;font-size:110px;margin-bottom:15px}
+    .btn{width:100%;border:0;border-radius:15px;padding:14px 16px;font-weight:900;font-size:15px}.btn-primary{background:var(--blue);color:#fff}.btn-orange{background:var(--orange);color:#fff}.row{display:flex;justify-content:space-between;gap:12px;align-items:center}.muted{color:var(--muted)}.center{text-align:center}
+    .seller-header{background:linear-gradient(140deg,#0b4ea2,#082e62);color:#fff;border-radius:20px;padding:17px;margin-bottom:14px}.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stat{background:#fff;border-radius:16px;padding:13px;border:1px solid var(--line)}.stat strong{font-size:21px;display:block}.stat small{color:var(--muted)}.pill{font-size:11px;font-weight:800;border-radius:999px;padding:6px 8px;background:#fff3e0;color:#b85c00}
+    .install{position:fixed;left:50%;bottom:82px;transform:translateX(-50%);width:min(390px,calc(100% - 24px));background:#fff;border:1px solid var(--line);box-shadow:0 12px 30px rgba(0,0,0,.18);border-radius:18px;padding:13px;z-index:40;display:none}.install .row{align-items:center}.install button{border:0;border-radius:12px;padding:10px 12px;font-weight:800}.install .yes{background:var(--orange);color:#fff}.install .no{background:#eef3f9;color:#45515e}
+  </style>
+</head>
+<body>
+<div class="phone">
+<section id="home" class="screen active">
+<header>
+  <div class="top"><span>📍 Mateus Leme, MG</span><span>🔔 &nbsp; 🛒</span></div>
+  <div class="brand"><div class="logo">S</div><div><h1>SMART <span style="color:#ff9b22">SHOP</span></h1><small>Tudo da sua cidade em um só lugar.</small></div></div>
+  <div class="search">🔎 <span>O que você está procurando?</span></div>
+</header>
+<main>
+  <div class="banner"><div><b>Ofertas da semana</b><p>Compre nas lojas da sua cidade e receba hoje.</p></div><div class="badge">-20%</div></div>
+  <div class="section-title"><h2>Categorias</h2><span class="link">Ver todas</span></div>
+  <div class="chips"><div class="chip"><div class="ico">👗</div><span>Moda</span></div><div class="chip"><div class="ico">👟</div><span>Calçados</span></div><div class="chip"><div class="ico">💄</div><span>Beleza</span></div><div class="chip"><div class="ico">📱</div><span>Eletrônicos</span></div><div class="chip"><div class="ico">🎁</div><span>Presentes</span></div></div>
+  <div class="section-title"><h2>Lojas da sua cidade</h2><span class="link">Ver todas</span></div>
+  <div class="stores"><div class="store" onclick="show('store')"><div class="store-logo">BM</div><h3>Bella Moda</h3><p><span class="rating">★ 4,8</span> · Moda feminina</p><p>🚚 Entrega hoje</p></div><div class="store" onclick="show('store')"><div class="store-logo" style="background:#123">ST</div><h3>Store Tech</h3><p><span class="rating">★ 4,9</span> · Eletrônicos</p><p>🚚 Entrega hoje</p></div></div>
+  <div class="section-title"><h2>Ofertas perto de você</h2><span class="link">Ver todas</span></div>
+  <div class="products">
+    <div class="product" onclick="show('product')"><div class="product-img"><span class="discount">-15%</span>👜</div><div class="product-body"><h3>Bolsa Feminina</h3><span class="price">R$ 119,90</span><span class="old">R$ 139,90</span><div class="meta">Bella Moda · entrega hoje</div></div></div>
+    <div class="product" onclick="show('product')"><div class="product-img"><span class="discount">-20%</span>👟</div><div class="product-body"><h3>Tênis Esportivo</h3><span class="price">R$ 159,90</span><span class="old">R$ 199,90</span><div class="meta">Store Tech · entrega hoje</div></div></div>
+  </div>
+</main></section>
+
+<section id="store" class="screen"><main><div class="back" onclick="show('home')">← Voltar</div><div class="card center"><div class="store-logo" style="margin:0 auto 8px">BM</div><h2>Bella Moda</h2><div class="rating">★ 4,8</div><p class="muted">Moda feminina · Mateus Leme</p><p>🚚 Entrega hoje &nbsp; | &nbsp; 🏪 Retirada grátis</p></div><div class="products"><div class="product" onclick="show('product')"><div class="product-img">👜</div><div class="product-body"><h3>Bolsa Feminina</h3><span class="price">R$ 119,90</span></div></div><div class="product" onclick="show('product')"><div class="product-img">👗</div><div class="product-body"><h3>Vestido Midi</h3><span class="price">R$ 129,90</span></div></div></div></main></section>
+
+<section id="product" class="screen"><main><div class="back" onclick="show('home')">← Voltar</div><div class="hero-prod">👜</div><div class="card"><small class="muted">Bella Moda</small><h2>Bolsa Feminina Premium</h2><div><span class="price" style="font-size:25px">R$ 119,90</span> <span class="old">R$ 139,90</span></div><p class="muted">Produto demonstrativo com entrega rápida em Mateus Leme.</p></div><button class="btn btn-orange" onclick="show('cart')">Adicionar ao carrinho</button></main></section>
+
+<section id="cart" class="screen"><main><div class="back" onclick="show('home')">← Continuar comprando</div><h2>Seu carrinho</h2><div class="card row"><div style="font-size:42px">👜</div><div style="flex:1"><b>Bolsa Feminina Premium</b><div class="muted">Bella Moda</div><div class="price">R$ 119,90</div></div><div>1x</div></div><div class="card"><div class="row"><span>Subtotal</span><b>R$ 119,90</b></div><br><div class="row"><span>Entrega</span><b>R$ 8,90</b></div><hr style="border:0;border-top:1px solid var(--line)"><div class="row"><b>Total</b><b style="font-size:20px">R$ 128,80</b></div></div><button class="btn btn-primary" onclick="show('checkout')">Ir para pagamento</button></main></section>
+
+<section id="checkout" class="screen"><main><div class="back" onclick="show('cart')">← Voltar</div><h2>Finalizar compra</h2><div class="card"><b>📍 Endereço</b><p>Rua Exemplo, 123 — Centro<br>Mateus Leme, MG</p></div><div class="card"><b>💳 Pagamento</b><p>🔘 PIX</p><p>⚪ Cartão de crédito</p></div><button class="btn btn-orange" onclick="show('success')">Confirmar pedido demonstrativo</button></main></section>
+
+<section id="success" class="screen"><main class="center"><div style="font-size:80px;margin-top:40px">✅</div><h2>Pedido confirmado!</h2><p class="muted">Pedido #SS1024</p><div class="card"><p>Pedido recebido pela loja.</p><p>Preparação estimada: 15 minutos.</p><p>Entrega prevista para hoje.</p></div><button class="btn btn-primary" onclick="show('seller')">Ver painel do lojista</button></main></section>
+
+<section id="seller" class="screen"><main><div class="seller-header"><div style="font-size:13px;opacity:.9">PAINEL DO LOJISTA</div><h2>Bella Moda</h2><div>Hoje · Mateus Leme</div></div><div class="stats"><div class="stat"><small>Vendas hoje</small><strong>R$ 846,30</strong></div><div class="stat"><small>Pedidos</small><strong>7</strong></div><div class="stat"><small>Ticket médio</small><strong>R$ 120,90</strong></div><div class="stat"><small>A receber</small><strong>R$ 761,67</strong></div></div><div class="section-title"><h2>Novos pedidos</h2><span class="pill">1 novo</span></div><div class="card"><b>#SS1024 · Bolsa Feminina</b><div class="muted">Cliente: Ana Souza</div><p>Entrega · R$ 128,80</p></div><button class="btn btn-orange" onclick="alert('Pedido marcado como EM PREPARAÇÃO — demonstração')">Aceitar e preparar pedido</button></main></section>
+
+<nav>
+<button id="n-home" class="active" onclick="show('home')"><span class="nicon">🏠</span>Início</button>
+<button onclick="show('store')"><span class="nicon">▦</span>Categorias</button>
+<button onclick="show('home')"><span class="nicon">🔎</span>Buscar</button>
+<button onclick="show('success')"><span class="nicon">📦</span>Pedidos</button>
+<button onclick="show('seller')"><span class="nicon">🏪</span>Lojista</button>
+</nav>
+</div>
+
+<div id="installBox" class="install">
+  <div class="row">
+    <div><b>Instalar Smart Shop</b><div class="muted" style="font-size:12px">Adicione à tela inicial e abra como aplicativo.</div></div>
+    <button id="installBtn" class="yes">Instalar</button>
+    <button id="dismissBtn" class="no">×</button>
+  </div>
+</div>
+
+<script>
+let deferredPrompt;
+const box=document.getElementById('installBox');
+window.addEventListener('beforeinstallprompt',(e)=>{e.preventDefault();deferredPrompt=e;box.style.display='block'});
+document.getElementById('installBtn').addEventListener('click',async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;box.style.display='none'});
+document.getElementById('dismissBtn').onclick=()=>box.style.display='none';
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js'))}
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo({top:0,behavior:'smooth'});document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));if(id==='home')document.getElementById('n-home').classList.add('active')}
+</script>
+</body>
+</html>

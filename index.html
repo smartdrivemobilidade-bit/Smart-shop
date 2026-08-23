@@ -195,6 +195,32 @@ nav button{position:relative}
   padding:10px 0;font-size:12px
 }
 
+
+/* ===== Meus pedidos ===== */
+.orders-view{
+  padding:16px 14px 104px;background:var(--bg);min-height:calc(100vh - 80px)
+}
+.order-card{
+  background:#fff;border:1px solid var(--line);border-radius:20px;
+  box-shadow:var(--shadow);padding:14px;margin-bottom:12px
+}
+.order-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.order-head h3{margin:0 0 4px;font-size:15px}
+.order-head small{color:var(--muted);font-size:10px}
+.status-pill{
+  padding:6px 9px;border-radius:999px;font-size:10px;font-weight:900;white-space:nowrap
+}
+.status-prep{background:#fff4df;color:#9a5b00}
+.status-route{background:#e8f2ff;color:#0b4ea2}
+.status-done{background:#e9f8ef;color:#16733a}
+.order-items{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.order-line{display:flex;justify-content:space-between;font-size:12px;margin:5px 0}
+.order-total{display:flex;justify-content:space-between;font-weight:900;margin-top:10px}
+.cart-top-btn{
+  display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;
+  color:var(--blue);font-weight:800;font-size:12px;padding:0
+}
+
 </style>
 </head>
 <body>
@@ -209,7 +235,7 @@ nav button{position:relative}
     </div>
     <div class="top-right">
       <span class="badgeWrap"><svg class="icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 00-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg><span class="badge">3</span></span>
-      <span class="badgeWrap"><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/><path d="M2 3h3l2.2 10.4a2 2 0 002 1.6h7.7a2 2 0 002-1.6L20 7H6"/></svg><span class="badge">2</span></span>
+      <span class="badgeWrap"><span onclick="openCart()" style="cursor:pointer;display:inline-flex"><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/><path d="M2 3h3l2.2 10.4a2 2 0 002 1.6h7.7a2 2 0 002-1.6L20 7H6"/></svg></span><span class="badge">2</span></span>
     </div>
   </div>
 
@@ -305,6 +331,13 @@ nav button{position:relative}
 <div id="productView" class="view product-detail"></div>
 <div id="cartView" class="view cart-view"></div>
 
+<div id="ordersView" class="view orders-view">
+  <button class="back-btn" onclick="showView('homeView')">← Voltar</button>
+  <h2 class="filter-title">Meus pedidos</h2>
+  <div id="ordersList"></div>
+</div>
+
+
 <div id="loginView" class="view login-view">
   <button class="back-btn" onclick="showView('homeView')">← Voltar</button>
   <div class="login-brand">
@@ -358,7 +391,7 @@ nav button{position:relative}
         <div><b>Meus endereços</b><small>Entrega e retirada</small></div>
       </div><span>›</span>
     </div>
-    <div class="account-item" onclick="openCart()">
+    <div class="account-item" onclick="openOrders()">
       <div class="left">
         <svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4-8 4z"/><path d="M4 8v8l8 4 8-4V8"/></svg>
         <div><b>Meus pedidos</b><small>Acompanhe suas compras</small></div>
@@ -402,7 +435,7 @@ nav button{position:relative}
   <button id="navHome" class="active" onclick="showView('homeView')"><svg class="icon" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v10h-6v-6H9v6H3z"/></svg>Início</button>
   <button onclick="openCategory('Todos')"><svg class="icon" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><rect x="14" y="14" width="6" height="6"/></svg>Categorias</button>
   <button onclick="focusSearch()"><svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>Buscar</button>
-  <button onclick="openCart()"><span id="cartBadge" class="badge-cart-count">0</span><svg class="icon" viewBox="0 0 24 24"><path d="M4 8l8-4 8 4-8 4z"/><path d="M4 8v8l8 4 8-4V8"/></svg>Pedidos</button>
+  <button onclick="openOrders()"><svg class="icon" viewBox="0 0 24 24"><path d="M4 8l8-4 8 4-8 4z"/><path d="M4 8v8l8 4 8-4V8"/></svg>Pedidos</button>
   <button onclick="openAccount()"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1-6 4-9 8-9s7 3 8 9"></path></svg>Conta</button>
 </nav>
 
@@ -534,10 +567,7 @@ function openCart(){
   showView("cartView");
 }
 
-function checkout(){
-  alert("Pedido demonstrativo criado com sucesso!");
-  cart=[]; updateCartBadge(); openCart();
-}
+
 
 function focusSearch(){
   showView("homeView");
@@ -666,6 +696,67 @@ function renderSavedAddress(a){
       ${a.complement?`<br>${a.complement}`:""}
       ${a.cep?`<br>CEP ${a.cep}`:""}
     </p>`;
+}
+
+
+
+const ORDERS_KEY="smartshop_orders";
+
+function getOrders(){
+  try{return JSON.parse(localStorage.getItem(ORDERS_KEY)||"[]")}catch(e){return []}
+}
+
+function saveOrders(list){
+  localStorage.setItem(ORDERS_KEY,JSON.stringify(list));
+}
+
+function openOrders(){
+  renderOrders();
+  showView("ordersView");
+}
+
+function renderOrders(){
+  const list=getOrders();
+  const box=document.getElementById("ordersList");
+  if(!box) return;
+  if(!list.length){
+    box.innerHTML=`<div class="order-card"><div class="empty">Você ainda não possui pedidos finalizados.</div></div>`;
+    return;
+  }
+  box.innerHTML=list.map((o,idx)=>{
+    const cls=o.status==="Entregue"?"status-done":o.status==="Saiu para entrega"?"status-route":"status-prep";
+    const items=(o.items||[]).map(i=>`<div class="order-line"><span>${i.qty}x ${i.name}</span><span>${money(i.price*i.qty)}</span></div>`).join("");
+    return `<div class="order-card">
+      <div class="order-head">
+        <div><h3>Pedido #${o.number}</h3><small>${o.date}</small></div>
+        <span class="status-pill ${cls}">${o.status}</span>
+      </div>
+      <div class="order-items">${items}</div>
+      <div class="order-total"><span>Total</span><span>${money(o.total)}</span></div>
+    </div>`;
+  }).join("");
+}
+
+function checkout(){
+  if(!cart.length){
+    alert("Seu carrinho está vazio.");
+    return;
+  }
+  const orders=getOrders();
+  const total=cart.reduce((s,i)=>s+i.price*i.qty,0);
+  const now=new Date();
+  const order={
+    number:String(Date.now()).slice(-6),
+    date:now.toLocaleString("pt-BR"),
+    status:"Em preparação",
+    items:cart.map(i=>({id:i.id,name:i.name,price:i.price,qty:i.qty})),
+    total
+  };
+  orders.unshift(order);
+  saveOrders(orders);
+  cart=[];
+  updateCartBadge();
+  openOrders();
 }
 
 </script>

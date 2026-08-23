@@ -147,6 +147,54 @@ nav button{position:relative}
   .grid-list{grid-template-columns:1fr 1fr}
 }
 
+
+/* ===== Conta do cliente ===== */
+.account-view,.login-view{
+  padding:16px 14px 104px;background:var(--bg);min-height:calc(100vh - 80px)
+}
+.profile-card{
+  background:#fff;border:1px solid var(--line);border-radius:20px;
+  box-shadow:var(--shadow);padding:16px;margin-bottom:12px
+}
+.profile-top{display:flex;align-items:center;gap:12px}
+.avatar{
+  width:62px;height:62px;border-radius:50%;
+  background:linear-gradient(145deg,var(--blue),#1b70d8);
+  color:#fff;display:grid;place-items:center;font-size:23px;font-weight:900
+}
+.profile-top h2{margin:0 0 4px;font-size:20px}
+.profile-top p{margin:0;color:var(--muted);font-size:12px}
+.account-menu{display:grid;gap:10px;margin-top:12px}
+.account-item{
+  background:#fff;border:1px solid var(--line);border-radius:16px;
+  padding:13px 14px;display:flex;align-items:center;justify-content:space-between;
+  box-shadow:var(--shadow);cursor:pointer
+}
+.account-item .left{display:flex;align-items:center;gap:10px}
+.account-item svg{width:22px;height:22px;fill:none;stroke:var(--blue);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.account-item b{font-size:13px}.account-item small{display:block;color:var(--muted);font-size:10px;margin-top:2px}
+.form-card{
+  background:#fff;border:1px solid var(--line);border-radius:20px;
+  box-shadow:var(--shadow);padding:16px;margin-bottom:12px
+}
+.form-card label{display:block;font-size:12px;font-weight:800;margin:10px 0 5px}
+.form-card input{
+  width:100%;border:1px solid var(--line);border-radius:12px;
+  padding:12px;font:inherit;background:#fff
+}
+.form-card .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.login-brand{text-align:center;margin:12px 0 18px}
+.login-brand .logo{margin:0 auto 10px}
+.login-brand h2{margin:0}.login-brand p{color:var(--muted);font-size:12px}
+.status-ok{
+  background:#eaf8ef;color:#16733a;border-radius:12px;padding:10px 12px;
+  font-size:12px;font-weight:800;margin-bottom:12px;display:none
+}
+.link-btn{
+  border:0;background:transparent;color:var(--blue);font-weight:800;
+  padding:10px 0;font-size:12px
+}
+
 </style>
 </head>
 <body>
@@ -256,6 +304,99 @@ nav button{position:relative}
 <div id="storeView" class="view store-view"></div>
 <div id="productView" class="view product-detail"></div>
 <div id="cartView" class="view cart-view"></div>
+
+<div id="loginView" class="view login-view">
+  <button class="back-btn" onclick="showView('homeView')">← Voltar</button>
+  <div class="login-brand">
+    <div class="logo">S</div>
+    <h2>Entrar no Smart Shop</h2>
+    <p>Acesse sua conta para acompanhar pedidos e endereços.</p>
+  </div>
+  <div id="loginStatus" class="status-ok">Login realizado com sucesso.</div>
+  <div class="form-card">
+    <label>E-mail ou celular</label>
+    <input id="loginEmail" type="text" placeholder="Digite seu e-mail ou celular">
+    <label>Senha</label>
+    <input id="loginPassword" type="password" placeholder="Digite sua senha">
+    <button class="secondary-btn" style="margin-top:14px" onclick="loginCustomer()">Entrar</button>
+    <button class="link-btn" onclick="showRegister()">Ainda não tenho cadastro</button>
+  </div>
+</div>
+
+<div id="registerView" class="view login-view">
+  <button class="back-btn" onclick="showView('loginView')">← Voltar</button>
+  <h2 style="margin:4px 0 14px">Criar conta</h2>
+  <div class="form-card">
+    <label>Nome completo</label>
+    <input id="regName" type="text" placeholder="Seu nome">
+    <label>Celular</label>
+    <input id="regPhone" type="tel" placeholder="(31) 99999-9999">
+    <label>E-mail</label>
+    <input id="regEmail" type="email" placeholder="seuemail@exemplo.com">
+    <label>Senha</label>
+    <input id="regPassword" type="password" placeholder="Crie uma senha">
+    <button class="primary-btn" style="margin-top:14px" onclick="registerCustomer()">Criar minha conta</button>
+  </div>
+</div>
+
+<div id="accountView" class="view account-view">
+  <button class="back-btn" onclick="showView('homeView')">← Voltar</button>
+  <div class="profile-card">
+    <div class="profile-top">
+      <div id="accountAvatar" class="avatar">JS</div>
+      <div>
+        <h2 id="accountName">Cliente Smart Shop</h2>
+        <p id="accountEmail">cliente@smartshop.com.br</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="account-menu">
+    <div class="account-item" onclick="openAddresses()">
+      <div class="left">
+        <svg viewBox="0 0 24 24"><path d="M12 21s6-5.4 6-11a6 6 0 10-12 0c0 5.6 6 11 6 11z"/><circle cx="12" cy="10" r="2"/></svg>
+        <div><b>Meus endereços</b><small>Entrega e retirada</small></div>
+      </div><span>›</span>
+    </div>
+    <div class="account-item" onclick="openCart()">
+      <div class="left">
+        <svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4-8 4z"/><path d="M4 8v8l8 4 8-4V8"/></svg>
+        <div><b>Meus pedidos</b><small>Acompanhe suas compras</small></div>
+      </div><span>›</span>
+    </div>
+    <div class="account-item">
+      <div class="left">
+        <svg viewBox="0 0 24 24"><path d="M12 21s7-4 7-11V5l-7-2-7 2v5c0 7 7 11 7 11z"/><path d="M9 12l2 2 4-4"/></svg>
+        <div><b>Privacidade e segurança</b><small>Senha e dados da conta</small></div>
+      </div><span>›</span>
+    </div>
+    <div class="account-item" onclick="logoutCustomer()">
+      <div class="left">
+        <svg viewBox="0 0 24 24"><path d="M10 17l5-5-5-5M15 12H3"/><path d="M14 4h6v16h-6"/></svg>
+        <div><b>Sair da conta</b><small>Encerrar sessão</small></div>
+      </div><span>›</span>
+    </div>
+  </div>
+</div>
+
+<div id="addressView" class="view account-view">
+  <button class="back-btn" onclick="showView('accountView')">← Minha conta</button>
+  <h2 style="margin:4px 0 14px">Meus endereços</h2>
+  <div class="form-card">
+    <label>CEP</label>
+    <input id="addrCep" placeholder="00000-000">
+    <label>Rua</label>
+    <input id="addrStreet" placeholder="Nome da rua">
+    <div class="two">
+      <div><label>Número</label><input id="addrNumber" placeholder="123"></div>
+      <div><label>Bairro</label><input id="addrDistrict" placeholder="Centro"></div>
+    </div>
+    <label>Complemento</label>
+    <input id="addrComplement" placeholder="Casa, apto, referência">
+    <button class="primary-btn" style="margin-top:14px" onclick="saveAddress()">Salvar endereço</button>
+  </div>
+  <div id="savedAddress" class="profile-card" style="display:none"></div>
+</div>
 
 <nav>
   <button id="navHome" class="active" onclick="showView('homeView')"><svg class="icon" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v10h-6v-6H9v6H3z"/></svg>Início</button>

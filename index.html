@@ -403,7 +403,8 @@ nav button{position:relative}
   <button onclick="openCategory('Todos')"><svg class="icon" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><rect x="14" y="14" width="6" height="6"/></svg>Categorias</button>
   <button onclick="focusSearch()"><svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>Buscar</button>
   <button onclick="openCart()"><span id="cartBadge" class="badge-cart-count">0</span><svg class="icon" viewBox="0 0 24 24"><path d="M4 8l8-4 8 4-8 4z"/><path d="M4 8v8l8 4 8-4V8"/></svg>Pedidos</button>
-<button onclick="openAccount()"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-6 4-9 8-9s7 3 8 9"/></svg>Conta</button>
+  <button onclick="openStore('Bella Moda')"><svg class="icon" viewBox="0 0 24 24"><path d="M4 10h16v10H4zM3 10l2-6h14l2 6"/></svg>Loja</button>
+</nav>
 
 </div>
 
@@ -553,6 +554,120 @@ function searchProducts(){
     <div class="grid-list">${list.length?list.map(productCard).join(""):'<div class="empty">Nenhum produto encontrado.</div>'}</div>`;
   showView("categoryView");
 }
+
+
+const CUSTOMER_KEY="smartshop_customer";
+const ADDRESS_KEY="smartshop_address";
+
+function getCustomer(){
+  try{return JSON.parse(localStorage.getItem(CUSTOMER_KEY)||"null")}catch(e){return null}
+}
+
+function openAccount(){
+  const c=getCustomer();
+  if(!c){
+    showView("loginView");
+    return;
+  }
+  renderAccount(c);
+  showView("accountView");
+}
+
+function renderAccount(c){
+  const nameEl=document.getElementById("accountName");
+  const emailEl=document.getElementById("accountEmail");
+  const avatarEl=document.getElementById("accountAvatar");
+  if(nameEl) nameEl.textContent=c.name||"Cliente Smart Shop";
+  if(emailEl) emailEl.textContent=c.email||c.phone||"";
+  const parts=(c.name||"Cliente Smart").trim().split(/\s+/).filter(Boolean);
+  if(avatarEl) avatarEl.textContent=((parts[0]?.[0]||"S")+(parts[1]?.[0]||"S")).toUpperCase();
+}
+
+function loginCustomer(){
+  const email=document.getElementById("loginEmail")?.value.trim()||"";
+  const pass=document.getElementById("loginPassword")?.value.trim()||"";
+  if(!email||!pass){
+    alert("Preencha usuário e senha.");
+    return;
+  }
+  let c=getCustomer();
+  if(!c){
+    c={name:"Cliente Smart Shop",email:email,phone:""};
+    localStorage.setItem(CUSTOMER_KEY,JSON.stringify(c));
+  }
+  renderAccount(c);
+  showView("accountView");
+}
+
+function showRegister(){
+  showView("registerView");
+}
+
+function registerCustomer(){
+  const name=document.getElementById("regName")?.value.trim()||"";
+  const phone=document.getElementById("regPhone")?.value.trim()||"";
+  const email=document.getElementById("regEmail")?.value.trim()||"";
+  const pass=document.getElementById("regPassword")?.value.trim()||"";
+  if(!name||!phone||!email||!pass){
+    alert("Preencha todos os campos.");
+    return;
+  }
+  const c={name,phone,email};
+  localStorage.setItem(CUSTOMER_KEY,JSON.stringify(c));
+  renderAccount(c);
+  showView("accountView");
+}
+
+function logoutCustomer(){
+  localStorage.removeItem(CUSTOMER_KEY);
+  showView("homeView");
+}
+
+function openAddresses(){
+  const raw=localStorage.getItem(ADDRESS_KEY);
+  if(raw){
+    try{
+      const a=JSON.parse(raw);
+      document.getElementById("addrCep").value=a.cep||"";
+      document.getElementById("addrStreet").value=a.street||"";
+      document.getElementById("addrNumber").value=a.number||"";
+      document.getElementById("addrDistrict").value=a.district||"";
+      document.getElementById("addrComplement").value=a.complement||"";
+      renderSavedAddress(a);
+    }catch(e){}
+  }
+  showView("addressView");
+}
+
+function saveAddress(){
+  const a={
+    cep:document.getElementById("addrCep")?.value.trim()||"",
+    street:document.getElementById("addrStreet")?.value.trim()||"",
+    number:document.getElementById("addrNumber")?.value.trim()||"",
+    district:document.getElementById("addrDistrict")?.value.trim()||"",
+    complement:document.getElementById("addrComplement")?.value.trim()||""
+  };
+  if(!a.street||!a.number||!a.district){
+    alert("Preencha rua, número e bairro.");
+    return;
+  }
+  localStorage.setItem(ADDRESS_KEY,JSON.stringify(a));
+  renderSavedAddress(a);
+  alert("Endereço salvo.");
+}
+
+function renderSavedAddress(a){
+  const box=document.getElementById("savedAddress");
+  if(!box) return;
+  box.style.display="block";
+  box.innerHTML=`<b>Endereço principal</b>
+    <p style="margin:7px 0 0;color:var(--muted);font-size:12px">
+      ${a.street}, ${a.number} - ${a.district}
+      ${a.complement?`<br>${a.complement}`:""}
+      ${a.cep?`<br>CEP ${a.cep}`:""}
+    </p>`;
+}
+
 </script>
 
 <script>

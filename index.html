@@ -106,15 +106,15 @@ nav .icon{display:block;margin:0 auto 4px;width:29px;height:29px}
 .qty-row{display:flex;align-items:center;justify-content:space-between;margin:14px 0}
 .qty-box{display:flex;align-items:center;gap:12px}
 .qty-box button{
-  width:34px;height:34px;border-radius:10px;border:1px solid var(--line);
+  width:34px;height:34px;border-radius:10px;border:1px solid var(--line);cursor:pointer;
   background:#fff;font-size:20px;font-weight:800
 }
 .primary-btn{
-  width:100%;border:0;border-radius:14px;background:var(--orange);
+  width:100%;border:0;border-radius:14px;background:var(--orange);cursor:pointer;
   color:#fff;padding:14px;font-size:15px;font-weight:900
 }
 .secondary-btn{
-  width:100%;border:0;border-radius:14px;background:var(--blue);
+  width:100%;border:0;border-radius:14px;background:var(--blue);cursor:pointer;
   color:#fff;padding:14px;font-size:15px;font-weight:900;margin-top:8px
 }
 .cart-row{
@@ -235,7 +235,7 @@ nav button{position:relative}
     </div>
     <div class="top-right">
       <span class="badgeWrap"><svg class="icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 00-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg><span class="badge">3</span></span>
-      <span class="badgeWrap"><span onclick="openCart()" style="cursor:pointer;display:inline-flex"><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/><path d="M2 3h3l2.2 10.4a2 2 0 002 1.6h7.7a2 2 0 002-1.6L20 7H6"/></svg></span><span class="badge">2</span></span>
+      <span class="badgeWrap"><span onclick="openCart()" style="cursor:pointer;display:inline-flex"><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/><path d="M2 3h3l2.2 10.4a2 2 0 002 1.6h7.7a2 2 0 002-1.6L20 7H6"/></svg></span><span id="cartBadgeTop" class="badge">0</span></span>
     </div>
   </div>
 
@@ -545,8 +545,18 @@ function buyNow(id){ addToCart(id); openCart(); }
 
 function updateCartBadge(){
   const n=cart.reduce((s,i)=>s+i.qty,0);
-  const badge=document.getElementById("cartBadge");
-  badge.textContent=n; badge.style.display=n?"grid":"none";
+
+  const badgeBottom=document.getElementById("cartBadge");
+  if(badgeBottom){
+    badgeBottom.textContent=n;
+    badgeBottom.style.display=n?"grid":"none";
+  }
+
+  const badgeTop=document.getElementById("cartBadgeTop");
+  if(badgeTop){
+    badgeTop.textContent=n;
+    badgeTop.style.display=n?"grid":"none";
+  }
 }
 
 function openCart(){

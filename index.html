@@ -740,31 +740,38 @@ function renderOrders(){
     const items=(o.items||[]).map(i=>`
       <div class="order-line">
         <span>${i.qty}x ${i.name}${i.store?` · ${i.store}`:""}</span>
-        <span>${money((Number(i.price)||0)*(Number(i.qty)||0))}</span>
+        <span>${money(i.price*i.qty)}</span>
       </div>`).join("");
 
-    const addr=o.address ? `
-      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);line-height:1.45">
-        <b style="color:var(--text)">Entrega</b><br>
-        ${o.address.street||""}, ${o.address.number||""} - ${o.address.district||""}
-        ${o.address.complement?`<br>${o.address.complement}`:""}
-        ${o.address.cep?`<br>CEP ${o.address.cep}`:""}
-      </div>` : "";
+    const addr=o.address
+      ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);line-height:1.45">
+           <b style="color:var(--text)">Entrega</b><br>
+           ${o.address.street}, ${o.address.number} - ${o.address.district}
+           ${o.address.complement?`<br>${o.address.complement}`:""}
+           ${o.address.cep?`<br>CEP ${o.address.cep}`:""}
+         </div>`
+      : "";
 
     return `<div class="order-card">
       <div class="order-head">
-        <div><h3>Pedido #${o.number||""}</h3><small>${o.date||""}</small></div>
-        <span class="status-pill ${cls}">${o.status||"Em preparação"}</span>
+        <div>
+          <h3>Pedido #${o.number}</h3>
+          <small>${o.date}</small>
+        </div>
+        <span class="status-pill ${cls}">${o.status}</span>
       </div>
       <div class="order-items">${items}</div>
-      <div class="order-total"><span>Total</span><span>${money(Number(o.total)||0)}</span></div>
+      <div class="order-total">
+        <span>Total</span>
+        <span>${money(o.total)}</span>
+      </div>
       ${addr}
     </div>`;
   }).join("");
 }
 
 function checkout(){
-  if(!cart || !cart.length){
+  if(!cart.length){
     alert("Seu carrinho está vazio.");
     return;
   }
@@ -779,9 +786,7 @@ function checkout(){
   let address=null;
   try{
     address=JSON.parse(localStorage.getItem(ADDRESS_KEY)||"null");
-  }catch(e){
-    address=null;
-  }
+  }catch(e){ address=null; }
 
   if(!address || !address.street || !address.number || !address.district){
     alert("Cadastre um endereço de entrega antes de finalizar o pedido.");
@@ -790,7 +795,7 @@ function checkout(){
   }
 
   const orders=getOrders();
-  const total=cart.reduce((sum,item)=>sum+(Number(item.price)||0)*(Number(item.qty)||0),0);
+  const total=cart.reduce((s,i)=>s+i.price*i.qty,0);
   const now=new Date();
 
   const order={
@@ -809,31 +814,22 @@ function checkout(){
       complement:address.complement||"",
       cep:address.cep||""
     },
-    items:cart.map(item=>({
-      id:item.id,
-      name:item.name,
-      price:Number(item.price)||0,
-      qty:Number(item.qty)||1,
-      store:item.store||""
+    items:cart.map(i=>({
+      id:i.id,
+      name:i.name,
+      price:i.price,
+      qty:i.qty,
+      store:i.store||""
     })),
-    total:total
+    total
   };
 
   orders.unshift(order);
   saveOrders(orders);
-
-  // confirma que o pedido foi realmente gravado antes de limpar o carrinho
-  const persisted=getOrders();
-  if(!persisted.length || persisted[0].number!==order.number){
-    alert("Não foi possível salvar o pedido. Tente novamente.");
-    return;
-  }
-
   cart=[];
   updateCartBadge();
   alert("Pedido finalizado com sucesso!");
-  renderOrders();
-  showView("ordersView");
+  openOrders();
 }
 
 </script>
@@ -846,5 +842,19 @@ if ('caches' in window) {
   caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
 }
 </script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", async () => {
+    try {
+      const reg = await navigator.serviceWorker.register("./sw.js");
+      await reg.update();
+    } catch (e) {
+      console.log("SW update:", e);
+    }
+  });
+}
+</script>
+
 </body>
 </html>

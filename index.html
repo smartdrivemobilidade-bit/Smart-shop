@@ -711,13 +711,28 @@ function renderSavedAddress(a){
 
 
 const ORDERS_KEY="smartshop_orders";
+let ordersMemory=null;
 
 function getOrders(){
-  try{return JSON.parse(localStorage.getItem(ORDERS_KEY)||"[]")}catch(e){return []}
+  if(Array.isArray(ordersMemory)) return ordersMemory;
+  try{
+    const parsed=JSON.parse(localStorage.getItem(ORDERS_KEY)||"[]");
+    ordersMemory=Array.isArray(parsed)?parsed:[];
+  }catch(e){
+    ordersMemory=[];
+  }
+  return ordersMemory;
 }
 
 function saveOrders(list){
-  localStorage.setItem(ORDERS_KEY,JSON.stringify(list));
+  ordersMemory=Array.isArray(list)?list:[];
+  try{
+    localStorage.setItem(ORDERS_KEY,JSON.stringify(ordersMemory));
+  }catch(e){
+    try{
+      sessionStorage.setItem(ORDERS_KEY,JSON.stringify(ordersMemory));
+    }catch(_){}
+  }
 }
 
 function openOrders(){
@@ -726,11 +741,22 @@ function openOrders(){
 }
 
 function renderOrders(){
-  const list=getOrders();
+  let list=getOrders();
+
+  if((!list || !list.length)){
+    try{
+      const fallback=JSON.parse(sessionStorage.getItem(ORDERS_KEY)||"[]");
+      if(Array.isArray(fallback) && fallback.length){
+        list=fallback;
+        ordersMemory=fallback;
+      }
+    }catch(e){}
+  }
+
   const box=document.getElementById("ordersList");
   if(!box) return;
 
-  if(!list.length){
+  if(!Array.isArray(list) || !list.length){
     box.innerHTML=`<div class="order-card"><div class="empty">Você ainda não possui pedidos finalizados.</div></div>`;
     return;
   }
@@ -740,13 +766,13 @@ function renderOrders(){
     const items=(o.items||[]).map(i=>`
       <div class="order-line">
         <span>${i.qty}x ${i.name}${i.store?` · ${i.store}`:""}</span>
-        <span>${money(i.price*i.qty)}</span>
+        <span>${money((Number(i.price)||0)*(Number(i.qty)||0))}</span>
       </div>`).join("");
 
     const addr=o.address
       ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);line-height:1.45">
            <b style="color:var(--text)">Entrega</b><br>
-           ${o.address.street}, ${o.address.number} - ${o.address.district}
+           ${o.address.street||""}, ${o.address.number||""} - ${o.address.district||""}
            ${o.address.complement?`<br>${o.address.complement}`:""}
            ${o.address.cep?`<br>CEP ${o.address.cep}`:""}
          </div>`
@@ -755,15 +781,15 @@ function renderOrders(){
     return `<div class="order-card">
       <div class="order-head">
         <div>
-          <h3>Pedido #${o.number}</h3>
-          <small>${o.date}</small>
+          <h3>Pedido #${o.number||""}</h3>
+          <small>${o.date||""}</small>
         </div>
-        <span class="status-pill ${cls}">${o.status}</span>
+        <span class="status-pill ${cls}">${o.status||"Em preparação"}</span>
       </div>
       <div class="order-items">${items}</div>
       <div class="order-total">
         <span>Total</span>
-        <span>${money(o.total)}</span>
+        <span>${money(Number(o.total)||0)}</span>
       </div>
       ${addr}
     </div>`;
@@ -771,7 +797,7 @@ function renderOrders(){
 }
 
 function checkout(){
-  if(!cart.length){
+  if(!Array.isArray(cart) || !cart.length){
     alert("Seu carrinho está vazio.");
     return;
   }
@@ -794,12 +820,14 @@ function checkout(){
     return;
   }
 
-  const orders=getOrders();
-  const total=cart.reduce((s,i)=>s+i.price*i.qty,0);
+  let orders=getOrders();
+  if(!Array.isArray(orders)) orders=[];
+
+  const total=cart.reduce((s,i)=>s+(Number(i.price)||0)*(Number(i.qty)||0),0);
   const now=new Date();
 
   const order={
-    number:String(Date.now()).slice(-6),
+    number:"SS"+String(Date.now()).slice(-6),
     date:now.toLocaleString("pt-BR"),
     status:"Em preparação",
     customer:{
@@ -817,21 +845,26 @@ function checkout(){
     items:cart.map(i=>({
       id:i.id,
       name:i.name,
-      price:i.price,
-      qty:i.qty,
+      price:Number(i.price)||0,
+      qty:Number(i.qty)||1,
       store:i.store||""
     })),
     total
   };
 
-  orders.unshift(order);
+  orders=[order,...orders];
   saveOrders(orders);
+
+  // Renderiza primeiro, antes de limpar o carrinho.
+  renderOrders();
+  showView("ordersView");
+
+  // Limpa o carrinho somente depois que o pedido já está na tela.
   cart=[];
   updateCartBadge();
-  alert("Pedido finalizado com sucesso!");
-  openOrders();
-}
 
+  alert("Pedido finalizado com sucesso! Pedido #"+order.number);
+}
 </script>
 
 <script>
@@ -853,6 +886,19 @@ if ("serviceWorker" in navigator) {
       console.log("SW update:", e);
     }
   });
+}
+</script>
+
+
+<script>
+try{
+  const raw=localStorage.getItem("smartshop_orders");
+  if(raw){
+    const parsed=JSON.parse(raw);
+    if(!Array.isArray(parsed)) localStorage.removeItem("smartshop_orders");
+  }
+}catch(e){
+  localStorage.removeItem("smartshop_orders");
 }
 </script>
 

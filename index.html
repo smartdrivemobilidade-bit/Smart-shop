@@ -8,6 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Smart Shop">
 <link rel="manifest" href="manifest.webmanifest">
 <title>Smart Shop</title>
+<meta name="smart-shop-version" content="2026.08.24-integrated-1">
 <style>
 :root{
   --blue:#0b4ea2;--blue-dark:#07346f;--orange:#ff7a00;--bg:#f6f7fb;
@@ -397,7 +398,7 @@ nav button{position:relative}
         <div><b>Meus pedidos</b><small>Acompanhe suas compras</small></div>
       </div><span>›</span>
     </div>
-    <div class="account-item">
+    <div class="account-item" onclick="openPrivacy()">
       <div class="left">
         <svg viewBox="0 0 24 24"><path d="M12 21s7-4 7-11V5l-7-2-7 2v5c0 7 7 11 7 11z"/><path d="M9 12l2 2 4-4"/></svg>
         <div><b>Privacidade e segurança</b><small>Senha e dados da conta</small></div>
@@ -431,6 +432,26 @@ nav button{position:relative}
   <div id="savedAddress" class="profile-card" style="display:none"></div>
 </div>
 
+
+<div id="privacyView" class="view account-view">
+  <button class="back-btn" onclick="openAccount()">← Minha conta</button>
+  <h2 style="margin:4px 0 14px">Privacidade e segurança</h2>
+  <div class="form-card">
+    <label>Nome completo</label>
+    <input id="privacyName" type="text" placeholder="Seu nome">
+    <label>Celular</label>
+    <input id="privacyPhone" type="tel" placeholder="(31) 99999-9999">
+    <label>E-mail</label>
+    <input id="privacyEmail" type="email" placeholder="seuemail@exemplo.com">
+    <label>Nova senha</label>
+    <input id="privacyPassword" type="password" placeholder="Deixe em branco para manter">
+    <button class="primary-btn" style="margin-top:14px" onclick="savePrivacy()">Salvar alterações</button>
+  </div>
+  <div class="profile-card" style="font-size:11px;color:var(--muted);line-height:1.5">
+    Seus dados ficam salvos neste navegador nesta versão demonstrativa.
+  </div>
+</div>
+
 <nav>
   <button id="navHome" class="active" onclick="showView('homeView')"><svg class="icon" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v10h-6v-6H9v6H3z"/></svg>Início</button>
   <button onclick="openCategory('Todos')"><svg class="icon" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><rect x="14" y="14" width="6" height="6"/></svg>Categorias</button>
@@ -442,55 +463,143 @@ nav button{position:relative}
 </div>
 
 
+
 <script>
+"use strict";
+
+/* ============================================================
+   SMART SHOP — VERSÃO INTEGRADA
+   Protótipo funcional local (sem backend)
+   ============================================================ */
+const APP_VERSION = "2026.08.24-integrated-1";
+const CUSTOMER_KEY = "smartshop_customer";
+const SESSION_KEY  = "smartshop_session";
+const ADDRESS_KEY  = "smartshop_address";
+const CART_KEY     = "smartshop_cart";
+const ORDERS_KEY   = "smartshop_orders";
+
+/* ---------- utilitários de armazenamento ---------- */
+function safeParse(value, fallback){
+  try{
+    const parsed = JSON.parse(value);
+    return parsed ?? fallback;
+  }catch(e){
+    return fallback;
+  }
+}
+function readObject(key){
+  const v = safeParse(localStorage.getItem(key), null);
+  return v && typeof v === "object" && !Array.isArray(v) ? v : null;
+}
+function readArray(key){
+  const v = safeParse(localStorage.getItem(key), []);
+  return Array.isArray(v) ? v : [];
+}
+function writeStorage(key, value){
+  try{
+    localStorage.setItem(key, JSON.stringify(value));
+    return true;
+  }catch(e){
+    try{
+      sessionStorage.setItem(key, JSON.stringify(value));
+      return true;
+    }catch(_){
+      return false;
+    }
+  }
+}
+function removeStorage(key){
+  try{ localStorage.removeItem(key); }catch(e){}
+  try{ sessionStorage.removeItem(key); }catch(e){}
+}
+
+/* ---------- produtos ---------- */
+const initialImgs = document.querySelectorAll(".productImg img");
 const productsData = [
   {
     id:0, name:"Bolsa Feminina", category:"Moda", store:"Bella Moda",
     price:119.90, oldPrice:139.90, discount:"-15%",
-    image:document.querySelectorAll(".productImg img")[0]?.src || "",
+    image:initialImgs[0]?.src || "",
     description:"Bolsa feminina elegante para uso diário, com acabamento moderno e entrega local."
   },
   {
     id:1, name:"Tênis Esportivo", category:"Calçados", store:"Store Tech",
     price:159.90, oldPrice:199.90, discount:"-20%",
-    image:document.querySelectorAll(".productImg img")[1]?.src || "",
+    image:initialImgs[1]?.src || "",
     description:"Tênis esportivo confortável, leve e indicado para uso diário e atividades casuais."
   }
 ];
 
-let cart = [];
+let currentView = "homeView";
+let previousView = "homeView";
+let cart = readArray(CART_KEY).filter(i => i && Number.isFinite(Number(i.id)) && Number(i.qty) > 0);
+let orders = readArray(ORDERS_KEY).filter(o => o && Array.isArray(o.items));
 
-function money(v){return v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}
-
-function showView(id){
-  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
-  document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
-  if(id==="homeView") document.getElementById("navHome").classList.add("active");
-  window.scrollTo({top:0,behavior:"smooth"});
+/* Migração: preserva a conta criada nas versões anteriores como sessão ativa. */
+if(readObject(CUSTOMER_KEY) && localStorage.getItem(SESSION_KEY) === null){
+  writeStorage(SESSION_KEY, {active:true});
 }
 
+function money(v){
+  return (Number(v)||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+}
+function escapeHtml(v){
+  return String(v ?? "").replace(/[&<>"']/g, m => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[m]));
+}
+function saveCart(){
+  writeStorage(CART_KEY, cart);
+  updateCartBadge();
+}
+function saveOrders(){
+  writeStorage(ORDERS_KEY, orders);
+}
+
+/* ---------- navegação ---------- */
+function showView(id){
+  const target = document.getElementById(id);
+  if(!target) return;
+  previousView = currentView;
+  currentView = id;
+
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+  target.classList.add("active");
+
+  document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
+  const navButtons = [...document.querySelectorAll("nav button")];
+  if(id==="homeView") navButtons[0]?.classList.add("active");
+  if(id==="categoryView") navButtons[1]?.classList.add("active");
+  if(id==="ordersView") navButtons[3]?.classList.add("active");
+  if(["accountView","loginView","registerView","addressView","privacyView"].includes(id)) navButtons[4]?.classList.add("active");
+
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function historyBackView(){
+  showView(previousView && document.getElementById(previousView) ? previousView : "homeView");
+}
+
+/* ---------- cards / categorias / lojas ---------- */
 function productCard(p){
   return `<article class="product clickable" onclick="openProduct(${p.id})">
-    <span class="discount">${p.discount}</span>
-    <div class="productImg"><img src="${p.image}" alt="${p.name}"></div>
+    <span class="discount">${escapeHtml(p.discount)}</span>
+    <div class="productImg"><img src="${p.image}" alt="${escapeHtml(p.name)}"></div>
     <div class="productBody">
-      <h3>${p.name}</h3>
+      <h3>${escapeHtml(p.name)}</h3>
       <div class="price"><strong>${money(p.price)}</strong><del>${money(p.oldPrice)}</del></div>
-      <div class="meta">${p.store} · entrega hoje</div>
+      <div class="meta">${escapeHtml(p.store)} · entrega hoje</div>
     </div>
   </article>`;
 }
-
 function openCategory(category){
   const list = category==="Todos" ? productsData : productsData.filter(p=>p.category===category);
-  document.getElementById("categoryView").innerHTML = `
+  const box = document.getElementById("categoryView");
+  box.innerHTML = `
     <button class="back-btn" onclick="showView('homeView')">← Voltar</button>
-    <h2 class="filter-title">${category==="Todos"?"Todas as categorias":category}</h2>
+    <h2 class="filter-title">${category==="Todos"?"Todas as categorias":escapeHtml(category)}</h2>
     <div class="grid-list">${list.length?list.map(productCard).join(""):'<div class="empty">Nenhum produto nesta categoria ainda.</div>'}</div>`;
   showView("categoryView");
 }
-
 function openStore(store){
   const list = productsData.filter(p=>p.store===store);
   const initials = store==="Bella Moda"?"BM":"ST";
@@ -499,120 +608,149 @@ function openStore(store){
     <button class="back-btn" onclick="showView('homeView')">← Voltar</button>
     <div class="store-header">
       <div class="storeLogo${tech}">${initials}</div>
-      <div><h2 style="margin:0 0 5px">${store}</h2><div style="color:var(--muted);font-size:12px">★ 4,9 · Entrega hoje</div></div>
+      <div>
+        <h2 style="margin:0 0 5px">${escapeHtml(store)}</h2>
+        <div style="color:var(--muted);font-size:12px">★ 4,9 · Entrega hoje</div>
+      </div>
     </div>
     <div class="grid-list">${list.length?list.map(productCard).join(""):'<div class="empty">Nenhum produto cadastrado nesta loja.</div>'}</div>`;
   showView("storeView");
 }
 
+/* ---------- produto ---------- */
 function openProduct(id){
-  const p = productsData.find(x=>x.id===id);
+  const p = productsData.find(x=>x.id===Number(id));
   if(!p) return;
   document.getElementById("productView").innerHTML = `
     <button class="back-btn" onclick="historyBackView()">← Voltar</button>
     <div class="detail-card">
-      <div class="detail-image"><img src="${p.image}" alt="${p.name}"></div>
-      <h2>${p.name}</h2>
+      <div class="detail-image"><img src="${p.image}" alt="${escapeHtml(p.name)}"></div>
+      <h2>${escapeHtml(p.name)}</h2>
       <div><span class="detail-price">${money(p.price)}</span><span class="detail-old">${money(p.oldPrice)}</span></div>
-      <div class="detail-meta">${p.store} · entrega hoje</div>
-      <p style="font-size:13px;color:var(--muted);line-height:1.5">${p.description}</p>
-      <div class="qty-row"><b>Quantidade</b><div class="qty-box"><button onclick="changeQty(-1)">−</button><span id="qtyValue">1</span><button onclick="changeQty(1)">+</button></div></div>
-      <button class="primary-btn" onclick="addToCart(${p.id})">Adicionar ao carrinho</button>
+      <div class="detail-meta">${escapeHtml(p.store)} · entrega hoje</div>
+      <p style="font-size:13px;color:var(--muted);line-height:1.5">${escapeHtml(p.description)}</p>
+      <div class="qty-row">
+        <b>Quantidade</b>
+        <div class="qty-box">
+          <button onclick="changeQty(-1)">−</button>
+          <span id="qtyValue">1</span>
+          <button onclick="changeQty(1)">+</button>
+        </div>
+      </div>
+      <button class="primary-btn" onclick="addToCart(${p.id},true)">Adicionar ao carrinho</button>
       <button class="secondary-btn" onclick="buyNow(${p.id})">Comprar agora</button>
     </div>`;
   showView("productView");
 }
-
-function historyBackView(){showView("homeView")}
-
 function changeQty(delta){
   const el=document.getElementById("qtyValue");
-  if(!el)return;
-  let q=Math.max(1,parseInt(el.textContent||"1")+delta);
+  if(!el) return;
+  const q=Math.max(1, Math.min(99, (parseInt(el.textContent||"1",10)||1)+Number(delta)));
   el.textContent=q;
 }
-
-function addToCart(id){
-  const p=productsData.find(x=>x.id===id);
-  const q=parseInt(document.getElementById("qtyValue")?.textContent||"1");
-  const existing=cart.find(x=>x.id===id);
-  if(existing) existing.qty+=q; else cart.push({...p,qty:q});
-  updateCartBadge();
-  alert("Produto adicionado ao carrinho.");
+function addToCart(id, notify=true){
+  const p=productsData.find(x=>x.id===Number(id));
+  if(!p) return;
+  const q=Math.max(1, parseInt(document.getElementById("qtyValue")?.textContent||"1",10)||1);
+  const existing=cart.find(x=>x.id===p.id);
+  if(existing) existing.qty=Number(existing.qty||0)+q;
+  else cart.push({...p,qty:q});
+  saveCart();
+  if(notify) alert("Produto adicionado ao carrinho.");
+}
+function buyNow(id){
+  addToCart(id,false);
+  openCart();
 }
 
-function buyNow(id){ addToCart(id); openCart(); }
-
+/* ---------- carrinho ---------- */
 function updateCartBadge(){
-  const n=cart.reduce((s,i)=>s+i.qty,0);
-
-  const badgeBottom=document.getElementById("cartBadge");
-  if(badgeBottom){
-    badgeBottom.textContent=n;
-    badgeBottom.style.display=n?"grid":"none";
+  const n=cart.reduce((s,i)=>s+(Number(i.qty)||0),0);
+  const top=document.getElementById("cartBadgeTop");
+  if(top){
+    top.textContent=n;
+    top.style.display=n?"grid":"none";
   }
-
-  const badgeTop=document.getElementById("cartBadgeTop");
-  if(badgeTop){
-    badgeTop.textContent=n;
-    badgeTop.style.display=n?"grid":"none";
+  const bottom=document.getElementById("cartBadge");
+  if(bottom){
+    bottom.textContent=n;
+    bottom.style.display=n?"grid":"none";
   }
 }
-
+function changeCartQty(id, delta){
+  const item=cart.find(i=>i.id===Number(id));
+  if(!item) return;
+  item.qty=Math.max(1,Math.min(99,(Number(item.qty)||1)+Number(delta)));
+  saveCart();
+  openCart();
+}
+function removeCartItem(id){
+  cart=cart.filter(i=>i.id!==Number(id));
+  saveCart();
+  openCart();
+}
 function openCart(){
-  const total=cart.reduce((s,i)=>s+i.price*i.qty,0);
+  const total=cart.reduce((s,i)=>s+(Number(i.price)||0)*(Number(i.qty)||0),0);
   document.getElementById("cartView").innerHTML = `
     <button class="back-btn" onclick="showView('homeView')">← Continuar comprando</button>
     <h2 class="filter-title">Seu carrinho</h2>
     <div class="cart-card">
       ${cart.length?cart.map(i=>`
-        <div class="cart-row">
-          <img src="${i.image}" alt="${i.name}">
-          <div><h4>${i.name}</h4><p>${i.store}</p><p>Qtd.: ${i.qty}</p></div>
-          <div class="cart-price">${money(i.price*i.qty)}</div>
+        <div class="cart-row" style="grid-template-columns:74px 1fr auto">
+          <img src="${i.image}" alt="${escapeHtml(i.name)}">
+          <div>
+            <h4>${escapeHtml(i.name)}</h4>
+            <p>${escapeHtml(i.store)}</p>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:7px">
+              <button onclick="changeCartQty(${i.id},-1)" style="width:28px;height:28px;border:1px solid var(--line);border-radius:8px;background:#fff;font-weight:900">−</button>
+              <b style="font-size:12px">${i.qty}</b>
+              <button onclick="changeCartQty(${i.id},1)" style="width:28px;height:28px;border:1px solid var(--line);border-radius:8px;background:#fff;font-weight:900">+</button>
+              <button onclick="removeCartItem(${i.id})" style="border:0;background:none;color:#b42318;font-size:11px;font-weight:800">Remover</button>
+            </div>
+          </div>
+          <div class="cart-price">${money((Number(i.price)||0)*(Number(i.qty)||0))}</div>
         </div>`).join(""):'<div class="empty">Seu carrinho está vazio.</div>'}
     </div>
-    ${cart.length?`<div class="cart-card"><div class="cart-total"><span>Total</span><span>${money(total)}</span></div></div>
-    <button class="primary-btn" onclick="checkout()">Finalizar pedido</button>`:""}`;
+    ${cart.length?`
+      <div class="cart-card"><div class="cart-total"><span>Total</span><span>${money(total)}</span></div></div>
+      <button class="primary-btn" onclick="checkout()">Finalizar pedido</button>`:""}`;
   showView("cartView");
 }
 
-
-
+/* ---------- busca ---------- */
 function focusSearch(){
   showView("homeView");
   setTimeout(()=>document.getElementById("searchInput")?.focus(),100);
 }
-
 function searchProducts(){
   const q=(document.getElementById("searchInput")?.value||"").trim().toLowerCase();
   if(!q) return;
   const list=productsData.filter(p=>(p.name+" "+p.category+" "+p.store).toLowerCase().includes(q));
   document.getElementById("categoryView").innerHTML = `
     <button class="back-btn" onclick="showView('homeView')">← Voltar</button>
-    <h2 class="filter-title">Resultados para "${q}"</h2>
+    <h2 class="filter-title">Resultados para "${escapeHtml(q)}"</h2>
     <div class="grid-list">${list.length?list.map(productCard).join(""):'<div class="empty">Nenhum produto encontrado.</div>'}</div>`;
   showView("categoryView");
 }
 
-
-const CUSTOMER_KEY="smartshop_customer";
-const ADDRESS_KEY="smartshop_address";
-
+/* ---------- conta ---------- */
 function getCustomer(){
-  try{return JSON.parse(localStorage.getItem(CUSTOMER_KEY)||"null")}catch(e){return null}
+  return readObject(CUSTOMER_KEY);
 }
-
+function isLoggedIn(){
+  const c=getCustomer();
+  const s=readObject(SESSION_KEY);
+  return !!(c && s && s.active);
+}
 function openAccount(){
   const c=getCustomer();
-  if(!c){
+  if(!c || !isLoggedIn()){
     showView("loginView");
     return;
   }
   renderAccount(c);
   showView("accountView");
 }
-
 function renderAccount(c){
   const nameEl=document.getElementById("accountName");
   const emailEl=document.getElementById("accountEmail");
@@ -620,285 +758,319 @@ function renderAccount(c){
   if(nameEl) nameEl.textContent=c.name||"Cliente Smart Shop";
   if(emailEl) emailEl.textContent=c.email||c.phone||"";
   const parts=(c.name||"Cliente Smart").trim().split(/\s+/).filter(Boolean);
-  if(avatarEl) avatarEl.textContent=((parts[0]?.[0]||"S")+(parts[1]?.[0]||"S")).toUpperCase();
+  if(avatarEl){
+    const second=parts.length>1?parts[parts.length-1]:parts[0];
+    avatarEl.textContent=((parts[0]?.[0]||"S")+(second?.[0]||"S")).toUpperCase();
+  }
+  let version=document.getElementById("smartShopVersion");
+  if(!version){
+    version=document.createElement("div");
+    version.id="smartShopVersion";
+    version.style.cssText="text-align:center;color:var(--muted);font-size:9px;margin-top:16px";
+    document.querySelector("#accountView .account-menu")?.appendChild(version);
+  }
+  if(version) version.textContent="Smart Shop · "+APP_VERSION;
 }
-
 function loginCustomer(){
-  const email=document.getElementById("loginEmail")?.value.trim()||"";
-  const pass=document.getElementById("loginPassword")?.value.trim()||"";
-  if(!email||!pass){
+  const login=(document.getElementById("loginEmail")?.value||"").trim();
+  const pass=(document.getElementById("loginPassword")?.value||"").trim();
+  if(!login||!pass){
     alert("Preencha usuário e senha.");
     return;
   }
-  let c=getCustomer();
+  const c=getCustomer();
   if(!c){
-    c={name:"Cliente Smart Shop",email:email,phone:""};
-    localStorage.setItem(CUSTOMER_KEY,JSON.stringify(c));
+    alert("Cadastro não encontrado. Crie sua conta.");
+    showRegister();
+    return;
   }
+  const identityOk =
+    login.toLowerCase()===(c.email||"").toLowerCase() ||
+    login.replace(/\D/g,"")===(c.phone||"").replace(/\D/g,"");
+  if(!identityOk){
+    alert("E-mail ou celular não encontrado.");
+    return;
+  }
+  if(c.password && c.password!==pass){
+    alert("Senha incorreta.");
+    return;
+  }
+  if(!c.password){
+    c.password=pass; // migração de contas antigas
+    writeStorage(CUSTOMER_KEY,c);
+  }
+  writeStorage(SESSION_KEY,{active:true,at:Date.now()});
   renderAccount(c);
   showView("accountView");
 }
-
 function showRegister(){
   showView("registerView");
 }
-
 function registerCustomer(){
-  const name=document.getElementById("regName")?.value.trim()||"";
-  const phone=document.getElementById("regPhone")?.value.trim()||"";
-  const email=document.getElementById("regEmail")?.value.trim()||"";
-  const pass=document.getElementById("regPassword")?.value.trim()||"";
-  if(!name||!phone||!email||!pass){
+  const name=(document.getElementById("regName")?.value||"").trim();
+  const phone=(document.getElementById("regPhone")?.value||"").trim();
+  const email=(document.getElementById("regEmail")?.value||"").trim();
+  const password=(document.getElementById("regPassword")?.value||"").trim();
+  if(!name||!phone||!email||!password){
     alert("Preencha todos os campos.");
     return;
   }
-  const c={name,phone,email};
-  localStorage.setItem(CUSTOMER_KEY,JSON.stringify(c));
+  if(password.length<4){
+    alert("A senha deve ter pelo menos 4 caracteres.");
+    return;
+  }
+  const c={name,phone,email,password};
+  writeStorage(CUSTOMER_KEY,c);
+  writeStorage(SESSION_KEY,{active:true,at:Date.now()});
   renderAccount(c);
   showView("accountView");
 }
-
 function logoutCustomer(){
-  localStorage.removeItem(CUSTOMER_KEY);
+  removeStorage(SESSION_KEY);
+  alert("Você saiu da sua conta.");
   showView("homeView");
 }
 
+/* ---------- endereço ---------- */
 function openAddresses(){
-  const raw=localStorage.getItem(ADDRESS_KEY);
-  if(raw){
-    try{
-      const a=JSON.parse(raw);
-      document.getElementById("addrCep").value=a.cep||"";
-      document.getElementById("addrStreet").value=a.street||"";
-      document.getElementById("addrNumber").value=a.number||"";
-      document.getElementById("addrDistrict").value=a.district||"";
-      document.getElementById("addrComplement").value=a.complement||"";
-      renderSavedAddress(a);
-    }catch(e){}
+  if(!isLoggedIn()){
+    showView("loginView");
+    return;
+  }
+  const a=readObject(ADDRESS_KEY);
+  if(a){
+    document.getElementById("addrCep").value=a.cep||"";
+    document.getElementById("addrStreet").value=a.street||"";
+    document.getElementById("addrNumber").value=a.number||"";
+    document.getElementById("addrDistrict").value=a.district||"";
+    document.getElementById("addrComplement").value=a.complement||"";
+    renderSavedAddress(a);
   }
   showView("addressView");
 }
-
+function formatCep(value){
+  const d=String(value||"").replace(/\D/g,"").slice(0,8);
+  return d.length>5 ? d.slice(0,5)+"-"+d.slice(5) : d;
+}
 function saveAddress(){
   const a={
-    cep:document.getElementById("addrCep")?.value.trim()||"",
-    street:document.getElementById("addrStreet")?.value.trim()||"",
-    number:document.getElementById("addrNumber")?.value.trim()||"",
-    district:document.getElementById("addrDistrict")?.value.trim()||"",
-    complement:document.getElementById("addrComplement")?.value.trim()||""
+    cep:formatCep(document.getElementById("addrCep")?.value||""),
+    street:(document.getElementById("addrStreet")?.value||"").trim(),
+    number:(document.getElementById("addrNumber")?.value||"").trim(),
+    district:(document.getElementById("addrDistrict")?.value||"").trim(),
+    complement:(document.getElementById("addrComplement")?.value||"").trim()
   };
   if(!a.street||!a.number||!a.district){
     alert("Preencha rua, número e bairro.");
     return;
   }
-  localStorage.setItem(ADDRESS_KEY,JSON.stringify(a));
+  if(!writeStorage(ADDRESS_KEY,a)){
+    alert("Não foi possível salvar o endereço neste navegador.");
+    return;
+  }
+  document.getElementById("addrCep").value=a.cep;
   renderSavedAddress(a);
   alert("Endereço salvo.");
 }
-
 function renderSavedAddress(a){
   const box=document.getElementById("savedAddress");
   if(!box) return;
   box.style.display="block";
   box.innerHTML=`<b>Endereço principal</b>
-    <p style="margin:7px 0 0;color:var(--muted);font-size:12px">
-      ${a.street}, ${a.number} - ${a.district}
-      ${a.complement?`<br>${a.complement}`:""}
-      ${a.cep?`<br>CEP ${a.cep}`:""}
+    <p style="margin:7px 0 0;color:var(--muted);font-size:12px;line-height:1.45">
+      ${escapeHtml(a.street)}, ${escapeHtml(a.number)} - ${escapeHtml(a.district)}
+      ${a.complement?`<br>${escapeHtml(a.complement)}`:""}
+      ${a.cep?`<br>CEP ${escapeHtml(a.cep)}`:""}
     </p>`;
 }
 
+/* ---------- privacidade ---------- */
+function openPrivacy(){
+  if(!isLoggedIn()){
+    showView("loginView");
+    return;
+  }
+  const c=getCustomer();
+  document.getElementById("privacyName").value=c?.name||"";
+  document.getElementById("privacyPhone").value=c?.phone||"";
+  document.getElementById("privacyEmail").value=c?.email||"";
+  document.getElementById("privacyPassword").value="";
+  showView("privacyView");
+}
+function savePrivacy(){
+  const c=getCustomer();
+  if(!c) return;
+  const name=(document.getElementById("privacyName")?.value||"").trim();
+  const phone=(document.getElementById("privacyPhone")?.value||"").trim();
+  const email=(document.getElementById("privacyEmail")?.value||"").trim();
+  const password=(document.getElementById("privacyPassword")?.value||"").trim();
+  if(!name||!phone||!email){
+    alert("Preencha nome, celular e e-mail.");
+    return;
+  }
+  c.name=name;c.phone=phone;c.email=email;
+  if(password){
+    if(password.length<4){
+      alert("A nova senha deve ter pelo menos 4 caracteres.");
+      return;
+    }
+    c.password=password;
+  }
+  writeStorage(CUSTOMER_KEY,c);
+  renderAccount(c);
+  alert("Dados atualizados.");
+  showView("accountView");
+}
 
-
-const ORDERS_KEY="smartshop_orders";
-let ordersMemory=null;
-
+/* ---------- pedidos ---------- */
 function getOrders(){
-  if(Array.isArray(ordersMemory)) return ordersMemory;
-  try{
-    const parsed=JSON.parse(localStorage.getItem(ORDERS_KEY)||"[]");
-    ordersMemory=Array.isArray(parsed)?parsed:[];
-  }catch(e){
-    ordersMemory=[];
-  }
-  return ordersMemory;
+  if(!Array.isArray(orders)) orders=[];
+  return orders;
 }
-
-function saveOrders(list){
-  ordersMemory=Array.isArray(list)?list:[];
-  try{
-    localStorage.setItem(ORDERS_KEY,JSON.stringify(ordersMemory));
-  }catch(e){
-    try{
-      sessionStorage.setItem(ORDERS_KEY,JSON.stringify(ordersMemory));
-    }catch(_){}
-  }
-}
-
-function openOrders(){
-  renderOrders();
-  showView("ordersView");
-}
-
 function renderOrders(){
-  let list=getOrders();
-
-  if((!list || !list.length)){
-    try{
-      const fallback=JSON.parse(sessionStorage.getItem(ORDERS_KEY)||"[]");
-      if(Array.isArray(fallback) && fallback.length){
-        list=fallback;
-        ordersMemory=fallback;
-      }
-    }catch(e){}
-  }
-
+  const list=getOrders();
   const box=document.getElementById("ordersList");
   if(!box) return;
 
-  if(!Array.isArray(list) || !list.length){
+  if(!list.length){
     box.innerHTML=`<div class="order-card"><div class="empty">Você ainda não possui pedidos finalizados.</div></div>`;
     return;
   }
 
-  box.innerHTML=list.map((o)=>{
-    const cls=o.status==="Entregue"?"status-done":o.status==="Saiu para entrega"?"status-route":"status-prep";
+  box.innerHTML=list.map(o=>{
+    const status=o.status||"Em preparação";
+    const cls=status==="Entregue"?"status-done":status==="Saiu para entrega"?"status-route":"status-prep";
     const items=(o.items||[]).map(i=>`
       <div class="order-line">
-        <span>${i.qty}x ${i.name}${i.store?` · ${i.store}`:""}</span>
-        <span>${money((Number(i.price)||0)*(Number(i.qty)||0))}</span>
+        <span>${Number(i.qty)||1}x ${escapeHtml(i.name)}${i.store?` · ${escapeHtml(i.store)}`:""}</span>
+        <span>${money((Number(i.price)||0)*(Number(i.qty)||1))}</span>
       </div>`).join("");
-
-    const addr=o.address
-      ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);line-height:1.45">
-           <b style="color:var(--text)">Entrega</b><br>
-           ${o.address.street||""}, ${o.address.number||""} - ${o.address.district||""}
-           ${o.address.complement?`<br>${o.address.complement}`:""}
-           ${o.address.cep?`<br>CEP ${o.address.cep}`:""}
-         </div>`
-      : "";
-
+    const a=o.address||{};
+    const addr=a.street ? `
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);line-height:1.45">
+        <b style="color:var(--text)">Entrega</b><br>
+        ${escapeHtml(a.street)}, ${escapeHtml(a.number)} - ${escapeHtml(a.district)}
+        ${a.complement?`<br>${escapeHtml(a.complement)}`:""}
+        ${a.cep?`<br>CEP ${escapeHtml(a.cep)}`:""}
+      </div>`:"";
     return `<div class="order-card">
       <div class="order-head">
         <div>
-          <h3>Pedido #${o.number||""}</h3>
-          <small>${o.date||""}</small>
+          <h3>Pedido #${escapeHtml(o.number)}</h3>
+          <small>${escapeHtml(o.date)}</small>
         </div>
-        <span class="status-pill ${cls}">${o.status||"Em preparação"}</span>
+        <span class="status-pill ${cls}">${escapeHtml(status)}</span>
       </div>
       <div class="order-items">${items}</div>
-      <div class="order-total">
-        <span>Total</span>
-        <span>${money(Number(o.total)||0)}</span>
-      </div>
+      <div class="order-total"><span>Total</span><span>${money(o.total)}</span></div>
       ${addr}
     </div>`;
   }).join("");
 }
-
+function openOrders(){
+  if(!isLoggedIn()){
+    showView("loginView");
+    return;
+  }
+  // Recarrega do armazenamento para refletir inclusive uma atualização da página.
+  const stored=readArray(ORDERS_KEY);
+  if(stored.length || !orders.length) orders=stored;
+  renderOrders();
+  showView("ordersView");
+}
 function checkout(){
-  if(!Array.isArray(cart) || !cart.length){
+  if(!cart.length){
     alert("Seu carrinho está vazio.");
     return;
   }
-
-  const customer=getCustomer();
-  if(!customer){
+  if(!isLoggedIn()){
     alert("Entre na sua conta antes de finalizar o pedido.");
     showView("loginView");
     return;
   }
-
-  let address=null;
-  try{
-    address=JSON.parse(localStorage.getItem(ADDRESS_KEY)||"null");
-  }catch(e){ address=null; }
-
+  const customer=getCustomer();
+  const address=readObject(ADDRESS_KEY);
   if(!address || !address.street || !address.number || !address.district){
     alert("Cadastre um endereço de entrega antes de finalizar o pedido.");
     openAddresses();
     return;
   }
 
-  let orders=getOrders();
-  if(!Array.isArray(orders)) orders=[];
-
-  const total=cart.reduce((s,i)=>s+(Number(i.price)||0)*(Number(i.qty)||0),0);
+  const snapshot=cart.map(i=>({
+    id:Number(i.id),
+    name:i.name,
+    price:Number(i.price)||0,
+    qty:Number(i.qty)||1,
+    store:i.store||"",
+    image:i.image||""
+  }));
+  const total=snapshot.reduce((s,i)=>s+i.price*i.qty,0);
   const now=new Date();
-
   const order={
-    number:"SS"+String(Date.now()).slice(-6),
+    number:"SS"+String(Date.now()).slice(-7),
     date:now.toLocaleString("pt-BR"),
+    createdAt:now.toISOString(),
     status:"Em preparação",
-    customer:{
-      name:customer.name||"",
-      email:customer.email||"",
-      phone:customer.phone||""
-    },
-    address:{
-      street:address.street||"",
-      number:address.number||"",
-      district:address.district||"",
-      complement:address.complement||"",
-      cep:address.cep||""
-    },
-    items:cart.map(i=>({
-      id:i.id,
-      name:i.name,
-      price:Number(i.price)||0,
-      qty:Number(i.qty)||1,
-      store:i.store||""
-    })),
-    total
+    customer:{name:customer?.name||"",email:customer?.email||"",phone:customer?.phone||""},
+    address:{...address},
+    items:snapshot,
+    total:Number(total.toFixed(2))
   };
 
-  orders=[order,...orders];
-  saveOrders(orders);
+  // Primeiro atualiza a memória, depois grava, depois confirma lendo novamente.
+  orders=[order,...getOrders()];
+  const saved=writeStorage(ORDERS_KEY,orders);
+  if(!saved){
+    orders=orders.filter(o=>o.number!==order.number);
+    alert("Não foi possível salvar o pedido neste navegador.");
+    return;
+  }
 
-  // Renderiza primeiro, antes de limpar o carrinho.
+  const confirmed=readArray(ORDERS_KEY);
+  const exists=confirmed.some(o=>o.number===order.number);
+  if(!exists){
+    alert("O navegador não confirmou a gravação do pedido. O carrinho foi preservado.");
+    return;
+  }
+
+  orders=confirmed;
+  cart=[];
+  saveCart();
+
+  // Exibe o pedido gravado antes de qualquer outra ação.
   renderOrders();
   showView("ordersView");
-
-  // Limpa o carrinho somente depois que o pedido já está na tela.
-  cart=[];
-  updateCartBadge();
-
   alert("Pedido finalizado com sucesso! Pedido #"+order.number);
 }
+
+/* ---------- inicialização ---------- */
+function initSmartShop(){
+  // Normaliza dados antigos corrompidos sem apagar dados válidos.
+  if(!Array.isArray(readArray(CART_KEY))) writeStorage(CART_KEY,[]);
+  if(!Array.isArray(readArray(ORDERS_KEY))) writeStorage(ORDERS_KEY,[]);
+  cart=readArray(CART_KEY);
+  orders=readArray(ORDERS_KEY);
+  updateCartBadge();
+
+  const cep=document.getElementById("addrCep");
+  if(cep){
+    cep.addEventListener("input",()=>{ cep.value=formatCep(cep.value); });
+  }
+}
+document.addEventListener("DOMContentLoaded", initSmartShop);
 </script>
 
 <script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister()));
-}
-if ('caches' in window) {
-  caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
-}
-</script>
-
-<script>
+/* PWA: registra e pede atualização sem apagar os dados do cliente. */
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
     try {
       const reg = await navigator.serviceWorker.register("./sw.js");
       await reg.update();
     } catch (e) {
-      console.log("SW update:", e);
+      console.log("Service Worker:", e);
     }
   });
-}
-</script>
-
-
-<script>
-try{
-  const raw=localStorage.getItem("smartshop_orders");
-  if(raw){
-    const parsed=JSON.parse(raw);
-    if(!Array.isArray(parsed)) localStorage.removeItem("smartshop_orders");
-  }
-}catch(e){
-  localStorage.removeItem("smartshop_orders");
 }
 </script>
 

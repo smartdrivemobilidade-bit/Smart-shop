@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Smart Shop">
 <link rel="manifest" href="manifest.webmanifest">
 <title>Smart Shop</title>
-<meta name="smart-shop-version" content="2026.08.24-merchant-2">
+<meta name="smart-shop-version" content="2026.08.24-supabase-1">
 <style>
 :root{
   --blue:#0b4ea2;--blue-dark:#07346f;--orange:#ff7a00;--bg:#f6f7fb;
@@ -386,8 +386,8 @@ nav button{position:relative}
   </div>
   <div id="loginStatus" class="status-ok">Login realizado com sucesso.</div>
   <div class="form-card">
-    <label>E-mail ou celular</label>
-    <input id="loginEmail" type="text" placeholder="Digite seu e-mail ou celular">
+    <label>E-mail</label>
+    <input id="loginEmail" type="text" placeholder="Digite seu e-mail">
     <label>Senha</label>
     <input id="loginPassword" type="password" placeholder="Digite sua senha">
     <button class="secondary-btn" style="margin-top:14px" onclick="loginCustomer()">Entrar</button>
@@ -502,19 +502,16 @@ nav button{position:relative}
 
 
 <div id="merchantLoginView" class="view merchant-view">
-  <button class="back-btn" onclick="openAccount()">← Minha conta</button>
+  <button class="back-btn" onclick="showView('loginView')">← Voltar</button>
   <h2 style="margin:4px 0 14px">Área do lojista</h2>
   <div class="merchant-login-card">
-    <label>Loja</label>
-    <select id="merchantStore">
-      <option value="Bella Moda">Bella Moda</option>
-      <option value="Store Tech">Store Tech</option>
-    </select>
-    <label>Senha de demonstração</label>
-    <input id="merchantPassword" type="password" placeholder="Digite 1234">
+    <label>E-mail da loja</label>
+    <input id="merchantEmail" type="email" placeholder="loja@exemplo.com">
+    <label>Senha</label>
+    <input id="merchantPassword" type="password" placeholder="Digite sua senha">
     <button class="primary-btn" style="margin-top:14px" onclick="merchantLogin()">Entrar no painel</button>
     <p style="font-size:10px;color:var(--muted);line-height:1.5;margin:12px 2px 0">
-      Nesta versão demonstrativa, use a senha <b>1234</b>. O painel lê os pedidos deste navegador.
+      Cada lojista entra com sua própria conta e vê somente os pedidos da sua loja.
     </p>
   </div>
 </div>
@@ -1264,6 +1261,362 @@ function initSmartShop(){
   }
 }
 document.addEventListener("DOMContentLoaded", initSmartShop);
+</script>
+
+
+<script>
+/* ============================================================
+   SMART SHOP + SUPABASE
+   Banco central para clientes, endereços, pedidos e lojistas
+   ============================================================ */
+const SMART_SUPABASE_URL = "https://iwbxyhcmcxeaqkkqveni.supabase.co";
+const SMART_SUPABASE_KEY = "sb_publishable_IzQQoCCGBeLf4XJ5kuoH8w_PonG2uqN";
+const SMART_SUPA_SESSION = "smartshop_supabase_session";
+let smartSupaSession = null;
+let smartSupaUser = null;
+let smartMerchantStore = null;
+let smartCurrentAddress = null;
+
+function smartGetSession(){
+  try{ return JSON.parse(localStorage.getItem(SMART_SUPA_SESSION)||"null"); }
+  catch(e){ return null; }
+}
+function smartSaveSession(s){
+  smartSupaSession=s||null;
+  smartSupaUser=s?.user||null;
+  if(s) localStorage.setItem(SMART_SUPA_SESSION,JSON.stringify(s));
+  else localStorage.removeItem(SMART_SUPA_SESSION);
+}
+function smartHeaders(token=smartSupaSession?.access_token){
+  const h={"apikey":SMART_SUPABASE_KEY,"Content-Type":"application/json"};
+  if(token) h.Authorization="Bearer "+token;
+  return h;
+}
+async function smartParse(res){
+  const txt=await res.text();
+  let data=null;
+  try{ data=txt?JSON.parse(txt):null; }catch(e){ data=txt; }
+  if(!res.ok){
+    throw new Error(data?.message||data?.msg||data?.error_description||data?.error||("Erro "+res.status));
+  }
+  return data;
+}
+async function smartRest(path,options={}){
+  const res=await fetch(SMART_SUPABASE_URL+"/rest/v1/"+path,{
+    ...options,
+    headers:{...smartHeaders(),...(options.headers||{})}
+  });
+  return smartParse(res);
+}
+async function smartEnsureSession(){
+  const stored=smartGetSession();
+  if(!stored){ smartSaveSession(null); return null; }
+  smartSaveSession(stored);
+  if(stored.expires_at && stored.expires_at*1000-Date.now()<60000 && stored.refresh_token){
+    try{
+      const r=await fetch(SMART_SUPABASE_URL+"/auth/v1/token?grant_type=refresh_token",{
+        method:"POST",headers:smartHeaders(null),body:JSON.stringify({refresh_token:stored.refresh_token})
+      });
+      const data=await smartParse(r);
+      smartSaveSession(data);
+      return data;
+    }catch(e){
+      smartSaveSession(null); return null;
+    }
+  }
+  return stored;
+}
+
+async function smartGetProfile(){
+  if(!smartSupaUser) return null;
+  const rows=await smartRest("profiles?id=eq."+encodeURIComponent(smartSupaUser.id)+"&select=id,full_name,phone&limit=1");
+  return rows?.[0]||null;
+}
+async function smartLoadAddress(){
+  await smartEnsureSession();
+  if(!smartSupaUser) return null;
+  const rows=await smartRest("addresses?user_id=eq."+encodeURIComponent(smartSupaUser.id)+"&is_default=eq.true&select=*&order=updated_at.desc&limit=1");
+  smartCurrentAddress=rows?.[0]||null;
+  return smartCurrentAddress;
+}
+async function smartCatalogIds(){
+  const rows=await smartRest("products?select=id,store_id,name,price,stores(name)&active=eq.true");
+  return rows||[];
+}
+
+/* ---------- cliente real ---------- */
+registerCustomer = async function(){
+  const name=(document.getElementById("regName")?.value||"").trim();
+  const phone=(document.getElementById("regPhone")?.value||"").trim();
+  const email=(document.getElementById("regEmail")?.value||"").trim();
+  const password=(document.getElementById("regPassword")?.value||"").trim();
+  if(!name||!phone||!email||!password) return alert("Preencha todos os campos.");
+  try{
+    const r=await fetch(SMART_SUPABASE_URL+"/auth/v1/signup",{
+      method:"POST",headers:smartHeaders(null),
+      body:JSON.stringify({email,password,data:{full_name:name,phone}})
+    });
+    const data=await smartParse(r);
+    if(data.access_token){
+      smartSaveSession(data);
+      alert("Conta criada com sucesso.");
+      await openAccount();
+    }else{
+      alert("Conta criada. Verifique seu e-mail para confirmar o cadastro e depois faça login.");
+      showView("loginView");
+    }
+  }catch(e){ alert("Não foi possível criar a conta: "+e.message); }
+};
+
+loginCustomer = async function(){
+  const email=(document.getElementById("loginEmail")?.value||"").trim();
+  const password=(document.getElementById("loginPassword")?.value||"").trim();
+  if(!email||!password) return alert("Preencha e-mail e senha.");
+  try{
+    const r=await fetch(SMART_SUPABASE_URL+"/auth/v1/token?grant_type=password",{
+      method:"POST",headers:smartHeaders(null),body:JSON.stringify({email,password})
+    });
+    const data=await smartParse(r);
+    smartSaveSession(data);
+    await openAccount();
+  }catch(e){ alert("Não foi possível entrar: "+e.message); }
+};
+
+logoutCustomer = async function(){
+  try{
+    if(smartSupaSession?.access_token){
+      await fetch(SMART_SUPABASE_URL+"/auth/v1/logout",{method:"POST",headers:smartHeaders()});
+    }
+  }catch(e){}
+  smartSaveSession(null);
+  showView("homeView");
+};
+
+openAccount = async function(){
+  await smartEnsureSession();
+  if(!smartSupaUser) return showView("loginView");
+  try{
+    const p=await smartGetProfile();
+    const name=p?.full_name||smartSupaUser.email||"Cliente Smart Shop";
+    document.getElementById("accountName").textContent=name;
+    document.getElementById("accountEmail").textContent=smartSupaUser.email||"";
+    const parts=name.trim().split(/\s+/);
+    document.getElementById("accountAvatar").textContent=((parts[0]?.[0]||"S")+(parts.length>1?(parts[parts.length-1]?.[0]||""):"")).toUpperCase();
+    showView("accountView");
+  }catch(e){ alert("Erro ao abrir sua conta: "+e.message); }
+};
+
+/* ---------- endereço no banco ---------- */
+openAddresses = async function(){
+  await smartEnsureSession();
+  if(!smartSupaUser) return showView("loginView");
+  try{
+    const a=await smartLoadAddress();
+    ["addrCep","addrStreet","addrNumber","addrDistrict","addrComplement"].forEach(id=>{const el=document.getElementById(id);if(el) el.value="";});
+    if(a){
+      document.getElementById("addrCep").value=a.cep||"";
+      document.getElementById("addrStreet").value=a.street||"";
+      document.getElementById("addrNumber").value=a.number||"";
+      document.getElementById("addrDistrict").value=a.district||"";
+      document.getElementById("addrComplement").value=a.complement||"";
+      renderSavedAddress(a);
+    }
+    showView("addressView");
+  }catch(e){ alert("Erro ao carregar endereço: "+e.message); }
+};
+
+saveAddress = async function(){
+  await smartEnsureSession();
+  if(!smartSupaUser) return showView("loginView");
+  const a={
+    user_id:smartSupaUser.id,
+    cep:formatCep(document.getElementById("addrCep")?.value||""),
+    street:(document.getElementById("addrStreet")?.value||"").trim(),
+    number:(document.getElementById("addrNumber")?.value||"").trim(),
+    district:(document.getElementById("addrDistrict")?.value||"").trim(),
+    complement:(document.getElementById("addrComplement")?.value||"").trim(),
+    city:"Mateus Leme",state:"MG",is_default:true
+  };
+  if(!a.street||!a.number||!a.district) return alert("Preencha rua, número e bairro.");
+  try{
+    let data;
+    if(smartCurrentAddress?.id){
+      const r=await fetch(SMART_SUPABASE_URL+"/rest/v1/addresses?id=eq."+encodeURIComponent(smartCurrentAddress.id),{
+        method:"PATCH",headers:{...smartHeaders(),"Prefer":"return=representation"},body:JSON.stringify(a)
+      });
+      data=await smartParse(r);
+    }else{
+      const r=await fetch(SMART_SUPABASE_URL+"/rest/v1/addresses",{
+        method:"POST",headers:{...smartHeaders(),"Prefer":"return=representation"},body:JSON.stringify(a)
+      });
+      data=await smartParse(r);
+    }
+    smartCurrentAddress=data?.[0]||{...smartCurrentAddress,...a};
+    renderSavedAddress(smartCurrentAddress);
+    alert("Endereço salvo.");
+  }catch(e){ alert("Erro ao salvar endereço: "+e.message); }
+};
+
+/* ---------- checkout central ---------- */
+checkout = async function(){
+  await smartEnsureSession();
+  if(!smartSupaUser){ alert("Entre na sua conta antes de finalizar."); return showView("loginView"); }
+  if(!cart.length) return alert("Seu carrinho está vazio.");
+  const address=await smartLoadAddress();
+  if(!address){ alert("Cadastre um endereço antes de finalizar."); return openAddresses(); }
+  try{
+    const profile=await smartGetProfile();
+    const catalog=await smartCatalogIds();
+    const mapped=cart.map(item=>{
+      const db=catalog.find(p=>p.name===item.name && p.stores?.name===item.store);
+      if(!db) throw new Error("Produto não encontrado no banco: "+item.name);
+      return {db,item};
+    });
+
+    const orderPayload={
+      user_id:smartSupaUser.id,address_id:address.id,
+      customer_name:profile?.full_name||smartSupaUser.email||"Cliente",
+      customer_phone:profile?.phone||"",customer_email:smartSupaUser.email||"",
+      delivery_street:address.street,delivery_number:address.number,delivery_district:address.district,
+      delivery_complement:address.complement||"",delivery_cep:address.cep||"",
+      delivery_city:address.city||"Mateus Leme",delivery_state:address.state||"MG"
+    };
+
+    const or=await fetch(SMART_SUPABASE_URL+"/rest/v1/orders",{
+      method:"POST",headers:{...smartHeaders(),"Prefer":"return=representation"},body:JSON.stringify(orderPayload)
+    });
+    const order=(await smartParse(or))?.[0];
+    if(!order?.id) throw new Error("O pedido não foi criado.");
+
+    const items=mapped.map(x=>({
+      order_id:order.id,product_id:x.db.id,store_id:x.db.store_id,
+      product_name:x.item.name,quantity:Number(x.item.qty)||1,unit_price:Number(x.item.price)||0
+    }));
+    const ir=await fetch(SMART_SUPABASE_URL+"/rest/v1/order_items",{
+      method:"POST",headers:{...smartHeaders(),"Prefer":"return=minimal"},body:JSON.stringify(items)
+    });
+    await smartParse(ir);
+
+    cart=[];
+    localStorage.setItem(CART_KEY,JSON.stringify(cart));
+    updateCartBadge();
+    alert("Pedido finalizado com sucesso! Pedido #"+order.order_number);
+    await openOrders();
+  }catch(e){ alert("Erro ao finalizar pedido: "+e.message); }
+};
+
+function smartStatusLabel(s){
+  return ({recebido:"Recebido",em_preparacao:"Em preparação",saiu_para_entrega:"Saiu para entrega",entregue:"Entregue",cancelado:"Cancelado"})[s]||s||"Recebido";
+}
+
+openOrders = async function(){
+  await smartEnsureSession();
+  if(!smartSupaUser) return showView("loginView");
+  try{
+    const list=await smartRest("orders?user_id=eq."+encodeURIComponent(smartSupaUser.id)+"&select=*,order_items(*),order_store_statuses(*)&order=created_at.desc");
+    const box=document.getElementById("ordersList");
+    if(!list.length){
+      box.innerHTML=`<div class="order-card"><div class="empty">Você ainda não possui pedidos finalizados.</div></div>`;
+    }else{
+      box.innerHTML=list.map(o=>{
+        const st=o.order_store_statuses?.[0]?.status||"recebido";
+        const cls=st==="entregue"?"status-done":st==="saiu_para_entrega"?"status-route":"status-prep";
+        const items=(o.order_items||[]).map(i=>`<div class="order-line"><span>${i.quantity}x ${escapeHtml(i.product_name)}</span><span>${money(Number(i.unit_price)*Number(i.quantity))}</span></div>`).join("");
+        return `<div class="order-card">
+          <div class="order-head"><div><h3>Pedido #${escapeHtml(o.order_number)}</h3><small>${new Date(o.created_at).toLocaleString("pt-BR")}</small></div>
+          <span class="status-pill ${cls}">${escapeHtml(smartStatusLabel(st))}</span></div>
+          <div class="order-items">${items}</div>
+          <div class="order-total"><span>Total</span><span>${money(o.total_amount)}</span></div>
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);line-height:1.45">
+            <b style="color:var(--text)">Entrega</b><br>${escapeHtml(o.delivery_street)}, ${escapeHtml(o.delivery_number)} - ${escapeHtml(o.delivery_district)}
+            ${o.delivery_complement?`<br>${escapeHtml(o.delivery_complement)}`:""}${o.delivery_cep?`<br>CEP ${escapeHtml(o.delivery_cep)}`:""}
+          </div>
+        </div>`;
+      }).join("");
+    }
+    showView("ordersView");
+  }catch(e){ alert("Erro ao carregar pedidos: "+e.message); }
+};
+
+/* ---------- lojista central ---------- */
+openMerchantLogin = function(){ showView("merchantLoginView"); };
+
+merchantLogin = async function(){
+  const email=(document.getElementById("merchantEmail")?.value||"").trim();
+  const password=(document.getElementById("merchantPassword")?.value||"").trim();
+  if(!email||!password) return alert("Preencha e-mail e senha.");
+  try{
+    const r=await fetch(SMART_SUPABASE_URL+"/auth/v1/token?grant_type=password",{
+      method:"POST",headers:smartHeaders(null),body:JSON.stringify({email,password})
+    });
+    const data=await smartParse(r);
+    smartSaveSession(data);
+    const members=await smartRest("store_members?user_id=eq."+encodeURIComponent(smartSupaUser.id)+"&select=store_id,role,stores(id,name,slug)&limit=1");
+    const m=members?.[0];
+    if(!m?.store_id) throw new Error("Esta conta ainda não está vinculada a uma loja.");
+    smartMerchantStore={id:m.store_id,name:m.stores?.name||"Loja"};
+    await renderMerchantDashboard();
+    showView("merchantView");
+  }catch(e){ alert("Não foi possível entrar como lojista: "+e.message); }
+};
+
+merchantLogout = async function(){
+  smartSaveSession(null);smartMerchantStore=null;showView("homeView");
+};
+
+renderMerchantDashboard = async function(){
+  if(!smartMerchantStore) return;
+  try{
+    const items=await smartRest("order_items?store_id=eq."+encodeURIComponent(smartMerchantStore.id)+"&select=*,orders(id,order_number,created_at,customer_name,customer_phone,delivery_street,delivery_number,delivery_district,delivery_complement)");
+    const sts=await smartRest("order_store_statuses?store_id=eq."+encodeURIComponent(smartMerchantStore.id)+"&select=order_id,status");
+    const statusMap=Object.fromEntries((sts||[]).map(s=>[s.order_id,s.status]));
+    const groups={};
+    (items||[]).forEach(i=>{
+      if(!groups[i.order_id]) groups[i.order_id]={order:i.orders,items:[]};
+      groups[i.order_id].items.push(i);
+    });
+    const list=Object.values(groups);
+    document.getElementById("merchantTitle").textContent=smartMerchantStore.name;
+    document.getElementById("merchantSubtitle").textContent="Pedidos recebidos pelo Smart Shop";
+    document.getElementById("merchantOrderCount").textContent=list.length;
+    const sales=list.reduce((s,g)=>s+g.items.reduce((a,i)=>a+Number(i.subtotal||0),0),0);
+    document.getElementById("merchantSalesTotal").textContent=money(sales);
+    const box=document.getElementById("merchantOrders");
+    if(!list.length){ box.innerHTML=`<div class="merchant-order"><div class="empty">Nenhum pedido recebido por esta loja.</div></div>`; return; }
+    box.innerHTML=list.map(g=>{
+      const o=g.order||{}; const st=statusMap[o.id]||"recebido";
+      return `<div class="merchant-order">
+        <div class="merchant-order-head"><div><h3>Pedido #${escapeHtml(o.order_number||"")}</h3>
+          <div class="customer">${escapeHtml(o.customer_name||"Cliente")} · ${o.created_at?new Date(o.created_at).toLocaleString("pt-BR"):""}</div>
+        </div><span class="status-pill ${st==="entregue"?"status-done":st==="saiu_para_entrega"?"status-route":"status-prep"}">${escapeHtml(smartStatusLabel(st))}</span></div>
+        <div class="merchant-items">${g.items.map(i=>`<div class="merchant-item"><span>${i.quantity}x ${escapeHtml(i.product_name)}</span><b>${money(i.subtotal)}</b></div>`).join("")}</div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);line-height:1.45">
+          <b style="color:var(--text)">Entrega</b><br>${escapeHtml(o.delivery_street||"")}, ${escapeHtml(o.delivery_number||"")} - ${escapeHtml(o.delivery_district||"")}
+        </div>
+        <div class="status-actions">
+          <button onclick="updateOrderStatus('${o.id}','em_preparacao')">Em preparação</button>
+          <button onclick="updateOrderStatus('${o.id}','saiu_para_entrega')">Saiu para entrega</button>
+          <button onclick="updateOrderStatus('${o.id}','entregue')">Entregue</button>
+        </div>
+      </div>`;
+    }).join("");
+  }catch(e){ alert("Erro no painel do lojista: "+e.message); }
+};
+
+updateOrderStatus = async function(orderId,status){
+  if(!smartMerchantStore) return;
+  try{
+    const r=await fetch(SMART_SUPABASE_URL+"/rest/v1/order_store_statuses?order_id=eq."+encodeURIComponent(orderId)+"&store_id=eq."+encodeURIComponent(smartMerchantStore.id),{
+      method:"PATCH",headers:smartHeaders(),body:JSON.stringify({status})
+    });
+    await smartParse(r);
+    await renderMerchantDashboard();
+  }catch(e){ alert("Erro ao atualizar status: "+e.message); }
+};
+
+document.addEventListener("DOMContentLoaded",async()=>{
+  await smartEnsureSession();
+});
 </script>
 
 <script>

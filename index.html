@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Smart Shop">
 <link rel="manifest" href="manifest.webmanifest">
 <title>Smart Shop</title>
-<meta name="smart-shop-version" content="2026.08.24-merchant-1">
+<meta name="smart-shop-version" content="2026.08.24-merchant-2">
 <style>
 :root{
   --blue:#0b4ea2;--blue-dark:#07346f;--orange:#ff7a00;--bg:#f6f7fb;
@@ -392,6 +392,8 @@ nav button{position:relative}
     <input id="loginPassword" type="password" placeholder="Digite sua senha">
     <button class="secondary-btn" style="margin-top:14px" onclick="loginCustomer()">Entrar</button>
     <button class="link-btn" onclick="showRegister()">Ainda não tenho cadastro</button>
+    <div style="height:1px;background:var(--line);margin:8px 0 12px"></div>
+    <button class="primary-btn" style="background:var(--orange)" onclick="openMerchantLogin()">Sou lojista</button>
   </div>
 </div>
 
@@ -552,7 +554,7 @@ nav button{position:relative}
    SMART SHOP — VERSÃO INTEGRADA
    Protótipo funcional local (sem backend)
    ============================================================ */
-const APP_VERSION = "2026.08.24-merchant-1";
+const APP_VERSION = "2026.08.24-merchant-2";
 const CUSTOMER_KEY = "smartshop_customer";
 const SESSION_KEY  = "smartshop_session";
 const ADDRESS_KEY  = "smartshop_address";

@@ -1,4 +1,4 @@
-const CACHE_NAME = "smart-shop-merchant-20260824-1";
+const CACHE_NAME = "smart-shop-merchant-20260824-2";
 
 self.addEventListener("install", event => {
   self.skipWaiting();

@@ -677,20 +677,7 @@ function removeStorage(key){
 
 /* ---------- produtos ---------- */
 const initialImgs = document.querySelectorAll(".productImg img");
-const productsData = [
-  {
-    id:0, name:"Bolsa Feminina", category:"Moda", store:"Bella Moda",
-    price:119.90, oldPrice:139.90, discount:"-15%",
-    image:initialImgs[0]?.src || "",
-    description:"Bolsa feminina elegante para uso diário, com acabamento moderno e entrega local."
-  },
-  {
-    id:1, name:"Tênis Esportivo", category:"Calçados", store:"Store Tech",
-    price:159.90, oldPrice:199.90, discount:"-20%",
-    image:initialImgs[1]?.src || "",
-    description:"Tênis esportivo confortável, leve e indicado para uso diário e atividades casuais."
-  }
-];
+const productsData = [];
 
 let currentView = "homeView";
 let previousView = "homeView";

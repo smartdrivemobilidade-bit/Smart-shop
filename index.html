@@ -762,12 +762,13 @@ function openCategory(category){
     <div class="grid-list">${list.length?list.map(productCard).join(""):'<div class="empty">Nenhum produto nesta categoria ainda.</div>'}</div>`;
   showView("categoryView");
 }
-function openStore(store){
-  const list = productsData.filter(p=>p.store===store);
-  const initials = store==="Bella Moda"?"BM":"ST";
-  const tech = store==="Store Tech"?" tech":"";
+async function openStore(store){
+  const initials = store==="Bella Moda" ? "BM" : "ST";
+  const tech = store==="Store Tech" ? " tech" : "";
+
   document.getElementById("storeView").innerHTML = `
     <button class="back-btn" onclick="showView('homeView')">← Voltar</button>
+
     <div class="store-header">
       <div class="storeLogo${tech}">${initials}</div>
       <div>
@@ -775,8 +776,77 @@ function openStore(store){
         <div style="color:var(--muted);font-size:12px">★ 4,9 · Entrega hoje</div>
       </div>
     </div>
-    <div class="grid-list">${list.length?list.map(productCard).join(""):'<div class="empty">Nenhum produto cadastrado nesta loja.</div>'}</div>`;
+
+    <div class="grid-list">
+      <div class="empty">Carregando produtos...</div>
+    </div>
+  `;
+
   showView("storeView");
+
+  try{
+    const rows = await smartRest(
+      "products?active=eq.true&stores.name=eq." +
+      encodeURIComponent(store) +
+      "&select=id,name,category,description,price,old_price,image_url,stock,active,stores(name)"
+    );
+
+    const list = (rows || []).map(p => ({
+      id: p.id,
+      name: p.name,
+      category: p.category || "",
+      store: p.stores?.name || store,
+      price: Number(p.price || 0),
+      oldPrice: p.old_price ? Number(p.old_price) : null,
+      discount: p.old_price && Number(p.old_price) > Number(p.price)
+        ? "-" + Math.round((1 - Number(p.price) / Number(p.old_price)) * 100) + "%"
+        : "",
+      image: p.image_url || "",
+      description: p.description || "",
+      stock: Number(p.stock || 0)
+    }));
+
+    // Mantém os produtos do Supabase disponíveis para abrir detalhes/carrinho
+    list.forEach(p=>{
+      const existingIndex = productsData.findIndex(x=>String(x.id)===String(p.id));
+      if(existingIndex >= 0) productsData[existingIndex] = p;
+      else productsData.push(p);
+    });
+
+    const grid = list.length
+      ? list.map(productCard).join("")
+      : '<div class="empty">Nenhum produto cadastrado nesta loja.</div>';
+
+    document.getElementById("storeView").innerHTML = `
+      <button class="back-btn" onclick="showView('homeView')">← Voltar</button>
+
+      <div class="store-header">
+        <div class="storeLogo${tech}">${initials}</div>
+        <div>
+          <h2 style="margin:0 0 5px">${escapeHtml(store)}</h2>
+          <div style="color:var(--muted);font-size:12px">★ 4,9 · Entrega hoje</div>
+        </div>
+      </div>
+
+      <div class="grid-list">${grid}</div>
+    `;
+
+  }catch(e){
+    document.getElementById("storeView").innerHTML = `
+      <button class="back-btn" onclick="showView('homeView')">← Voltar</button>
+
+      <div class="store-header">
+        <div class="storeLogo${tech}">${initials}</div>
+        <div>
+          <h2 style="margin:0 0 5px">${escapeHtml(store)}</h2>
+          <div style="color:var(--muted);font-size:12px">★ 4,9 · Entrega hoje</div>
+        </div>
+      </div>
+
+      <div class="empty">Erro ao carregar produtos: ${escapeHtml(e.message)}</div>
+    `;
+  }
+}
 }
 
 /* ---------- produto ---------- */

@@ -785,11 +785,11 @@ async function openStore(store){
       store: p.stores?.name || store,
       price: Number(p.price || 0),
       oldPrice: p.old_price ? Number(p.old_price) : null,
-      discount: p.old_price && Number(p.old_price) > Number(p.price)
-        ? "-" + Math.round((1 - Number(p.price) / Number(p.old_price)) * 100) + "%"
-        : "",
-      image: p.image_url || "",
-      description: p.description || "",
+      const rows = await smartRest(
+  "products?active=eq.true&store_id=eq." +
+  encodeURIComponent(store.id) +
+  "&select=id,name,description,price,old_price,stock,image_url,stores(name)"
+);
       stock: Number(p.stock || 0)
     }));
 

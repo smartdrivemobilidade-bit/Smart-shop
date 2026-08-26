@@ -787,7 +787,7 @@ async function openStore(store){
       oldPrice: p.old_price ? Number(p.old_price) : null,
  const rows = await smartRest(
   "products?active=eq.true&stores.name=eq." +
-  encodeURIComponent(store.name) +
+  encodeURIComponent(store.) +
   "&select=id,name,description,price,old_price,stock,image_url,stores(name)"
 );
     }));

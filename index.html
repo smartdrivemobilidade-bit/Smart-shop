@@ -762,57 +762,64 @@ async function openStore(store){
         <h2 style="margin:0 0 5px">${escapeHtml(store)}</h2>
         <div style="color:var(--muted);font-size:12px">★ 4,9 · Entrega hoje</div>
       </div>
-    </div>
+ async function openStore(store){
+  const content = document.getElementById('content');
 
-    <div class="grid-list">
+  content.innerHTML = `
+    <button class="backBtn" onclick="goHome()">← Voltar</button>
+    <div class="storeHero">
+      <div class="storeAvatar">${store === 'Bella Moda' ? '👗' : '👟'}</div>
+      <div>
+        <h2>${store}</h2>
+        <p>Loja verificada • Entrega rápida na sua região</p>
+      </div>
+    </div>
+    <div id="storeProducts" class="productsGrid">
       <div class="empty">Carregando produtos...</div>
     </div>
   `;
 
-  showView("storeView");
-
-  try{
+  try {
     const rows = await smartRest(
-      "products?active=eq.true&stores.name=eq." +
-      encodeURIComponent(store) +
-      "&select=id,name,category,description,price,old_price,image_url,stock,active,stores(name)"
+      "products?active=eq.true&select=id,name,description,price,old_price,stock,image_url,stores(name)"
     );
 
-    const list = (rows || []).map(p => ({
-      id: p.id,
-      name: p.name,
-      category: p.category || "",
-      store: p.stores?.name || store,
-      price: Number(p.price || 0),
-      oldPrice: p.old_price ? Number(p.old_price) : null,
- const rows = await smartRest(
-  "products?active=eq.true&stores.name=eq." +
-  encodeURIComponent(store.) +
-  "&select=id,name,description,price,old_price,stock,image_url,stores(name)"
-);
-    }));
+    const list = (rows || [])
+      .filter(p => p.stores && p.stores.name === store)
+      .map(p => ({
+        id: p.id,
+        name: p.name,
+        description: p.description || '',
+        price: Number(p.price || 0),
+        oldPrice: p.old_price ? Number(p.old_price) : null,
+        image: p.image_url || '',
+        stock: Number(p.stock || 0),
+        store: p.stores ? p.stores.name : store
+      }));
 
-    // Mantém os produtos do Supabase disponíveis para abrir detalhes/carrinho
-    list.forEach(p=>{
-      const existingIndex = productsData.findIndex(x=>String(x.id)===String(p.id));
-      if(existingIndex >= 0) productsData[existingIndex] = p;
-      else productsData.push(p);
-    });
+    const box = document.getElementById('storeProducts');
 
-    const grid = list.length
-      ? list.map(productCard).join("")
-      : '<div class="empty">Nenhum produto cadastrado nesta loja.</div>';
-
-    document.getElementById("storeView").innerHTML = `
-      <button class="back-btn" onclick="showView('homeView')">← Voltar</button>
-
-      <div class="store-header">
-        <div class="storeLogo${tech}">${initials}</div>
-        <div>
-          <h2 style="margin:0 0 5px">${escapeHtml(store)}</h2>
-          <div style="color:var(--muted);font-size:12px">★ 4,9 · Entrega hoje</div>
+    if (!list.length) {
+      box.innerHTML = `
+        <div class="empty">
+          Nenhum produto disponível nesta loja no momento.
         </div>
+      `;
+      return;
+    }
+
+    box.innerHTML = list.map(productCard).join('');
+
+  } catch (e) {
+    console.error('Erro ao abrir loja:', e);
+
+    document.getElementById('storeProducts').innerHTML = `
+      <div class="empty">
+        Não foi possível carregar os produtos desta loja.
       </div>
+    `;
+  }
+}
 
       <div class="grid-list">${grid}</div>
     `;

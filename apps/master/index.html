@@ -161,6 +161,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 <button data-view="masterPanel" class="on" onclick="loadMaster()">🛡️ Master</button>
 <button data-view="commerceAdminPanel" data-platform-roles="master,admin,operations" onclick="loadCommerceAdmin()">🎟️ Cupons</button>
 <button data-view="bannerAdminPanel" data-platform-roles="master,admin,operations" onclick="loadBannerAdmin()">🖼️ Banners</button>
+<button data-view="referralAdminPanel" data-platform-roles="master,admin,operations" onclick="loadReferralAdmin()">🤝 Indicações</button>
 <button data-view="masterSupportPanel" data-platform-roles="master,admin,support" onclick="loadMasterSupport()">🎧 Suporte</button>
 <button data-view="masterFinancePanel" data-platform-roles="master,admin,finance" onclick="loadMasterFinance()">💰 Financeiro</button>
 <button data-view="accountPanel" onclick="showAccount()">👤 Minha conta</button>
@@ -293,6 +294,10 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 <div id="supportPanel" class="view hide market-shell">
  <div class="section-title"><h2>Central de Ajuda</h2><span class="mut">Smart Shop</span></div>
  <div id="supportBody"></div>
+</div>
+<div id="referralAdminPanel" class="view hide market-shell">
+ <div class="section-title"><h2>Indicações</h2><span class="mut">Amigos e prospecção de lojas</span></div>
+ <div id="referralAdminBody"></div>
 </div>
 <div id="accountPanel" class="view hide market-shell">
  <div id="accountBody"></div>
@@ -775,6 +780,36 @@ function applyPlatformVisibility(){
   el.style.display=hasAnyPlatformRole(roles)?'':'none';
  });
 }
+
+function referralAdminStatus(status){
+ return ({registered:'Cadastrado',qualified:'Compra entregue',rewarded:'Benefício liberado',pending:'Pendente',invalid:'Inválido',new:'Nova',contacted:'Contatada',interested:'Interessada',onboarding:'Em cadastro',converted:'Convertida',not_interested:'Sem interesse',duplicate:'Duplicada'})[status]||status;
+}
+async function loadReferralAdmin(){
+ if(!hasAnyPlatformRole(['master','admin','operations']))return alert('Você não tem permissão para gerenciar indicações.');
+ const el=document.getElementById('referralAdminBody');el.innerHTML='<div class="card">Carregando indicações...</div>';
+ const [friends,stores,marketStores]=await Promise.all([
+  sb.from('referrals').select('id,referrer_user_id,referred_user_id,status,first_order_id,qualified_at,reward_coupon_id,created_at').order('created_at',{ascending:false}).limit(200),
+  sb.from('store_referrals').select('id,referrer_user_id,store_name,contact_name,phone_whatsapp,category,city,notes,status,admin_notes,contacted_at,converted_store_id,created_at,updated_at').order('created_at',{ascending:false}).limit(200),
+  sb.from('stores').select('id,name').order('name').limit(500)
+ ]);
+ if(friends.error||stores.error){el.innerHTML='<div class="msg err">'+esc((friends.error||stores.error).message)+'</div>';return}
+ const friendRows=friends.data||[],storeRows=stores.data||[],allStores=marketStores.data||[];
+ const qualified=friendRows.filter(x=>['qualified','rewarded'].includes(x.status)).length;
+ const pendingStores=storeRows.filter(x=>!['converted','not_interested','duplicate'].includes(x.status)).length;
+ el.innerHTML='<div class="metric-grid"><div class="card"><b>'+friendRows.length+'</b><div class="mut">Indicações de amigos</div></div><div class="card"><b>'+qualified+'</b><div class="mut">Compras qualificadas</div></div><div class="card"><b>'+pendingStores+'</b><div class="mut">Lojas em prospecção</div></div></div>'+
+ '<div class="card"><h3>Amigos indicados</h3><p class="mut">A qualificação é automática após o primeiro pedido entregue. Benefícios financeiros permanecem sem configuração até aprovação das regras.</p><div style="overflow:auto"><table><thead><tr><th>Indicado</th><th>Indicador</th><th>Status</th><th>Pedido</th><th>Data</th></tr></thead><tbody>'+friendRows.map(x=>'<tr><td>'+esc(x.referred_user_id||'—')+'</td><td>'+esc(x.referrer_user_id)+'</td><td>'+esc(referralAdminStatus(x.status))+'</td><td>'+esc(x.first_order_id||'—')+'</td><td>'+new Date(x.created_at).toLocaleDateString('pt-BR')+'</td></tr>').join('')+'</tbody></table></div></div>'+
+ '<div class="card"><h3>Lojas indicadas</h3>'+(storeRows.map(x=>'<div class="list-item"><div class="row" style="justify-content:space-between"><div><b>'+esc(x.store_name)+'</b><div class="mut">'+esc(x.city)+' • '+esc(x.category||'Sem categoria')+' • '+esc(referralAdminStatus(x.status))+'</div><div>'+esc(x.contact_name||'')+' '+esc(x.phone_whatsapp||'')+'</div><div class="mut">'+esc(x.notes||'')+(x.admin_notes?' • Nota interna: '+esc(x.admin_notes):'')+'</div></div><div class="row"><select id="refStatus_'+x.id+'">'+['new','contacted','interested','onboarding','converted','not_interested','duplicate'].map(v=>'<option value="'+v+'" '+(v===x.status?'selected':'')+'>'+referralAdminStatus(v)+'</option>').join('')+'</select><select id="refStore_'+x.id+'"><option value="">Vincular loja...</option>'+allStores.map(st=>'<option value="'+st.id+'" '+(st.id===x.converted_store_id?'selected':'')+'>'+esc(st.name)+'</option>').join('')+'</select><button onclick="updateStoreReferral(\''+x.id+'\')">Salvar</button></div></div></div>').join('')||'<p class="mut">Nenhuma loja indicada.</p>')+'</div>';
+}
+async function updateStoreReferral(id){
+ const status=document.getElementById('refStatus_'+id).value;
+ const storeId=document.getElementById('refStore_'+id).value||null;
+ const notes=prompt('Nota interna para esta indicação (opcional):','');
+ if(notes===null)return;
+ const {error}=await sb.rpc('admin_update_store_referral',{p_id:id,p_status:status,p_admin_notes:notes||null,p_converted_store_id:storeId});
+ if(error)return alert('Não foi possível atualizar: '+error.message);
+ await loadReferralAdmin();
+}
+
 async function showAccount(){
  if(!currentUser)return alert('Entre na sua conta para acessar sua conta.');
  const {data:p}=await sb.from('profiles').select('*').eq('id',currentUser.id).maybeSingle();

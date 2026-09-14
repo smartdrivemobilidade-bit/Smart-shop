@@ -97,3 +97,4 @@ version,name,status
 20260914124524,smart_shop_v4_store_quality_backfill,APPLIED
 20260914124539,smart_shop_v4_demo_interactive_banners,APPLIED
 20260914124755,smart_shop_v4_product_metrics_refresh_reviews,APPLIED
+20260914160540,smart_shop_v4_settlement_uuid_aggregation_fix,APPLIED

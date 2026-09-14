@@ -952,33 +952,175 @@ async function ensureMarketData(){
  await loadReviewSummary(marketProducts.map(x=>x.id));return true;
 }
 
+async function handleBannerAction(encodedType,encodedValue){
+ const type=decodeURIComponent(encodedType||'marketplace'),value=decodeURIComponent(encodedValue||'');
+ if(type==='store'&&value){await openStorePage(value);return}
+ if(type==='category'&&value){showMarketplace(value);return}
+ if(type==='product'&&value){
+  if(await ensureMarketData()){
+   if(marketProducts.some(p=>p.id===value))openProductModal(value);
+   else alert('Este produto não está disponível no momento.');
+  }
+  return;
+ }
+ if(type==='coupon'&&value){
+  marketCoupon=value;
+  showMarketplace();
+  alert('Cupom '+value+' selecionado. Adicione os produtos e ele será aplicado no checkout.');
+  return;
+ }
+ if(type==='campaign'&&value){
+  let campaign=null;
+  const bySlug=await sb.from('campaigns').select('target_type,target_value').eq('slug',value).eq('active',true).maybeSingle();
+  campaign=bySlug.data;
+  if(!campaign&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)){
+   const byId=await sb.from('campaigns').select('target_type,target_value').eq('id',value).eq('active',true).maybeSingle();
+   campaign=byId.data;
+  }
+  if(campaign&&campaign.target_type!=='campaign'){
+   await handleBannerAction(encodeURIComponent(campaign.target_type||'marketplace'),encodeURIComponent(campaign.target_value||''));
+  }else{
+   showMarketplace();
+  }
+  return;
+ }
+ showMarketplace();
+}
 async function loadHomeBanners(){
  const {data,error}=await sb.from('home_banners').select('*').order('position',{ascending:true});
  const el=document.getElementById('dynamicBanners'); if(!el)return;
  if(error||!data?.length){el.innerHTML='';return}
  el.innerHTML=data.map(b=>{
   const style=b.image_url?` style="background-image:url('${esc(b.image_url)}')"`:'';
-  const action=b.target_type==='store'&&b.target_value?`openStorePage('${b.target_value}')`:b.target_type==='category'&&b.target_value?`showMarketplace('${esc(b.target_value)}')`:`showMarketplace()`;
+  const action=`handleBannerAction('${encodeURIComponent(b.target_type||'marketplace')}','${encodeURIComponent(b.target_value||'')}')`;
   return `<div class="dynamic-banner ${b.image_url?'has-img':''}"${style}><h2>${esc(b.title)}</h2>${b.subtitle?`<p>${esc(b.subtitle)}</p>`:''}${b.button_text&&b.target_type!=='none'?`<div><button onclick="${action}">${esc(b.button_text)}</button></div>`:''}</div>`;
  }).join('');
+}
+let bannerAdminRows=[];
+function bannerTargetOptions(selected='marketplace'){
+ const options=[['marketplace','Abrir marketplace'],['store','Abrir loja'],['category','Abrir categoria'],['product','Abrir produto'],['coupon','Aplicar cupom'],['campaign','Abrir campanha'],['none','Sem ação']];
+ return options.map(([value,label])=>`<option value="${value}"${value===selected?' selected':''}>${label}</option>`).join('');
+}
+function bannerDateInput(value){
+ if(!value)return '';
+ const d=new Date(value); if(Number.isNaN(d.getTime()))return '';
+ const local=new Date(d.getTime()-d.getTimezoneOffset()*60000);
+ return local.toISOString().slice(0,16);
+}
+function bannerImagePathFromUrl(url){
+ const marker='/storage/v1/object/public/banner-images/';
+ if(!url||!url.includes(marker))return null;
+ return decodeURIComponent(url.split(marker)[1].split('?')[0]);
+}
+async function removeBannerImageByUrl(url){
+ const path=bannerImagePathFromUrl(url);if(!path)return;
+ await sb.storage.from('banner-images').remove([path]);
+}
+async function uploadBannerImage(file){
+ if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw new Error('Use uma imagem JPG, PNG ou WEBP.');
+ if(file.size>5*1024*1024)throw new Error('A imagem deve ter no máximo 5 MB.');
+ const ext=(file.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'');
+ const path=`${currentUser.id}/${Date.now()}-${crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2)}.${ext}`;
+ const {error}=await sb.storage.from('banner-images').upload(path,file,{upsert:false,contentType:file.type});
+ if(error)throw error;
+ const {data}=sb.storage.from('banner-images').getPublicUrl(path);
+ return {url:data.publicUrl,path};
+}
+function bannerTargetLabel(b){
+ const labels={marketplace:'Marketplace',store:'Loja',category:'Categoria',product:'Produto',coupon:'Cupom',campaign:'Campanha',none:'Sem ação'};
+ return labels[b.target_type]||b.target_type;
+}
+function renderBannerAdminForm(b=null){
+ const editing=!!b;
+ return `<div class="card"><h3>${editing?'Editar banner':'Novo banner'}</h3>
+ <form onsubmit="saveBanner(event)" class="form-grid">
+  <input id="bnId" type="hidden" value="${b?.id||''}">
+  <input id="bnOldImage" type="hidden" value="${esc(b?.image_url||'')}">
+  <input id="bnTitle" class="wide" placeholder="Título" value="${esc(b?.title||'')}" required>
+  <input id="bnSubtitle" class="wide" placeholder="Texto menor" value="${esc(b?.subtitle||'')}">
+  <input id="bnButton" placeholder="Texto do botão" value="${esc(b?.button_text??'Comprar agora')}">
+  <select id="bnType" onchange="updateBannerTargetHint()">${bannerTargetOptions(b?.target_type||'marketplace')}</select>
+  <input id="bnTarget" placeholder="ID, código, slug ou categoria" value="${esc(b?.target_value||'')}">
+  <input id="bnPos" type="number" value="${Number(b?.position??1)}" min="0" placeholder="Posição">
+  <div><label>Exibir a partir de</label><input id="bnStart" type="datetime-local" value="${bannerDateInput(b?.starts_at)}"></div>
+  <div><label>Exibir até</label><input id="bnEnd" type="datetime-local" value="${bannerDateInput(b?.ends_at)}"></div>
+  <input id="bnImage" class="wide" placeholder="URL da imagem (opcional)" value="${esc(b?.image_url||'')}">
+  <div class="wide"><label>Ou envie uma imagem (JPG, PNG ou WEBP, até 5 MB)</label><input id="bnImageFile" type="file" accept="image/jpeg,image/png,image/webp"></div>
+  <label class="row"><input id="bnActive" type="checkbox" style="width:auto" ${b?.active===false?'':'checked'}> Banner ativo</label>
+  <div class="wide row"><button>${editing?'Salvar alterações':'Criar banner'}</button>${editing?'<button type="button" class="ghost" onclick="loadBannerAdmin()">Cancelar edição</button>':''}</div>
+ </form><p id="bnTargetHint" class="mut"></p></div>`;
+}
+function updateBannerTargetHint(){
+ const type=document.getElementById('bnType')?.value,target=document.getElementById('bnTarget');
+ const hints={marketplace:'Não precisa preencher destino.',store:'Informe o ID da loja.',category:'Informe o nome exato da categoria.',product:'Informe o ID do produto.',coupon:'Informe o código do cupom.',campaign:'Informe o slug ou ID da campanha.',none:'Não precisa preencher destino.'};
+ if(target)target.disabled=['marketplace','none'].includes(type);
+ const hint=document.getElementById('bnTargetHint');if(hint)hint.textContent=hints[type]||'';
 }
 async function loadBannerAdmin(){
  if(!hasAnyPlatformRole(['master','admin','operations']))return alert('Você não tem permissão para gerenciar banners.');
  if(!currentUser)return alert('Entre na conta Master.');
  const {data,error}=await sb.from('home_banners').select('*').order('position',{ascending:true});
  const el=document.getElementById('bannerAdminBody');
- if(error){el.innerHTML='<div class="card">Área restrita ao administrador Master.</div>';return}
- el.innerHTML=`<div class="card"><h3>Novo banner</h3><form onsubmit="createBanner(event)" class="form-grid"><input id="bnTitle" class="wide" placeholder="Título" required><input id="bnSubtitle" class="wide" placeholder="Texto menor"><input id="bnButton" placeholder="Texto do botão" value="Comprar agora"><input id="bnImage" placeholder="URL da imagem (opcional)"><select id="bnType"><option value="marketplace">Abrir marketplace</option><option value="store">Abrir loja</option><option value="category">Abrir categoria</option><option value="none">Sem ação</option></select><input id="bnTarget" placeholder="ID da loja ou categoria"><input id="bnPos" type="number" value="1" min="0" placeholder="Posição"><div><label>Exibir a partir de</label><input id="bnStart" type="datetime-local"></div><div><label>Exibir até</label><input id="bnEnd" type="datetime-local"></div><button class="wide">Criar banner</button></form></div><div class="card"><h3>Banners cadastrados</h3>${(data||[]).map(b=>`<div class="banner-admin-row"><div class="row" style="justify-content:space-between"><b>${esc(b.title)}</b><span class="tag">${b.active?'Ativo':'Inativo'}</span></div><div class="mut">${esc(b.subtitle||'')} • posição ${b.position} • ${b.starts_at?'de '+new Date(b.starts_at).toLocaleString('pt-BR'):'início imediato'}${b.ends_at?' até '+new Date(b.ends_at).toLocaleString('pt-BR'):' • sem data final'}</div><div class="addr-actions"><button class="ghost" onclick="toggleBanner('${b.id}',${!b.active})">${b.active?'Desativar':'Ativar'}</button><button class="ghost" onclick="deleteBanner('${b.id}')">Excluir</button></div></div>`).join('')||'<p class="mut">Nenhum banner cadastrado.</p>'}</div>`;
+ if(error){el.innerHTML='<div class="card">Não foi possível carregar os banners.</div>';return}
+ bannerAdminRows=data||[];
+ el.innerHTML=renderBannerAdminForm()+`<div class="card"><h3>Banners cadastrados</h3>${bannerAdminRows.map(b=>`<div class="banner-admin-row">
+  <div class="row" style="justify-content:space-between"><b>${esc(b.title)}</b><span class="tag">${b.active?'Ativo':'Inativo'}</span></div>
+  ${b.image_url?`<img src="${esc(b.image_url)}" alt="" style="width:100%;max-height:140px;object-fit:cover;border-radius:10px;margin:8px 0">`:''}
+  <div class="mut">${esc(b.subtitle||'')} • posição ${b.position} • ${bannerTargetLabel(b)}${b.target_value?' → '+esc(b.target_value):''}</div>
+  <div class="mut">${b.starts_at?'de '+new Date(b.starts_at).toLocaleString('pt-BR'):'início imediato'}${b.ends_at?' até '+new Date(b.ends_at).toLocaleString('pt-BR'):' • sem data final'}</div>
+  <div class="addr-actions"><button class="ghost" onclick="editBanner('${b.id}')">Editar</button><button class="ghost" onclick="toggleBanner('${b.id}',${!b.active})">${b.active?'Desativar':'Ativar'}</button><button class="ghost" onclick="deleteBanner('${b.id}')">Excluir</button></div>
+ </div>`).join('')||'<p class="mut">Nenhum banner cadastrado.</p>'}</div>`;
+ updateBannerTargetHint();
 }
-async function createBanner(ev){
- ev.preventDefault(); if(!hasAnyPlatformRole(['master','admin','operations']))return alert('Você não tem permissão para criar banners.');
+function editBanner(id){
+ const b=bannerAdminRows.find(x=>x.id===id);if(!b)return;
+ const el=document.getElementById('bannerAdminBody');
+ el.innerHTML=renderBannerAdminForm(b)+el.querySelectorAll('.card')[1].outerHTML;
+ updateBannerTargetHint();
+ el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+async function saveBanner(ev){
+ ev.preventDefault();
+ if(!hasAnyPlatformRole(['master','admin','operations']))return alert('Você não tem permissão para salvar banners.');
+ const id=document.getElementById('bnId').value||null;
+ const type=document.getElementById('bnType').value;
+ const target=['marketplace','none'].includes(type)?null:document.getElementById('bnTarget').value.trim();
+ if(!target&&!['marketplace','none'].includes(type))return alert('Preencha o destino deste banner.');
  const bs=document.getElementById('bnStart').value,be=document.getElementById('bnEnd').value;
  if(bs&&be&&new Date(be)<=new Date(bs))return alert('A data final do banner precisa ser posterior à data inicial.');
- const row={title:document.getElementById('bnTitle').value.trim(),subtitle:document.getElementById('bnSubtitle').value.trim()||null,button_text:document.getElementById('bnButton').value.trim()||null,image_url:document.getElementById('bnImage').value.trim()||null,target_type:document.getElementById('bnType').value,target_value:document.getElementById('bnTarget').value.trim()||null,position:Number(document.getElementById('bnPos').value||0),active:true,created_by:currentUser.id};
- const {error}=await sb.from('home_banners').insert(row); if(error){alert(friendlyError(error));return} alert('Banner criado.'); await loadBannerAdmin();
+ const oldImage=document.getElementById('bnOldImage').value||null;
+ const file=document.getElementById('bnImageFile').files[0];
+ let uploaded=null;
+ try{
+  let imageUrl=document.getElementById('bnImage').value.trim()||null;
+  if(file){uploaded=await uploadBannerImage(file);imageUrl=uploaded.url}
+  const row={title:document.getElementById('bnTitle').value.trim(),subtitle:document.getElementById('bnSubtitle').value.trim()||null,button_text:document.getElementById('bnButton').value.trim()||null,image_url:imageUrl,target_type:type,target_value:target,position:Number(document.getElementById('bnPos').value||0),starts_at:bs?new Date(bs).toISOString():null,ends_at:be?new Date(be).toISOString():null,active:document.getElementById('bnActive').checked,updated_at:new Date().toISOString()};
+  let error;
+  if(id)({error}=await sb.from('home_banners').update(row).eq('id',id));
+  else({error}=await sb.from('home_banners').insert({...row,created_by:currentUser.id}));
+  if(error)throw error;
+  if(oldImage&&oldImage!==imageUrl)await removeBannerImageByUrl(oldImage);
+  alert(id?'Banner atualizado.':'Banner criado.');
+  await loadBannerAdmin();await loadHomeBanners();
+ }catch(error){
+  if(uploaded?.url)await removeBannerImageByUrl(uploaded.url);
+  alert(friendlyError(error));
+ }
 }
-async function toggleBanner(id,active){ if(!hasAnyPlatformRole(['master','admin','operations']))return alert('Você não tem permissão para alterar banners.');const {error}=await sb.from('home_banners').update({active,updated_at:new Date().toISOString()}).eq('id',id);if(error){alert(friendlyError(error));return}await loadBannerAdmin()}
-async function deleteBanner(id){ if(!hasAnyPlatformRole(['master','admin','operations']))return alert('Você não tem permissão para excluir banners.');if(!confirm('Excluir este banner?'))return;const {error}=await sb.from('home_banners').delete().eq('id',id);if(error){alert(friendlyError(error));return}await loadBannerAdmin()}
+async function toggleBanner(id,active){
+ if(!hasAnyPlatformRole(['master','admin','operations']))return alert('Você não tem permissão para alterar banners.');
+ const {error}=await sb.from('home_banners').update({active,updated_at:new Date().toISOString()}).eq('id',id);
+ if(error){alert(friendlyError(error));return}await loadBannerAdmin();await loadHomeBanners();
+}
+async function deleteBanner(id){
+ if(!hasAnyPlatformRole(['master','admin','operations']))return alert('Você não tem permissão para excluir banners.');
+ if(!confirm('Excluir este banner?'))return;
+ const b=bannerAdminRows.find(x=>x.id===id);
+ const {error}=await sb.from('home_banners').delete().eq('id',id);
+ if(error){alert(friendlyError(error));return}
+ if(b?.image_url)await removeBannerImageByUrl(b.image_url);
+ await loadBannerAdmin();await loadHomeBanners();
+}
 async function showHome(){
  await loadHomeBanners();
  if(marketProducts.length)await loadReviewSummary(marketProducts.map(x=>x.id));

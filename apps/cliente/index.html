@@ -269,6 +269,10 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
  <div id="homeCategories" class="home-cat"></div>
  <div class="section-title"><h3>Ofertas e destaques</h3><span class="mut">Escolhas para você</span></div><div id="homeOffers" class="product-grid"></div>
  <div class="section-title"><h3>Lojas da região</h3><span class="mut">Compre de parceiros locais</span></div><div id="homeStores" class="store-strip"></div>
+ <div class="section-title"><h3>Abertas agora</h3><span class="mut">Lojas atendendo neste momento</span></div><div id="homeOpenStores" class="store-strip"></div>
+ <div class="section-title"><h3>Mais vendidos</h3><span class="mut">Preferidos dos clientes</span></div><div id="homeBestSellers" class="product-grid"></div>
+ <div class="section-title"><h3>Melhor avaliados</h3><span class="mut">Avaliações de compras entregues</span></div><div id="homeTopRated" class="product-grid"></div>
+ <div class="section-title"><h3>Novidades</h3><span class="mut">Produtos adicionados recentemente</span></div><div id="homeNewest" class="product-grid"></div>
  <div class="section-title"><h3>Explore por segmento</h3><span class="mut">Encontre o que precisa</span></div><div id="demoStores" class="demo-store-grid"></div>
  <div class="section-title"><h3>Smart Shop para a comunidade</h3><span class="mut">Benefícios que fazem sentido para um marketplace local</span></div>
  <div class="community-grid"><div class="community-card"><div class="ico">🎁</div><h3>Indique um amigo</h3><p class="mut">Compartilhe o Smart Shop. Benefícios podem ser liberados após a primeira compra válida do indicado.</p><button class="ghost" onclick="requireAuthView('referralPanel',showReferrals)">Quero indicar</button></div><div class="community-card"><div class="ico">🏪</div><h3>Indique uma loja</h3><p class="mut">Ajude a trazer seus comércios favoritos para o marketplace da região.</p><button class="ghost" onclick="requireAuthView('referralPanel',showReferrals)">Indicar comércio</button></div><div class="community-card elite-card"><div class="ico">🏅</div><h3>Lojas Destaque</h3><p class="mut">Reconhecimento por boas avaliações, poucos cancelamentos e agilidade no atendimento.</p><button class="ghost" onclick="openView('marketplacePanel');showMarketplace()">Ver lojas</button></div></div>
@@ -1198,7 +1202,7 @@ async function showHome(){
  const hb=document.getElementById('heroLoginBtn');if(hb)hb.style.display=currentUser?'none':'';
  await loadHomeBanners();
  const ok=await ensureMarketData();
- if(ok&&marketProducts.length)await loadReviewSummary(marketProducts.map(x=>x.id));
+ if(ok&&marketProducts.length){await loadReviewSummary(marketProducts.map(x=>x.id));await loadGrowthDiscovery();}
  if(currentUser)await loadSyncedFavorites();
  if(ok)renderHome();
 }
@@ -1208,8 +1212,14 @@ function renderHome(){
  const offers=marketProducts.filter(x=>x.old_price&&Number(x.old_price)>Number(x.price)).slice(0,8);
  const ho=document.getElementById('homeOffers');if(ho)ho.innerHTML=(offers.length?offers:marketProducts.slice(0,4)).map(productCard).join('');
  const stores=[...new Map(marketProducts.map(x=>[x.store_id,{id:x.store_id,name:x.stores?.name||'Loja',delivery_modes:x.stores?.delivery_modes||[],business_hours:x.stores?.business_hours||null}])).values()];
- const hs=document.getElementById('homeStores');if(hs)hs.innerHTML=stores.map(x=>`<div class="store-pill" onclick="marketStore='${x.id}';openView('marketplacePanel');showMarketplace()"><b>${esc(x.name)}</b><span class="mut">${marketProducts.filter(p=>p.store_id===x.id).length} produtos</span>${deliveryBadge(x)}</div>`).join('');
- const featuredIds=new Set((offers.length?offers:marketProducts.slice(0,4)).map(x=>x.id)); const more=marketProducts.filter(x=>!featuredIds.has(x.id)).slice(0,8); const hn=document.getElementById('homeNew');if(hn)hn.innerHTML=(more.length?more:marketProducts.slice().reverse().slice(0,4)).map(productCard).join('');
+ const hs=document.getElementById('homeStores');if(hs)hs.innerHTML=stores.map(storePublicCard).join('');
+ const opened=stores.filter(x=>storeOpenNow(x.id)),hos=document.getElementById('homeOpenStores');if(hos)hos.innerHTML=opened.map(storePublicCard).join('')||'<div class="card"><span class="mut">Nenhuma loja aberta neste momento. O catálogo continua disponível para consulta.</span></div>';
+ const best=marketProducts.slice().sort((a,b)=>Number(productDiscovery[b.id]?.sold_quantity||0)-Number(productDiscovery[a.id]?.sold_quantity||0)).filter(x=>Number(productDiscovery[x.id]?.sold_quantity||0)>0).slice(0,8);
+ const hb=document.getElementById('homeBestSellers');if(hb)hb.innerHTML=(best.length?best:marketProducts.slice(0,4)).map(productCard).join('');
+ const top=marketProducts.slice().sort((a,b)=>Number(productDiscovery[b.id]?.rating_average||0)-Number(productDiscovery[a.id]?.rating_average||0)).filter(x=>Number(productDiscovery[x.id]?.review_count||0)>0).slice(0,8);
+ const ht=document.getElementById('homeTopRated');if(ht)ht.innerHTML=(top.length?top:marketProducts.slice(0,4)).map(productCard).join('');
+ const newest=marketProducts.slice().sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).slice(0,8),hnew=document.getElementById('homeNewest');if(hnew)hnew.innerHTML=newest.map(productCard).join('');
+ const featuredIds=new Set((offers.length?offers:marketProducts.slice(0,4)).map(x=>x.id)),more=marketProducts.filter(x=>!featuredIds.has(x.id)).slice(0,8),hn=document.getElementById('homeNew');if(hn)hn.innerHTML=(more.length?more:marketProducts.slice().reverse().slice(0,4)).map(productCard).join('');
  renderDemoStoreShowcase();
 }
 async function showFavorites(){
@@ -1219,8 +1229,27 @@ function renderFavorites(){
  el.innerHTML=list.map(productCard).join('')||'<div class="card fav-empty"><div style="font-size:42px">♡</div><h3>Nenhum favorito ainda</h3><p class="mut">Toque no coração dos produtos que quiser guardar.</p><button onclick="openView(\'marketplacePanel\');showMarketplace()">Ver produtos</button></div>';
 }
 let marketProducts=[],marketCart=[],marketCoupon='',marketCategory='Todos',marketStore='';
+let productDiscovery={},storeQuality={},storeHours={},storeDelivery={};
 let checkoutMethod='smart_partner',checkoutAddressId='';
 
+async function loadGrowthDiscovery(){
+ const ids=[...new Set(marketProducts.map(x=>x.store_id))],pids=marketProducts.map(x=>x.id);
+ const [dm,qm,hm,ds]=await Promise.all([
+  pids.length?sb.from('product_discovery_metrics').select('product_id,sold_quantity,rating_average,review_count').in('product_id',pids):Promise.resolve({data:[]}),
+  ids.length?sb.from('store_quality_metrics').select('store_id,rating_average,review_count,highlight_eligible,express_eligible').in('store_id',ids):Promise.resolve({data:[]}),
+  ids.length?sb.from('store_business_hours').select('store_id,weekday,is_closed,opens_at,closes_at').in('store_id',ids):Promise.resolve({data:[]}),
+  ids.length?sb.from('store_delivery_settings').select('store_id,same_day_enabled,same_day_cutoff,prep_minutes,express_enabled,express_prep_minutes,delivery_area_text').in('store_id',ids):Promise.resolve({data:[]})
+ ]);
+ productDiscovery=Object.fromEntries((dm.data||[]).map(x=>[x.product_id,x]));storeQuality=Object.fromEntries((qm.data||[]).map(x=>[x.store_id,x]));
+ storeHours={};(hm.data||[]).forEach(x=>(storeHours[x.store_id]||(storeHours[x.store_id]=[])).push(x));storeDelivery=Object.fromEntries((ds.data||[]).map(x=>[x.store_id,x]));
+}
+function storeOpenNow(storeId){
+ const now=new Date(),row=(storeHours[storeId]||[]).find(x=>Number(x.weekday)===now.getDay());if(!row||row.is_closed||!row.opens_at||!row.closes_at)return false;
+ const parts=t=>t.split(':').map(Number),a=parts(row.opens_at),b=parts(row.closes_at),mins=now.getHours()*60+now.getMinutes();return mins>=a[0]*60+a[1]&&mins<b[0]*60+b[1];
+}
+function storePublicCard(x){
+ const q=storeQuality[x.id]||{},open=storeOpenNow(x.id);return '<div class="store-pill" onclick="openStorePage(\''+x.id+'\')"><b>'+esc(x.name)+'</b><span class="mut">'+(open?'🟢 Aberta agora':'⚪ Fechada agora')+(Number(q.review_count)?' • ★ '+Number(q.rating_average).toFixed(1):'')+'</span>'+(q.highlight_eligible?'<span class="tag">🏅 Loja Destaque</span>':'')+deliveryBadge(x)+'</div>';
+}
 async function showMarketplace(){
  const {data,error}=await sb.from('products').select('id,store_id,name,category,description,price,old_price,image_url,stock,created_at,stores(name,delivery_modes,business_hours)').eq('active',true).gt('stock',0).order('created_at',{ascending:false});
  if(error){alert(friendlyError(error));return}
@@ -1383,6 +1412,15 @@ async function reviewOrderIssue(id,status){
  await loadMaster(); await refreshFlow();
 }
 async function refreshFlow(){await loadMerchantPanel();await loadCourierPanel();await loadCustomerOrders();await loadNotificationCount()}
+async function buyAgain(orderId){
+ if(!currentUser)return showAuthCard();
+ const {data:items,error}=await sb.from('order_items').select('product_id,quantity,store_id,product_name').eq('order_id',orderId);if(error)return alert(friendlyError(error));
+ await ensureMarketData();const available=(items||[]).map(i=>({item:i,product:marketProducts.find(p=>p.id===i.product_id)})).filter(x=>x.product&&x.product.stock>0);
+ if(!available.length)return alert('Os produtos deste pedido não estão disponíveis no momento.');
+ const storeId=available[0].product.store_id;marketCart=available.filter(x=>x.product.store_id===storeId).map(x=>({...x.product,qty:Math.min(Number(x.item.quantity)||1,x.product.stock)}));
+ marketStore=storeId;openView('marketplacePanel');renderMarketFilters();renderMarketProducts();renderMarketCart();
+ if(available.length<(items||[]).length)alert('Alguns itens indisponíveis não foram adicionados.');
+}
 async function loadCustomerOrders(){
  const b=document.getElementById('customerOrdersBody');
  const {data:o,error}=await sb.from('orders').select('id,order_number,status_code,total_amount,product_subtotal,discount_amount,freight_amount,delivery_method,created_at').eq('user_id',currentUser.id).order('created_at',{ascending:false});
@@ -1390,7 +1428,7 @@ async function loadCustomerOrders(){
  b.innerHTML=(o||[]).map(x=>`<div class="card"><b>${esc(x.order_number)}</b><p><span class="tag">${esc(STATUS_LABEL[x.status_code]||x.status_code)}</span> <span class="mut">• ${esc({pickup:'Retirada na loja',store_delivery:'Entrega da loja',smart_partner:'Entregador Smart Shop'}[x.delivery_method]||x.delivery_method||'')}</span></p><div class="order-values"><span>Produtos: <b>${money(x.product_subtotal||0)}</b></span>${Number(x.discount_amount||0)>0?`<span>Desconto: <b>− ${money(x.discount_amount)}</b></span>`:''}<span>Frete: <b>${Number(x.freight_amount||0)>0?money(x.freight_amount):'Grátis'}</b></span><span>Total: <b>${money(x.total_amount||0)}</b></span></div><p class="mut" style="line-height:1.8">${esc(statusProgress(x.status_code))}</p>
  ${x.status_code==='out_for_delivery'&&x.delivery_method==='smart_partner'?`<button onclick="showVerificationCode('${x.id}','delivery')">Ver código de entrega</button><div class="mut" style="margin-top:6px">Só informe o código depois de receber o pedido em mãos.</div>`:''}
  ${['awaiting_payment','paid','preparing','ready','awaiting_courier'].includes(x.status_code)?`<button class="bad" onclick="createOrderIssue('${x.id}','cancel_request')">Solicitar cancelamento</button>`:''}
- ${x.status_code==='delivered'?`<button onclick="openOrderReviewOptions('${x.id}')">⭐ Avaliar produtos</button><button onclick="createOrderIssue('${x.id}','return_request')">Solicitar devolução</button>`:''}
+ <button onclick="buyAgain('${x.id}')">🛒 Comprar novamente</button> ${x.status_code==='delivered'?`<button onclick="openOrderReviewOptions('${x.id}')">⭐ Avaliar produtos</button><button onclick="createOrderIssue('${x.id}','return_request')">Solicitar devolução</button>`:''}
  <button class="ghost" onclick="showOrderIssues('${x.id}')">Ocorrências</button>
  <button class="ghost" onclick="showTimeline('${x.id}')">Acompanhar</button></div>`).join('')||'Você ainda não possui pedidos.';
 }

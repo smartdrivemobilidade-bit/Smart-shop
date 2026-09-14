@@ -90,3 +90,12 @@ Toda alteração de banco deve ser aplicada por migration versionada e registrad
 - Políticas legadas conflitantes foram removidas e as chaves estrangeiras usadas pelo fluxo receberam índices.
 - Perfil anônimo não possui privilégios nessas tabelas nem execução das RPCs.
 - Migrations aplicadas: `20260914214843_smart_shop_v4_referrals_secure_workflows.sql` e `20260914215139_smart_shop_v4_referrals_policy_cleanup_indexes.sql`.
+
+
+## Performance e RLS (14/09/2026)
+
+- Eliminados os avisos ativos de `auth_rls_initplan`, chaves estrangeiras sem índice e políticas permissivas duplicadas, preservando os mesmos acessos funcionais.
+- Políticas administrativas `ALL` foram separadas por operação e políticas públicas/autenticadas passaram a declarar papéis explicitamente.
+- Índices operacionais adicionados para campanhas, cupons, localização de entregas, lojas favoritas e tabelas preparatórias de fidelidade.
+- O Advisor de performance passou a registrar apenas índices ainda não utilizados, comportamento esperado antes da carga real e dos testes.
+- Migration aplicada: `20260914215933_smart_shop_v4_rls_performance_hardening.sql`.

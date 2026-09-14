@@ -87,5 +87,6 @@ Toda alteração de banco deve ser aplicada por migration versionada e registrad
 - Indicação de amigo é qualificada automaticamente somente após o primeiro pedido válido alcançar `delivered`; recompensa financeira/cupom permanece sem regra configurada.
 - Gestão Master/Admin/Operations disponível para acompanhar indicações e atualizar o funil de lojas.
 - Privilégios diretos excessivos removidos das tabelas `referral_codes`, `referrals` e `store_referrals`; clientes autenticados mantêm apenas leitura filtrada por RLS, e mutações passam por funções `SECURITY DEFINER` com validação e `search_path` fixo.
+- Políticas legadas conflitantes foram removidas e as chaves estrangeiras usadas pelo fluxo receberam índices.
 - Perfil anônimo não possui privilégios nessas tabelas nem execução das RPCs.
-- Migration aplicada: `20260914214843_smart_shop_v4_referrals_secure_workflows.sql`.
+- Migrations aplicadas: `20260914214843_smart_shop_v4_referrals_secure_workflows.sql` e `20260914215139_smart_shop_v4_referrals_policy_cleanup_indexes.sql`.

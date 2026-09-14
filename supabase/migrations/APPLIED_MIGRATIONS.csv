@@ -101,3 +101,4 @@ version,name,status
 20260914160800,smart_shop_v4_recipient_specific_notifications,APPLIED
 20260914160957,smart_shop_v4_enforce_delivery_geofence,APPLIED
 20260914161304,smart_shop_v4_document_verification_codes_rls,APPLIED
+20260914161551,smart_shop_v4_banner_image_storage,APPLIED

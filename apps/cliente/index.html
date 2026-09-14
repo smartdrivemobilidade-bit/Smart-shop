@@ -1079,13 +1079,47 @@ async function ensureMarketData(){
  await loadReviewSummary(marketProducts.map(x=>x.id));return true;
 }
 
+async function handleBannerAction(encodedType,encodedValue){
+ const type=decodeURIComponent(encodedType||'marketplace'),value=decodeURIComponent(encodedValue||'');
+ if(type==='store'&&value){await openStorePage(value);return}
+ if(type==='category'&&value){showMarketplace(value);return}
+ if(type==='product'&&value){
+  if(await ensureMarketData()){
+   if(marketProducts.some(p=>p.id===value))openProductModal(value);
+   else alert('Este produto não está disponível no momento.');
+  }
+  return;
+ }
+ if(type==='coupon'&&value){
+  marketCoupon=value;
+  showMarketplace();
+  alert('Cupom '+value+' selecionado. Adicione os produtos e ele será aplicado no checkout.');
+  return;
+ }
+ if(type==='campaign'&&value){
+  let campaign=null;
+  const bySlug=await sb.from('campaigns').select('target_type,target_value').eq('slug',value).eq('active',true).maybeSingle();
+  campaign=bySlug.data;
+  if(!campaign&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)){
+   const byId=await sb.from('campaigns').select('target_type,target_value').eq('id',value).eq('active',true).maybeSingle();
+   campaign=byId.data;
+  }
+  if(campaign&&campaign.target_type!=='campaign'){
+   await handleBannerAction(encodeURIComponent(campaign.target_type||'marketplace'),encodeURIComponent(campaign.target_value||''));
+  }else{
+   showMarketplace();
+  }
+  return;
+ }
+ showMarketplace();
+}
 async function loadHomeBanners(){
  const {data,error}=await sb.from('home_banners').select('*').order('position',{ascending:true});
  const el=document.getElementById('dynamicBanners'); if(!el)return;
  if(error||!data?.length){el.innerHTML='';return}
  el.innerHTML=data.map(b=>{
   const style=b.image_url?` style="background-image:url('${esc(b.image_url)}')"`:'';
-  const action=b.target_type==='store'&&b.target_value?`openStorePage('${b.target_value}')`:b.target_type==='category'&&b.target_value?`showMarketplace('${esc(b.target_value)}')`:`showMarketplace()`;
+  const action=`handleBannerAction('${encodeURIComponent(b.target_type||'marketplace')}','${encodeURIComponent(b.target_value||'')}')`;
   return `<div class="dynamic-banner ${b.image_url?'has-img':''}"${style}><h2>${esc(b.title)}</h2>${b.subtitle?`<p>${esc(b.subtitle)}</p>`:''}${b.button_text&&b.target_type!=='none'?`<div><button onclick="${action}">${esc(b.button_text)}</button></div>`:''}</div>`;
  }).join('');
 }

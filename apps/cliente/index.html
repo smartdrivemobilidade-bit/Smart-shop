@@ -1114,14 +1114,29 @@ function productCard(x){
 }
 
 async function openStorePage(storeId){
- const {data:s,error}=await sb.from('stores').select('id,name,slug,description,logo_url,phone,category,street,number,district,city,state,approval_status,business_hours,delivery_modes').eq('id',storeId).maybeSingle();
- if(error||!s)return alert('Não foi possível abrir esta loja.');
- const {data:ps,error:pe}=await sb.from('products').select('id,store_id,name,category,description,price,old_price,image_url,stock,active,created_at,stores(name,delivery_modes,business_hours)').eq('store_id',storeId).eq('active',true).gt('stock',0).order('created_at',{ascending:false});
- if(pe)return alert(pe.message);
- marketProducts=[...new Map([...marketProducts,...(ps||[])].map(x=>[x.id,x])).values()];
- openView('storePagePanel');
- const addr=[s.street,s.number,s.district,s.city,s.state].filter(Boolean).join(', ');
- document.getElementById('storePageBody').innerHTML=`<button class="ghost" onclick="showHome()">← Voltar</button><div class="store-cover"></div><div class="store-profile"><div class="store-logo-big">${s.logo_url?`<img src="${esc(s.logo_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:15px">`:'🏪'}</div><h2 style="margin:8px 0 2px">${esc(s.name)}</h2><div class="mut">${esc(s.category||'Loja local')}</div>${s.description?`<p>${esc(s.description)}</p>`:''}<div class="store-info-grid">${addr?`<span class="tag">📍 ${esc(addr)}</span>`:''}${s.phone?`<span class="tag">📞 ${esc(s.phone)}</span>`:''}${s.business_hours?`<span class="tag">🕒 ${esc(s.business_hours)}</span>`:''}<span class="tag">✓ Loja Smart Shop</span></div>${deliveryBadge(s)}</div><div class="section-title"><h3>Produtos da loja</h3><span class="mut">${(ps||[]).length} disponíveis</span></div><div class="product-grid">${(ps||[]).map(productCard).join('')||'<div class="card">Nenhum produto disponível no momento.</div>'}</div>`;
+ const [sr,pr,hr,dr,qr,rr,fr]=await Promise.all([
+  sb.from('stores').select('id,name,slug,description,logo_url,phone,whatsapp,category,street,number,district,city,state,approval_status,business_hours,delivery_modes').eq('id',storeId).maybeSingle(),
+  sb.from('products').select('id,store_id,name,category,description,price,old_price,image_url,stock,active,created_at,stores(name,delivery_modes,business_hours)').eq('store_id',storeId).eq('active',true).gt('stock',0).order('created_at',{ascending:false}),
+  sb.from('store_business_hours').select('weekday,is_closed,opens_at,closes_at').eq('store_id',storeId).order('weekday'),
+  sb.from('store_delivery_settings').select('same_day_enabled,same_day_cutoff,prep_minutes,express_enabled,express_prep_minutes,delivery_area_text').eq('store_id',storeId).maybeSingle(),
+  sb.from('store_quality_metrics').select('rating_average,review_count,delivered_orders,cancellation_rate,avg_prep_minutes,highlight_eligible,express_eligible').eq('store_id',storeId).maybeSingle(),
+  sb.from('reviews').select('rating,comment,created_at').eq('store_id',storeId).eq('active',true).order('created_at',{ascending:false}).limit(8),
+  currentUser?sb.from('favorite_stores').select('store_id').eq('user_id',currentUser.id).eq('store_id',storeId).maybeSingle():Promise.resolve({data:null})
+ ]);
+ const store=sr.data,products=pr.data||[];if(sr.error||!store)return alert('Não foi possível abrir esta loja.');if(pr.error)return alert(friendlyError(pr.error));
+ marketProducts=[...new Map([...marketProducts,...products].map(x=>[x.id,x])).values()];openView('storePagePanel');
+ const addr=[store.street,store.number,store.district,store.city,store.state].filter(Boolean).join(', '),q=qr.data||{},delivery=dr.data||{},days=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+ const modes={pickup:'Retirada na loja',store_delivery:'Entrega própria da loja',smart_partner:'Entrega por parceiro Smart Shop'};
+ const hours=(hr.data||[]).map(x=>'<div><b>'+days[x.weekday]+':</b> '+(x.is_closed?'Fechado':String(x.opens_at).slice(0,5)+' às '+String(x.closes_at).slice(0,5))+'</div>').join('');
+ const reviews=(rr.data||[]).map(x=>'<div class="review-card"><b>'+'★'.repeat(x.rating)+'☆'.repeat(5-x.rating)+'</b>'+(x.comment?'<p>'+esc(x.comment)+'</p>':'')+'<span class="mut">'+new Date(x.created_at).toLocaleDateString('pt-BR')+'</span></div>').join('');
+ document.getElementById('storePageBody').innerHTML='<button class="ghost" onclick="showHome()">← Voltar</button><div class="store-cover"></div><div class="store-profile"><div class="store-logo-big">'+(store.logo_url?'<img src="'+esc(store.logo_url)+'" style="width:100%;height:100%;object-fit:cover;border-radius:15px">':'🏪')+'</div><h2>'+esc(store.name)+'</h2><div class="mut">'+esc(store.category||'Loja local')+'</div>'+(q.highlight_eligible?'<span class="tag">🏅 Loja Destaque</span>':'')+(Number(q.review_count)?'<span class="tag">★ '+Number(q.rating_average).toFixed(1)+' ('+q.review_count+' avaliações)</span>':'<span class="tag">Ainda sem avaliações</span>')+(currentUser?'<button class="ghost" onclick="toggleStoreFavorite(\''+store.id+'\','+(!!fr.data)+')">'+(fr.data?'♥ Seguindo':'♡ Seguir loja')+'</button>':'')+(store.description?'<p>'+esc(store.description)+'</p>':'')+'<div class="store-info-grid">'+(addr?'<span class="tag">📍 '+esc(addr)+'</span>':'')+(store.whatsapp||store.phone?'<span class="tag">📞 '+esc(store.whatsapp||store.phone)+'</span>':'')+'<span class="tag">'+(storeOpenNow(store.id)?'🟢 Aberta agora':'⚪ Fechada agora')+'</span></div></div>'+
+ '<div class="grid2"><div class="card"><h3>Horários</h3>'+(hours||'<p class="mut">Horários ainda não informados.</p>')+'</div><div class="card"><h3>Entrega e retirada</h3><p>'+((store.delivery_modes||[]).map(x=>'<span class="tag">'+esc(modes[x]||x)+'</span>').join('')||'Modalidades em configuração')+'</p>'+(delivery.delivery_area_text?'<p><b>Área atendida:</b> '+esc(delivery.delivery_area_text)+'</p>':'')+(delivery.same_day_enabled?'<p>⚡ Entrega no mesmo dia até '+String(delivery.same_day_cutoff||'').slice(0,5)+'</p>':'')+(delivery.express_enabled?'<p>🚀 Expressa: preparo estimado em '+Number(delivery.express_prep_minutes||0)+' min</p>':'')+'</div></div>'+
+ '<div class="section-title"><h3>Produtos da loja</h3><span class="mut">'+products.length+' disponíveis</span></div><div class="product-grid">'+(products.map(productCard).join('')||'<div class="card">Nenhum produto disponível no momento.</div>')+'</div><div class="section-title"><h3>Avaliações da loja</h3><span class="mut">Somente compras concluídas</span></div><div class="card">'+(reviews||'<p class="mut">A loja ainda não recebeu avaliações.</p>')+'</div>';
+}
+async function toggleStoreFavorite(storeId,isFavorite){
+ if(!currentUser)return showAuthCard();const query=sb.from('favorite_stores');
+ const {error}=isFavorite?await query.delete().eq('user_id',currentUser.id).eq('store_id',storeId):await query.insert({user_id:currentUser.id,store_id:storeId});
+ if(error)return alert(friendlyError(error));await openStorePage(storeId);
 }
 async function ensureMarketData(){
  if(marketProducts.length)return true;

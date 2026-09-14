@@ -98,3 +98,5 @@ Toda alteração de banco deve ser aplicada por migration versionada e registrad
 - Privilégios `REFERENCES`, `TRIGGER` e `TRUNCATE` foram removidos das tabelas Growth expostas; cada papel mantém somente as operações necessárias.
 - CRUD de cupons e campanhas foi validado com papel Master em transação revertida, sem dados residuais.
 - Migrations aplicadas: `20260914215933_smart_shop_v4_rls_performance_hardening.sql` e `20260914220211_smart_shop_v4_growth_table_least_privileges.sql`.
+
+- Teste de pré-validação identificou e corrigiu os privilégios de favoritos de produtos. Permissões técnicas `REFERENCES`, `TRIGGER` e `TRUNCATE` foram removidas dos papéis da API em todas as tabelas públicas. Migration: `20260914221140_smart_shop_v4_api_privilege_cleanup_favorites.sql`.

@@ -79,3 +79,13 @@ A proteção contra senhas vazadas ainda precisa ser habilitada manualmente em *
 ## Regra operacional
 
 Toda alteração de banco deve ser aplicada por migration versionada e registrada em `supabase/migrations/APPLIED_MIGRATIONS.csv`. Antes de publicar a V4, repetir os testes dos quatro produtos e a revisão de segredos.
+
+
+## Indicações de amigos e lojas (14/09/2026)
+
+- Fluxo público conectado por RPCs autenticadas: criação de código próprio, vínculo de código recebido e envio de loja para prospecção.
+- Indicação de amigo é qualificada automaticamente somente após o primeiro pedido válido alcançar `delivered`; recompensa financeira/cupom permanece sem regra configurada.
+- Gestão Master/Admin/Operations disponível para acompanhar indicações e atualizar o funil de lojas.
+- Privilégios diretos excessivos removidos das tabelas `referral_codes`, `referrals` e `store_referrals`; clientes autenticados mantêm apenas leitura filtrada por RLS, e mutações passam por funções `SECURITY DEFINER` com validação e `search_path` fixo.
+- Perfil anônimo não possui privilégios nessas tabelas nem execução das RPCs.
+- Migration aplicada: `20260914214843_smart_shop_v4_referrals_secure_workflows.sql`.

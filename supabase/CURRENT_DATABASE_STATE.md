@@ -1,6 +1,9 @@
 # Estado atual do Supabase
 
-## Núcleo já implementado
+Atualizado em 14/09/2026. Projeto: `iwbxyhcmcxeaqkkqveni`.
+
+## Núcleo implementado
+
 - autenticação e perfis;
 - lojas, membros de loja e produtos;
 - endereços;
@@ -8,8 +11,8 @@
 - máquina de estados do pedido;
 - entrega Smart Shop e entregadores;
 - códigos de coleta/entrega;
-- GPS/geofencing foundation;
-- notificações;
+- GPS e geofence validados no servidor;
+- notificações por destinatário;
 - checkout server-side, cotação, idempotência e estoque;
 - cupons e resgates;
 - financeiro, comissão e ledger;
@@ -22,6 +25,7 @@
 - histórico/auditoria.
 
 ## Growth/marketplace regional já migrado
+
 - indicação de amigo;
 - indicação de loja;
 - seguidores/lojas favoritas e notificações;
@@ -33,9 +37,40 @@
 - métricas de descoberta / vendas;
 - tipos de lojista (MEI, empresa, individual).
 
-## Avisos de segurança ainda pendentes de revisão
-- tabela `order_verification_codes` com RLS e sem policy pública (intencionalmente restrita, revisar arquitetura);
-- algumas funções `SECURITY DEFINER` executáveis por usuários autenticados devem ser auditadas função a função;
-- proteção de senha vazada no Supabase Auth estava desabilitada na última revisão.
+## Correções críticas verificadas
 
-Não alterar permissões de funções em lote sem testar cliente, lojista, entregador e Master.
+- transição `picked_up -> out_for_delivery` validada;
+- erro de agregação UUID no fechamento financeiro corrigido;
+- pedido E2E preservado `SS2A7AFC90` concluído como `delivered`;
+- liquidação E2E conferida com três lançamentos de ledger;
+- notificações separadas para cliente, lojista e entregador;
+- geofence exigido na chegada à loja, coleta e entrega;
+- raio padrão de 200 m, precisão máxima aceita de 150 m e evento válido por 15 minutos;
+- quando o endereço ainda não tem coordenadas, o GPS continua obrigatório e a exceção é registrada automaticamente;
+- fluxo completo de geofence testado em transação reversível.
+
+## Revisão dos avisos de segurança
+
+### Códigos de verificação
+
+A tabela `order_verification_codes` continua inacessível diretamente para `anon` e `authenticated`. A intenção foi documentada com policy RLS restritiva e falsa. Os códigos só devem ser acessados pelos RPCs autorizados.
+
+### Funções SECURITY DEFINER
+
+As 42 funções apontadas pelo advisor foram revisadas quanto a permissões e controles internos:
+
+- nenhuma está executável por `anon`;
+- RPCs de cliente e entregador verificam `auth.uid()`, propriedade do recurso e estado permitido;
+- RPCs administrativos verificam os papéis Master/Admin/Operações/Suporte/Financeiro conforme a operação;
+- funções auxiliares de RLS retornam apenas verificações de vínculo ou papel;
+- `get_checkout_settings()` expõe somente valores públicos de frete para usuários autenticados.
+
+O advisor continua exibindo os 42 avisos porque detecta estruturalmente qualquer função `SECURITY DEFINER` executável por `authenticated`, mesmo quando a chamada é intencional e protegida internamente. Não revogar essas permissões em lote: isso quebraria checkout, entregas, suporte e os painéis.
+
+### Pendente no painel Supabase
+
+A proteção contra senhas vazadas ainda precisa ser habilitada manualmente em **Authentication > Security and Protection > Leaked password protection**. Essa configuração não é uma migration SQL.
+
+## Regra operacional
+
+Toda alteração de banco deve ser aplicada por migration versionada e registrada em `supabase/migrations/APPLIED_MIGRATIONS.csv`. Antes de publicar a V4, repetir os testes dos quatro produtos e a revisão de segredos.

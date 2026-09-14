@@ -1,0 +1,47 @@
+name: Importar pacote V4
+
+on:
+  push:
+    branches:
+      - v4-work
+    paths:
+      - .github/workflows/import-v4.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  importar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar branch v4-work
+        uses: actions/checkout@v4
+        with:
+          ref: v4-work
+
+      - name: Extrair pacote preservando pastas
+        shell: bash
+        run: |
+          set -euo pipefail
+          arquivo="SMART_SHOP_TRANSFERENCIA_CHATGPT_WORK_2026-09-14.zip"
+          test -f "$arquivo"
+
+          temporario="$(mktemp -d)"
+          unzip -q "$arquivo" -d "$temporario"
+
+          shopt -s dotglob nullglob
+          itens=("$temporario"/*)
+          origem="$temporario"
+          if [ "${#itens[@]}" -eq 1 ] && [ -d "${itens[0]}" ]; then
+            origem="${itens[0]}"
+          fi
+
+          cp -a "$origem"/. .
+          rm -f "$arquivo"
+
+          git config user.name "Smart Shop Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "Importar estrutura V4 do pacote de transferência"
+          git push origin HEAD:v4-work

@@ -177,14 +177,16 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 <form class="card" id="merchantForm">
 <h2>Cadastro de Lojista</h2><div id="merchantAppStatus" class="mut"></div>
 <div class="grid3">
-<div><label>Razão social *</label><input name="legal_name" required></div>
-<div><label>Nome fantasia *</label><input name="trade_name" required></div>
-<div><label>CPF/CNPJ *</label><input name="cpf_cnpj" required></div>
-<div><label>Inscrição estadual</label><input name="state_registration"></div>
-<div><label>Inscrição municipal</label><input name="municipal_registration"></div>
-<div><label>Categoria</label><input name="category"></div>
-<div><label>Responsável *</label><input name="responsible_name" required></div>
-<div><label>CPF responsável *</label><input name="responsible_cpf" required></div>
+<div class="wide"><label>Tipo de cadastro *</label><select name="business_type" id="merchantBusinessType" required onchange="updateMerchantBusinessType()"><option value="">Selecione</option><option value="mei">MEI</option><option value="ltda">Empresa / LTDA</option><option value="individual">Vendedor individual</option></select></div>
+<div id="merchantLegalNameWrap"><label id="merchantLegalNameLabel">Razão social *</label><input name="legal_name" required></div>
+<div><label id="merchantTradeNameLabel">Nome fantasia *</label><input name="trade_name" required></div>
+<div><label id="merchantTaxIdLabel">CNPJ *</label><input name="cpf_cnpj" required></div>
+<div id="merchantStateRegistrationWrap"><label>Inscrição estadual</label><input name="state_registration"></div>
+<div id="merchantMunicipalRegistrationWrap"><label>Inscrição municipal</label><input name="municipal_registration"></div>
+<div><label>Categoria *</label><input name="category" required placeholder="Ex.: Moda, Mercado, Gás e Água"></div>
+<div id="merchantResponsibleNameWrap"><label>Responsável *</label><input name="responsible_name" required></div>
+<div id="merchantResponsibleCpfWrap"><label>CPF do responsável *</label><input name="responsible_cpf" required></div>
+<div class="wide hide" id="merchantIndividualActivityWrap"><label>Descrição da atividade exercida *</label><textarea name="individual_activity_description" rows="3" placeholder="Descreva os produtos vendidos e como a atividade funciona."></textarea><p class="mut">A atividade será conferida pelo Master antes da aprovação.</p></div>
 <div><label>Telefone *</label><input name="phone" required></div>
 <div><label>WhatsApp</label><input name="whatsapp"></div>
 <div><label>E-mail da loja *</label><input type="email" name="shop_email" required></div>
@@ -192,15 +194,16 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 </div>
 <h3>Endereço</h3><div class="grid3">
 <div><label>CEP *</label><input name="cep" required></div><div><label>Rua *</label><input name="street" required></div><div><label>Número *</label><input name="number" required></div>
-<div><label>Bairro *</label><input name="district" required></div><div><label>Cidade *</label><input name="city" value="Mateus Leme" required></div><div><label>UF *</label><input name="state" value="MG" required></div>
+<div><label>Bairro *</label><input name="district" required></div><div><label>Complemento</label><input name="complement"></div><div><label>Cidade *</label><input name="city" value="Mateus Leme" required></div><div><label>UF *</label><input name="state" value="MG" maxlength="2" required></div>
 </div>
 <h3>Repasse</h3><div class="grid3"><div><label>Chave Pix</label><input name="pix_key"></div><div><label>Banco</label><input name="bank_name"></div><div><label>Agência</label><input name="bank_agency"></div><div><label>Conta</label><input name="bank_account"></div></div>
 <h3>Documentos</h3><p class="mut">Arquivos protegidos: PDF, JPG, PNG ou WEBP. Os documentos ficam em área privada e somente você e a equipe autorizada do Smart Shop podem acessá-los.</p><div class="grid3">
-<div><label>Comprovação da empresa *</label><input id="m_company" type="file" accept=".pdf,image/jpeg,image/png,image/webp" required></div>
-<div><label>Documento do responsável *</label><input id="m_responsible" type="file" accept=".pdf,image/jpeg,image/png,image/webp" required></div>
+<div id="merchantCompanyDocWrap"><label id="merchantCompanyDocLabel">Comprovação da empresa *</label><input id="m_company" type="file" accept=".pdf,image/jpeg,image/png,image/webp" required></div>
+<div><label id="merchantResponsibleDocLabel">Documento do responsável *</label><input id="m_responsible" type="file" accept=".pdf,image/jpeg,image/png,image/webp" required></div>
 <div><label>Comprovante de endereço *</label><input id="m_address" type="file" accept=".pdf,image/jpeg,image/png,image/webp" required></div>
 <div><label>Alvará/licença (se aplicável)</label><input id="m_license" type="file" accept=".pdf,image/jpeg,image/png,image/webp"></div>
 </div>
+<label class="card row" style="margin-top:14px"><input id="merchantTerms" name="terms_accepted" type="checkbox" value="yes" style="width:auto" required><span>Declaro que os dados são verdadeiros e aceito os Termos de Uso e as regras de operação do Smart Shop.</span></label>
 <div class="row" style="margin-top:14px"><button type="submit">Enviar para análise</button></div><div id="merchantMsg"></div>
 </form>
 </div>
@@ -380,6 +383,34 @@ async function uploadDoc(file,ownerType,appId,docType){
 }
 
 
+const MERCHANT_TERMS_VERSION='2026-09-14-v1';
+function updateMerchantBusinessType(){
+ const form=document.getElementById('merchantForm');if(!form)return;
+ const type=form.elements.business_type.value;
+ const individual=type==='individual',mei=type==='mei';
+ document.getElementById('merchantLegalNameLabel').textContent=individual?'Nome completo / nome civil *':'Razão social *';
+ document.getElementById('merchantTradeNameLabel').textContent=individual?'Nome de divulgação *':'Nome fantasia *';
+ document.getElementById('merchantTaxIdLabel').textContent=individual?'CPF *':'CNPJ *';
+ document.getElementById('merchantStateRegistrationWrap').classList.toggle('hide',individual);
+ document.getElementById('merchantMunicipalRegistrationWrap').classList.toggle('hide',individual);
+ document.getElementById('merchantResponsibleNameWrap').classList.toggle('hide',individual);
+ document.getElementById('merchantResponsibleCpfWrap').classList.toggle('hide',individual);
+ document.getElementById('merchantIndividualActivityWrap').classList.toggle('hide',!individual);
+ document.getElementById('merchantCompanyDocWrap').classList.toggle('hide',individual);
+ document.getElementById('merchantCompanyDocLabel').textContent=mei?'CCMEI ou cartão CNPJ *':'Contrato social ou cartão CNPJ *';
+ document.getElementById('merchantResponsibleDocLabel').textContent=individual?'Documento pessoal com foto *':'Documento do responsável *';
+ form.elements.responsible_name.required=!individual;
+ form.elements.responsible_cpf.required=!individual;
+ form.elements.individual_activity_description.required=individual;
+ m_company.required=!individual&&form.dataset.hasCompanyDoc!=='true';
+ m_responsible.required=form.dataset.hasResponsibleDoc!=='true';
+ m_address.required=form.dataset.hasAddressDoc!=='true';
+}
+function merchantTaxIdIsValid(type,value){
+ const digits=String(value||'').replace(/\D/g,'');
+ return type==='individual'?digits.length===11:digits.length===14;
+}
+
 async function loadMerchantRegistration(){
  if(!currentUser)return;
  const form=document.getElementById('merchantForm');
@@ -388,9 +419,15 @@ async function loadMerchantRegistration(){
   sb.from('store_members').select('store_id,role,stores(*)').eq('user_id',currentUser.id).limit(1).maybeSingle(),
   sb.from('merchant_applications').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(1).maybeSingle()
  ]);
+ const {data:merchantDocs}=app?.id?await sb.from('partner_documents').select('document_type,status').eq('owner_type','merchant').eq('application_id',app.id):{data:[]};
+ const latestDocTypes=new Set((merchantDocs||[]).filter(d=>d.status!=='rejected').map(d=>d.document_type));
+ form.dataset.hasCompanyDoc=String(latestDocTypes.has('company_proof'));
+ form.dataset.hasResponsibleDoc=String(latestDocTypes.has('responsible_id'));
+ form.dataset.hasAddressDoc=String(latestDocTypes.has('address_proof'));
  const st=mem?.stores||{};
  const demo=String(st.name||'').toLowerCase()==='bella moda';
  const data={
+  business_type:app?.business_type||st.business_type||'',
   legal_name:app?.legal_name||st.legal_name||(demo?'Bella Moda Comércio de Roupas LTDA — LOJA DE TESTE':''),
   trade_name:app?.trade_name||st.trade_name||st.name||(demo?'Bella Moda':''),
   cpf_cnpj:app?.cpf_cnpj||st.cpf_cnpj||(demo?'00.000.000/0000-00':''),
@@ -407,16 +444,21 @@ async function loadMerchantRegistration(){
   street:app?.street||st.street||(demo?'Rua de Teste Smart Shop':''),
   number:app?.number||st.number||(demo?'100':''),
   district:app?.district||st.district||(demo?'Centro':''),
+  complement:app?.complement||st.complement||'',
   city:app?.city||st.city||'Mateus Leme',
   state:app?.state||st.state||'MG',
   pix_key:app?.pix_key||st.pix_key||(demo?'Chave Pix de teste':''),
   bank_name:app?.bank_name||st.bank_name||(demo?'Banco de Teste':''),
   bank_agency:app?.bank_agency||st.bank_agency||(demo?'0001':''),
-  bank_account:app?.bank_account||st.bank_account||(demo?'000000-0':'')
+  bank_account:app?.bank_account||st.bank_account||(demo?'000000-0':''),
+  individual_activity_description:app?.individual_activity_description||''
  };
  for(const [name,value] of Object.entries(data)){
   const el=form.elements.namedItem(name); if(el)el.value=value??'';
  }
+ const terms=document.getElementById('merchantTerms');
+ if(terms)terms.checked=!!app?.terms_accepted_at;
+ updateMerchantBusinessType();
  if(st.id){
   status.innerHTML=`<b>Loja vinculada:</b> ${esc(st.name||data.trade_name)} • <b>Status:</b> ${esc(st.approval_status||'aprovada')}${demo?' • <span style="color:#9a6700">dados fictícios de demonstração</span>':''}`;
   const docs=form.querySelectorAll('input[type=file]'); docs.forEach(x=>{x.required=false;x.disabled=true});
@@ -460,7 +502,12 @@ async function saveMerchantProfile(ev){
 merchantForm.addEventListener('submit',async e=>{
  e.preventDefault();merchantMsg.innerHTML='';const fd=new FormData(e.target);
  try{
-  const payload={user_id:currentUser.id,status:'submitted',legal_name:val(fd,'legal_name'),trade_name:val(fd,'trade_name'),cpf_cnpj:val(fd,'cpf_cnpj'),state_registration:val(fd,'state_registration')||null,municipal_registration:val(fd,'municipal_registration')||null,responsible_name:val(fd,'responsible_name'),responsible_cpf:val(fd,'responsible_cpf'),phone:val(fd,'phone'),whatsapp:val(fd,'whatsapp')||null,email:val(fd,'shop_email'),cep:val(fd,'cep'),street:val(fd,'street'),number:val(fd,'number'),district:val(fd,'district'),city:val(fd,'city'),state:val(fd,'state'),category:val(fd,'category')||null,business_hours:val(fd,'business_hours')||null,pix_key:val(fd,'pix_key')||null,bank_name:val(fd,'bank_name')||null,bank_agency:val(fd,'bank_agency')||null,bank_account:val(fd,'bank_account')||null,submitted_at:new Date().toISOString()};
+  const businessType=val(fd,'business_type');
+  if(!['mei','ltda','individual'].includes(businessType))throw new Error('Selecione o tipo de cadastro.');
+  if(!merchantTaxIdIsValid(businessType,val(fd,'cpf_cnpj')))throw new Error(businessType==='individual'?'Informe um CPF com 11 números.':'Informe um CNPJ com 14 números.');
+  if(val(fd,'terms_accepted')!=='yes')throw new Error('É necessário aceitar os Termos de Uso e as regras do Smart Shop.');
+  const legalName=val(fd,'legal_name'),taxId=val(fd,'cpf_cnpj');
+  const payload={user_id:currentUser.id,status:'submitted',business_type:businessType,legal_name:legalName,trade_name:val(fd,'trade_name'),cpf_cnpj:taxId,state_registration:businessType==='individual'?null:val(fd,'state_registration')||null,municipal_registration:businessType==='individual'?null:val(fd,'municipal_registration')||null,responsible_name:businessType==='individual'?legalName:val(fd,'responsible_name'),responsible_cpf:businessType==='individual'?taxId:val(fd,'responsible_cpf'),individual_activity_description:businessType==='individual'?val(fd,'individual_activity_description'):null,phone:val(fd,'phone'),whatsapp:val(fd,'whatsapp')||null,email:val(fd,'shop_email'),cep:val(fd,'cep'),street:val(fd,'street'),number:val(fd,'number'),district:val(fd,'district'),complement:val(fd,'complement')||null,city:val(fd,'city'),state:val(fd,'state').toUpperCase(),category:val(fd,'category'),business_hours:val(fd,'business_hours')||null,pix_key:val(fd,'pix_key')||null,bank_name:val(fd,'bank_name')||null,bank_agency:val(fd,'bank_agency')||null,bank_account:val(fd,'bank_account')||null,terms_accepted_at:new Date().toISOString(),terms_version:MERCHANT_TERMS_VERSION,submitted_at:new Date().toISOString()};
   const {data:existingApp}=await sb.from('merchant_applications').select('id,status').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(1).maybeSingle();
    if(existingApp?.status==='approved')throw new Error('Seu cadastro de lojista já está aprovado.');
    let data,error;
@@ -468,7 +515,7 @@ merchantForm.addEventListener('submit',async e=>{
    else ({data,error}=await sb.from('merchant_applications').insert(payload).select('id').single());
    if(error)throw error;
   await uploadDoc(m_company.files[0],'merchant',data.id,'company_proof');await uploadDoc(m_responsible.files[0],'merchant',data.id,'responsible_id');await uploadDoc(m_address.files[0],'merchant',data.id,'address_proof');if(m_license.files[0])await uploadDoc(m_license.files[0],'merchant',data.id,'business_license');
-  msg('merchantMsg','Cadastro enviado com sucesso. Status: enviado para análise.');e.target.reset();await loadMaster();
+  msg('merchantMsg','Cadastro enviado com sucesso. Status: enviado para análise.');e.target.reset();updateMerchantBusinessType();await loadMerchantRegistration();
  }catch(x){msg('merchantMsg',friendlyError(x),true)}
 });
 

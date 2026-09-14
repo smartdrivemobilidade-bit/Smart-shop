@@ -92,10 +92,9 @@ Toda alteração de banco deve ser aplicada por migration versionada e registrad
 - Migrations aplicadas: `20260914214843_smart_shop_v4_referrals_secure_workflows.sql` e `20260914215139_smart_shop_v4_referrals_policy_cleanup_indexes.sql`.
 
 
-## Performance e RLS (14/09/2026)
+## Performance, RLS e privilégios Growth (14/09/2026)
 
-- Eliminados os avisos ativos de `auth_rls_initplan`, chaves estrangeiras sem índice e políticas permissivas duplicadas, preservando os mesmos acessos funcionais.
-- Políticas administrativas `ALL` foram separadas por operação e políticas públicas/autenticadas passaram a declarar papéis explicitamente.
-- Índices operacionais adicionados para campanhas, cupons, localização de entregas, lojas favoritas e tabelas preparatórias de fidelidade.
-- O Advisor de performance passou a registrar apenas índices ainda não utilizados, comportamento esperado antes da carga real e dos testes.
-- Migration aplicada: `20260914215933_smart_shop_v4_rls_performance_hardening.sql`.
+- Eliminados os avisos ativos de `auth_rls_initplan`, chaves estrangeiras sem índice e políticas permissivas duplicadas, preservando os acessos funcionais.
+- Privilégios `REFERENCES`, `TRIGGER` e `TRUNCATE` foram removidos das tabelas Growth expostas; cada papel mantém somente as operações necessárias.
+- CRUD de cupons e campanhas foi validado com papel Master em transação revertida, sem dados residuais.
+- Migrations aplicadas: `20260914215933_smart_shop_v4_rls_performance_hardening.sql` e `20260914220211_smart_shop_v4_growth_table_least_privileges.sql`.

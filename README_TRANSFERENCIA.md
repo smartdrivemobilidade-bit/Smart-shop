@@ -212,3 +212,12 @@ Antes de modificar:
 5. não publicar V4 no GitHub Pages antes do E2E e da revisão de segurança;
 6. não inserir segredos no frontend;
 7. trabalhar com migrations versionadas para qualquer mudança de banco.
+
+
+## Atualização de continuidade — preparação para testes (14/09/2026)
+
+- Os quatro painéis permanecem separados e conectados ao projeto Supabase atual por publishable key.
+- Fluxo E2E de entrega, notificações por destinatário, geofence, banners, cadastro jurídico de lojista, indicações, página pública da loja, descoberta, comprar novamente, cupons locais e campanhas foram concluídos na branch `v4-work`.
+- Avisos de performance acionáveis do Advisor foram eliminados; índices novos ainda aparecem como não utilizados até receberem carga de testes.
+- Pagamento real e fidelidade continuam desativados conforme decisão do projeto.
+- A branch `main` e o GitHub Pages legado permanecem inalterados até a conclusão dos testes.

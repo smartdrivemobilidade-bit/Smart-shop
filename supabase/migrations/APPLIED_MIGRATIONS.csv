@@ -107,3 +107,4 @@ version,name,status
 20260914214843,smart_shop_v4_referrals_secure_workflows,APPLIED
 20260914215139,smart_shop_v4_referrals_policy_cleanup_indexes,APPLIED
 20260914215933,smart_shop_v4_rls_performance_hardening,APPLIED
+20260914220211,smart_shop_v4_growth_table_least_privileges,APPLIED

@@ -1386,7 +1386,7 @@ async function loadMaster(){
  await refreshPlatformAccess();
  if(!hasAnyPlatformRole(['master','admin'])){body.innerHTML='Esta conta não possui permissão Master/Admin.';return}
  const [m,c,d,i]=await Promise.all([
-  sb.from('merchant_applications').select('id,trade_name,legal_name,status,cpf_cnpj,created_at').order('created_at',{ascending:false}).limit(30),
+  sb.from('merchant_applications').select('id,trade_name,legal_name,status,cpf_cnpj,business_type,individual_activity_description,terms_accepted_at,terms_version,created_at').order('created_at',{ascending:false}).limit(30),
   sb.from('courier_applications').select('id,full_name,cpf,status,has_ear,created_at').order('created_at',{ascending:false}).limit(30),
   sb.from('partner_documents').select('id,user_id,owner_type,application_id,document_type,status,storage_path,original_filename,created_at').order('created_at',{ascending:false}).limit(100),
   sb.from('order_issues').select('id,order_id,issue_type,status,reason,resolution_notes,created_at').order('created_at',{ascending:false}).limit(50)
@@ -1394,29 +1394,30 @@ async function loadMaster(){
  const merchants=m.data||[],couriers=c.data||[],docs=d.data||[],issues=i.data||[];
  const docsForAll=(type,id)=>docs.filter(x=>x.owner_type===type&&x.application_id===id).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
  const docsFor=(type,id)=>{const seen=new Set();return docsForAll(type,id).filter(x=>{if(seen.has(x.document_type))return false;seen.add(x.document_type);return true})};
- const requiredDocs={merchant:['company_proof','responsible_id','address_proof'],courier:['profile_photo','cnh','criminal_record','address_proof','vehicle_document']};
+ const requiredDocs=(type,businessType)=>type==='merchant'?(businessType==='individual'?['responsible_id','address_proof']:['company_proof','responsible_id','address_proof']):['profile_photo','cnh','criminal_record','address_proof','vehicle_document'];
  const docLabel={company_proof:'Comprovante da empresa',responsible_id:'Documento do responsável',address_proof:'Comprovante de endereço',business_license:'Alvará / licença',profile_photo:'Foto do entregador',cnh:'CNH',criminal_record:'Certidão de antecedentes',vehicle_document:'Documento do veículo'};
+ const businessTypeLabel={mei:'MEI',ltda:'Empresa / LTDA',individual:'Vendedor individual'};
  const appStatusLabel={submitted:'Em análise',under_review:'Em análise',documents_pending:'Correção solicitada',approved:'Aprovado',rejected:'Rejeitado'};
  const docStatusLabel={pending:'Pendente',approved:'Aprovado',rejected:'Rejeitado'};
- const docReady=(type,id)=>requiredDocs[type].every(t=>docsFor(type,id).some(d=>d.document_type===t&&d.status==='approved'));
- const missingDocs=(type,id)=>requiredDocs[type].filter(t=>!docsFor(type,id).some(d=>d.document_type===t&&d.status==='approved'));
+ const docReady=(type,id,businessType)=>requiredDocs(type,businessType).every(t=>docsFor(type,id).some(d=>d.document_type===t&&d.status==='approved'));
+ const missingDocs=(type,id,businessType)=>requiredDocs(type,businessType).filter(t=>!docsFor(type,id).some(d=>d.document_type===t&&d.status==='approved'));
  const docButtons=(type,id)=>docsFor(type,id).map(x=>`<div style="margin:4px 0"><button class="ghost" onclick="openPrivateDoc(decodeURIComponent('${encodeURIComponent(x.storage_path)}'))">Abrir • ${esc(docLabel[x.document_type]||x.document_type)}</button> <span class="tag">${esc(docStatusLabel[x.status]||x.status)}</span> ${x.status!=='approved'?`<button onclick="reviewDocument('${x.id}','approved')">Aprovar doc.</button>`:''} ${x.status!=='rejected'?`<button class="bad" onclick="reviewDocument('${x.id}','rejected')">Rejeitar doc.</button>`:''}</div>`).join('')||'<span class="mut">Sem documentos</span>';
  const merchantRows=merchants.map(x=>`<tr>
-  <td><b>${esc(x.trade_name)}</b><div class="mut">${esc(x.legal_name||'')} • ${esc(x.cpf_cnpj||'')}</div></td>
-  <td><span class="tag">${esc(appStatusLabel[x.status]||x.status)}</span>${x.status!=='approved'&&!docReady('merchant',x.id)?`<div class="approval-warning">Faltam aprovar: ${missingDocs('merchant',x.id).map(t=>esc(docLabel[t]||t)).join(', ')}</div>`:''}</td>
+  <td><b>${esc(x.trade_name)}</b><div class="mut">${esc(businessTypeLabel[x.business_type]||'Tipo não informado')} • ${esc(x.legal_name||'')} • ${esc(x.cpf_cnpj||'')}</div>${x.business_type==='individual'&&x.individual_activity_description?`<div class="mut">Atividade: ${esc(x.individual_activity_description)}</div>`:''}<div class="mut">${x.terms_accepted_at?'✓ Termos aceitos ('+esc(x.terms_version||'versão não informada')+')':'⚠ Termos não aceitos'}</div></td>
+  <td><span class="tag">${esc(appStatusLabel[x.status]||x.status)}</span>${x.status!=='approved'&&!docReady('merchant',x.id,x.business_type)?`<div class="approval-warning">Faltam aprovar: ${missingDocs('merchant',x.id,x.business_type).map(t=>esc(docLabel[t]||t)).join(', ')}</div>`:''}</td>
   <td>${docButtons('merchant',x.id)}</td>
   <td><div class="row">
-   ${x.status!=='approved'?`<button ${docReady('merchant',x.id)?'': 'disabled title="Aprove primeiro todos os documentos obrigatórios"'} onclick="approveMerchant('${x.id}')">Aprovar</button>`:''}
+   ${x.status!=='approved'?`<button ${docReady('merchant',x.id,x.business_type)&&x.terms_accepted_at?'': 'disabled title="Confira documentos, tipo jurídico e aceite dos termos"'} onclick="approveMerchant('${x.id}')">Aprovar</button>`:''}
    ${x.status!=='approved'?`<button class="alt" onclick="reviewMerchant('${x.id}','documents_pending')">Solicitar correção</button>`:''}
    ${x.status!=='approved'?`<button class="bad" onclick="reviewMerchant('${x.id}','rejected')">Rejeitar</button>`:''}
   </div></td>
  </tr>`).join('');
  const courierRows=couriers.map(x=>`<tr>
   <td><b>${esc(x.full_name)}</b><div class="mut">${esc(x.cpf||'')} • EAR: ${x.has_ear?'Sim':'Não'}</div></td>
-  <td><span class="tag">${esc(appStatusLabel[x.status]||x.status)}</span>${x.status!=='approved'&&!docReady('courier',x.id)?`<div class="approval-warning">Faltam aprovar: ${missingDocs('courier',x.id).map(t=>esc(docLabel[t]||t)).join(', ')}</div>`:''}</td>
+  <td><span class="tag">${esc(appStatusLabel[x.status]||x.status)}</span>${x.status!=='approved'&&!docReady('courier',x.id,null)?`<div class="approval-warning">Faltam aprovar: ${missingDocs('courier',x.id,null).map(t=>esc(docLabel[t]||t)).join(', ')}</div>`:''}</td>
   <td>${docButtons('courier',x.id)}</td>
   <td><div class="row">
-   ${x.status!=='approved'?`<button ${docReady('courier',x.id)&&x.has_ear?'': 'disabled title="Aprove os documentos obrigatórios e confirme EAR"'} onclick="reviewCourier('${x.id}','approved')">Aprovar</button>`:''}
+   ${x.status!=='approved'?`<button ${docReady('courier',x.id,null)&&x.has_ear?'': 'disabled title="Aprove os documentos obrigatórios e confirme EAR"'} onclick="reviewCourier('${x.id}','approved')">Aprovar</button>`:''}
    ${x.status!=='approved'?`<button class="alt" onclick="reviewCourier('${x.id}','documents_pending')">Solicitar correção</button>`:''}
    ${x.status!=='approved'?`<button class="bad" onclick="reviewCourier('${x.id}','rejected')">Rejeitar</button>`:''}
   </div></td>

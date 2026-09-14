@@ -174,6 +174,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 <button data-view="addressesPanel" onclick="requireAuthView('addressesPanel',showAddresses)">📍 Endereços</button>
 <button data-view="customerOrders" onclick="requireAuthView('customerOrders',loadCustomerOrders)">📦 Meus pedidos</button>
 <button id="accountAccessBtn" data-view="accountPanel" onclick="currentUser?requireAuthView('accountPanel',showAccount):showAuthCard()">👤 Entrar / Criar conta</button>
+<button data-view="referralPanel" onclick="requireAuthView('referralPanel',showReferrals)">🎁 Indicações</button>
 <button data-view="supportPanel" onclick="requireAuthView('supportPanel',showSupportCenter)">💬 Ajuda</button>
 <button data-view="merchantApply" onclick="openMerchantApplicationFromCustomer()">🏪 Quero vender</button>
 <button data-view="courierApply" onclick="requireAuthView('courierApply')">🚗 Quero ser entregador</button>
@@ -270,7 +271,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
  <div class="section-title"><h3>Lojas da região</h3><span class="mut">Compre de parceiros locais</span></div><div id="homeStores" class="store-strip"></div>
  <div class="section-title"><h3>Explore por segmento</h3><span class="mut">Encontre o que precisa</span></div><div id="demoStores" class="demo-store-grid"></div>
  <div class="section-title"><h3>Smart Shop para a comunidade</h3><span class="mut">Benefícios que fazem sentido para um marketplace local</span></div>
- <div class="community-grid"><div class="community-card"><div class="ico">🎁</div><h3>Indique um amigo</h3><p class="mut">Compartilhe o Smart Shop. Benefícios podem ser liberados após a primeira compra válida do indicado.</p><button class="ghost" onclick="requireAuthView('accountPanel',showAccount)">Quero indicar</button></div><div class="community-card"><div class="ico">🏪</div><h3>Indique uma loja</h3><p class="mut">Ajude a trazer seus comércios favoritos para o marketplace da região.</p><button class="ghost" onclick="requireAuthView('supportPanel',showSupportCenter)">Indicar comércio</button></div><div class="community-card elite-card"><div class="ico">🏅</div><h3>Lojas Destaque</h3><p class="mut">Reconhecimento por boas avaliações, poucos cancelamentos e agilidade no atendimento.</p><button class="ghost" onclick="openView('marketplacePanel');showMarketplace()">Ver lojas</button></div></div>
+ <div class="community-grid"><div class="community-card"><div class="ico">🎁</div><h3>Indique um amigo</h3><p class="mut">Compartilhe o Smart Shop. Benefícios podem ser liberados após a primeira compra válida do indicado.</p><button class="ghost" onclick="requireAuthView('referralPanel',showReferrals)">Quero indicar</button></div><div class="community-card"><div class="ico">🏪</div><h3>Indique uma loja</h3><p class="mut">Ajude a trazer seus comércios favoritos para o marketplace da região.</p><button class="ghost" onclick="requireAuthView('referralPanel',showReferrals)">Indicar comércio</button></div><div class="community-card elite-card"><div class="ico">🏅</div><h3>Lojas Destaque</h3><p class="mut">Reconhecimento por boas avaliações, poucos cancelamentos e agilidade no atendimento.</p><button class="ghost" onclick="openView('marketplacePanel');showMarketplace()">Ver lojas</button></div></div>
  <div class="seller-cta"><div><h3>Tem uma loja na região?</h3><p>Cadastre-se para vender no Smart Shop. Após a aprovação, você recebe acesso ao Painel do Lojista para administrar a loja pelo computador.</p><div class="flow-note">Cadastro → análise do Smart Shop → aprovação → acesso ao painel do lojista</div></div><button onclick="openMerchantApplicationFromCustomer()">Quero vender no Smart Shop</button></div>
  <div class="section-title"><h3>Você também pode gostar</h3><span class="mut">Mais opções no Smart Shop</span></div><div id="homeNew" class="product-grid"></div>
 </div>
@@ -309,6 +310,10 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 <div id="supportPanel" class="view hide market-shell">
  <div class="section-title"><h2>Central de Ajuda</h2><span class="mut">Smart Shop</span></div>
  <div id="supportBody"></div>
+</div>
+<div id="referralPanel" class="view hide market-shell">
+ <div class="section-title"><h2>Indicações</h2><span class="mut">Convide pessoas e comércios da região</span></div>
+ <div id="referralBody"></div>
 </div>
 <div id="accountPanel" class="view hide market-shell">
  <div id="accountBody"></div>
@@ -850,6 +855,55 @@ function renderDemoStoreShowcase(){
  const el=document.getElementById('demoStores');if(!el)return;
  el.innerHTML=DEMO_STORE_SHOWCASE.map(x=>`<div class="demo-store-card"><div class="demo-store-icon">${x.icon}</div><b>${esc(x.name)}</b><div class="mut">${esc(x.category)}</div><span class="demo-badge">Em breve</span></div>`).join('');
 }
+
+function referralStatusLabel(status){
+ return ({registered:'Cadastrado',qualified:'Compra entregue',rewarded:'Benefício liberado',pending:'Pendente',invalid:'Inválido',new:'Recebida',contacted:'Contato iniciado',interested:'Interessada',onboarding:'Em cadastro',converted:'Loja cadastrada',not_interested:'Sem interesse',duplicate:'Duplicada'})[status]||status;
+}
+function referralError(error){
+ const code=(error&&error.message)||'';
+ if(code.includes('SELF_REFERRAL'))return 'Você não pode usar seu próprio código.';
+ if(code.includes('ALREADY_CLAIMED'))return 'Esta conta já está vinculada a uma indicação.';
+ if(code.includes('FIRST_ORDER_ALREADY'))return 'O código precisa ser informado antes da primeira compra entregue.';
+ if(code.includes('INVALID_REFERRAL'))return 'Código inválido ou inativo.';
+ if(code.includes('CONTACT_REQUIRED'))return 'Informe um contato ou responsável pela loja.';
+ return code||'Não foi possível concluir.';
+}
+async function showReferrals(){
+ if(!currentUser)return showAuthCard();
+ const el=document.getElementById('referralBody');el.innerHTML='<div class="card">Carregando indicações...</div>';
+ const codeResult=await sb.rpc('get_or_create_my_referral_code');
+ const [friends,stores]=await Promise.all([
+  sb.from('referrals').select('id,status,created_at,qualified_at,first_order_id').eq('referrer_user_id',currentUser.id).order('created_at',{ascending:false}),
+  sb.from('store_referrals').select('id,store_name,city,status,created_at').eq('referrer_user_id',currentUser.id).order('created_at',{ascending:false})
+ ]);
+ if(codeResult.error){el.innerHTML='<div class="msg err">'+esc(referralError(codeResult.error))+'</div>';return}
+ const code=codeResult.data;
+ const preset=new URLSearchParams(location.search).get('ref')||'';
+ el.innerHTML='<div class="grid2">'+
+  '<div class="card"><h3>Indique um amigo</h3><p class="mut">Compartilhe seu código. A indicação é qualificada somente depois da primeira compra válida ser entregue. O benefício ainda depende das regras comerciais do programa.</p><div class="row"><input value="'+esc(code)+'" readonly aria-label="Seu código de indicação"><button onclick="shareReferral(\''+esc(code)+'\')">Compartilhar</button></div><hr><h4>Recebeu um código?</h4><form onsubmit="claimReferral(event)"><div class="row"><input name="code" value="'+esc(preset)+'" placeholder="SMART-XXXXXXXX" required><button>Usar código</button></div></form><div id="claimReferralMsg"></div></div>'+
+  '<div class="card"><h3>Indique uma loja</h3><form onsubmit="submitStoreReferral(event)" class="form-grid"><input name="store_name" placeholder="Nome da loja *" required><input name="contact_name" placeholder="Responsável"><input name="phone_whatsapp" placeholder="WhatsApp"><input name="category" placeholder="Categoria"><input name="city" placeholder="Cidade *" value="Mateus Leme" required><textarea name="notes" placeholder="Observações"></textarea><button>Enviar ao Smart Shop</button></form><div id="storeReferralMsg"></div></div></div>'+
+  '<div class="grid2"><div class="card"><h3>Amigos indicados ('+(friends.data||[]).length+')</h3>'+((friends.data||[]).map(x=>'<div class="list-item"><b>'+esc(referralStatusLabel(x.status))+'</b><div class="mut">'+new Date(x.created_at).toLocaleDateString('pt-BR')+(x.qualified_at?' • qualificada em '+new Date(x.qualified_at).toLocaleDateString('pt-BR'):'')+'</div></div>').join('')||'<p class="mut">Nenhuma indicação ainda.</p>')+'</div>'+
+  '<div class="card"><h3>Lojas indicadas ('+(stores.data||[]).length+')</h3>'+((stores.data||[]).map(x=>'<div class="list-item"><b>'+esc(x.store_name)+'</b><div class="mut">'+esc(x.city)+' • '+esc(referralStatusLabel(x.status))+'</div></div>').join('')||'<p class="mut">Nenhuma loja indicada ainda.</p>')+'</div></div>';
+}
+async function shareReferral(code){
+ const url=location.origin+location.pathname+'?ref='+encodeURIComponent(code);
+ const text='Conheça o Smart Shop e use meu código '+code;
+ if(navigator.share){try{await navigator.share({title:'Smart Shop',text,url});return}catch(e){if(e.name==='AbortError')return}}
+ try{await navigator.clipboard.writeText(text+' '+url);alert('Convite copiado.')}catch(e){prompt('Copie seu convite:',text+' '+url)}
+}
+async function claimReferral(event){
+ event.preventDefault();const fd=new FormData(event.target);msg('claimReferralMsg','Salvando...');
+ const {error}=await sb.rpc('claim_referral_code',{p_code:val(fd,'code')});
+ if(error)return msg('claimReferralMsg',esc(referralError(error)),true);
+ msg('claimReferralMsg','Código aplicado. A indicação será qualificada após sua primeira compra entregue.');
+}
+async function submitStoreReferral(event){
+ event.preventDefault();const fd=new FormData(event.target);msg('storeReferralMsg','Enviando...');
+ const {error}=await sb.rpc('submit_store_referral',{p_store_name:val(fd,'store_name'),p_contact_name:val(fd,'contact_name')||null,p_phone_whatsapp:val(fd,'phone_whatsapp')||null,p_category:val(fd,'category')||null,p_city:val(fd,'city'),p_notes:val(fd,'notes')||null});
+ if(error)return msg('storeReferralMsg',esc(referralError(error)),true);
+ event.target.reset();msg('storeReferralMsg','Loja enviada para análise do Smart Shop.');setTimeout(showReferrals,600);
+}
+
 async function showAccount(){
  if(!currentUser)return alert('Entre na sua conta para acessar sua conta.');
  const {data:p}=await sb.from('profiles').select('*').eq('id',currentUser.id).maybeSingle();

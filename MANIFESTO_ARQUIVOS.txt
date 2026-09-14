@@ -1,0 +1,27 @@
+README_TRANSFERENCIA.md	7271 bytes
+apps/cliente/index.html	156079 bytes
+apps/entregador/index.html	149194 bytes
+apps/lojista/index.html	148217 bytes
+apps/master/index.html	140398 bytes
+config/.env.example	233 bytes
+deploy/github_pages/STATUS.md	539 bytes
+deploy/github_pages/pwa_legado_referencia/LEIA-ME.txt	1147 bytes
+deploy/github_pages/pwa_legado_referencia/icons/icon-192.png	2731 bytes
+deploy/github_pages/pwa_legado_referencia/icons/icon-512.png	7711 bytes
+deploy/github_pages/pwa_legado_referencia/index.html	13660 bytes
+deploy/github_pages/pwa_legado_referencia/manifest.webmanifest	610 bytes
+deploy/github_pages/pwa_legado_referencia/sw.js	446 bytes
+docs/Briefing_Smart_Shop_Orcamento.docx	41801 bytes
+docs/Projeto_Completo_Smart_Shop_Escopo_Orcamento.docx	47545 bytes
+docs/Smart_Shop_Escopo_Completo_Projeto_V2 (1).docx	48117 bytes
+historico_relevante/Smart_Shop_V4_avaliacoes_corrigidas.html	105555 bytes
+historico_relevante/Smart_Shop_V4_banners_master.html	85012 bytes
+historico_relevante/Smart_Shop_V4_candidato_final_pre_teste.html	139882 bytes
+historico_relevante/Smart_Shop_V4_candidato_teste_e2e.html	139420 bytes
+historico_relevante/Smart_Shop_V4_candidato_teste_e2e_financeiro.html	139193 bytes
+historico_relevante/Smart_Shop_V4_cupons_comissao_master.html	74509 bytes
+historico_relevante/Smart_Shop_V4_integrada_notificacoes.html	30682 bytes
+historico_relevante/Smart_Shop_V4_suporte_completo.html	97468 bytes
+supabase/CURRENT_DATABASE_STATE.md	1467 bytes
+supabase/migrations/APPLIED_MIGRATIONS.csv	6109 bytes
+supabase/migrations/README.md	847 bytes

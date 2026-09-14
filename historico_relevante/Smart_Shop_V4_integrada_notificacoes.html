@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Smart Shop V4 Integrada</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--b:#0967d8;--o:#ff7a00;--bg:#f4f7fb;--ink:#172033;--mut:#687386;--line:#dfe6ef;--ok:#15803d;--bad:#b42318}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:#fff;border-bottom:1px solid var(--line);padding:16px 22px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5}
+.brand{font-size:24px;font-weight:900;color:var(--b)}.brand b{color:var(--o)}.wrap{max-width:1160px;margin:auto;padding:22px}.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px}.hero{background:linear-gradient(120deg,#0967d8,#1784ef);color:#fff;border-radius:18px;padding:22px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+label{display:block;font-size:12px;font-weight:700;margin:9px 0 5px}input,select,textarea{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:9px;background:#fff}
+button{border:0;border-radius:9px;padding:10px 14px;background:var(--b);color:#fff;font-weight:700;cursor:pointer}.alt{background:var(--o)}.ghost{background:#eef3f8;color:var(--ink)}.bad{background:#fee4e2;color:var(--bad)}
+.row{display:flex;gap:8px;flex-wrap:wrap}.mut{color:var(--mut);font-size:13px}.tag{display:inline-block;background:#eef5ff;color:var(--b);padding:5px 9px;border-radius:14px;font-size:12px;font-weight:700}
+.hide{display:none}.msg{padding:11px;border-radius:9px;margin:10px 0;background:#eef8f1;color:#166534}.err{background:#fff0f0;color:#991b1b}
+nav{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px}nav button{background:#fff;color:var(--ink);border:1px solid var(--line)}nav button.on{background:var(--b);color:#fff}
+table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}
+@media(max-width:760px){.grid,.grid3{grid-template-columns:1fr}.wrap{padding:12px}}
+</style>
+</head>
+<body>
+<header><div class="brand">Smart <b>Shop</b></div><div id="sessionLabel" class="mut">Não conectado</div></header>
+<div class="wrap">
+<div class="hero"><h1 style="margin:0 0 6px">Smart Shop V4 • integração real</h1><div>Autenticação, cadastros de parceiros, documentos privados e painéis por perfil.</div></div>
+
+<section id="authCard" class="card">
+<h2>Acesso</h2>
+<div class="grid">
+<div><label>E-mail</label><input id="email" type="email" placeholder="seu@email.com"/></div>
+<div><label>Senha</label><input id="password" type="password" placeholder="mínimo 6 caracteres"/></div>
+</div>
+<div class="row" style="margin-top:12px"><button onclick="signIn()">Entrar</button><button class="alt" onclick="signUp()">Criar conta</button></div>
+<div id="authMsg"></div>
+</section>
+
+<section id="app" class="hide">
+<nav>
+<button data-view="home" class="on">Início</button>
+<button data-view="merchantApply">Cadastro Lojista</button>
+<button data-view="courierApply">Cadastro Entregador</button>
+<button data-view="merchantPanel">Painel Lojista</button>
+<button data-view="courierPanel">Entregas</button>
+<button data-view="customerOrders">Meus Pedidos</button>
+<button onclick="showNotifications()">🔔 <span id="notifCount">0</span></button>
+<button data-view="masterPanel">Master</button>
+<button class="bad" onclick="signOut()">Sair</button>
+</nav>
+
+<div id="home" class="view card">
+<h2>Conta conectada</h2>
+<p id="who"></p>
+<p class="mut">O sistema identifica as permissões no Supabase. Cada usuário consulta apenas o que suas políticas permitem.</p>
+</div>
+
+<div id="merchantApply" class="view hide">
+<form class="card" id="merchantForm">
+<h2>Cadastro de Lojista</h2>
+<div class="grid3">
+<div><label>Razão social *</label><input name="legal_name" required></div>
+<div><label>Nome fantasia *</label><input name="trade_name" required></div>
+<div><label>CPF/CNPJ *</label><input name="cpf_cnpj" required></div>
+<div><label>Inscrição estadual</label><input name="state_registration"></div>
+<div><label>Inscrição municipal</label><input name="municipal_registration"></div>
+<div><label>Categoria</label><input name="category"></div>
+<div><label>Responsável *</label><input name="responsible_name" required></div>
+<div><label>CPF responsável *</label><input name="responsible_cpf" required></div>
+<div><label>Telefone *</label><input name="phone" required></div>
+<div><label>WhatsApp</label><input name="whatsapp"></div>
+<div><label>E-mail da loja *</label><input type="email" name="shop_email" required></div>
+<div><label>Horário de funcionamento</label><input name="business_hours"></div>
+</div>
+<h3>Endereço</h3><div class="grid3">
+<div><label>CEP *</label><input name="cep" required></div><div><label>Rua *</label><input name="street" required></div><div><label>Número *</label><input name="number" required></div>
+<div><label>Bairro *</label><input name="district" required></div><div><label>Cidade *</label><input name="city" value="Mateus Leme" required></div><div><label>UF *</label><input name="state" value="MG" required></div>
+</div>
+<h3>Repasse</h3><div class="grid3"><div><label>Chave Pix</label><input name="pix_key"></div><div><label>Banco</label><input name="bank_name"></div><div><label>Agência</label><input name="bank_agency"></div><div><label>Conta</label><input name="bank_account"></div></div>
+<h3>Documentos</h3><div class="grid3">
+<div><label>Comprovação da empresa *</label><input id="m_company" type="file" required></div>
+<div><label>Documento do responsável *</label><input id="m_responsible" type="file" required></div>
+<div><label>Comprovante de endereço *</label><input id="m_address" type="file" required></div>
+<div><label>Alvará/licença (se aplicável)</label><input id="m_license" type="file"></div>
+</div>
+<div class="row" style="margin-top:14px"><button type="submit">Enviar para análise</button></div><div id="merchantMsg"></div>
+</form>
+</div>
+
+<div id="courierApply" class="view hide">
+<form class="card" id="courierForm">
+<h2>Cadastro de Entregador</h2>
+<div class="grid3">
+<div><label>Nome completo *</label><input name="full_name" required></div><div><label>CPF *</label><input name="cpf" required></div><div><label>Nascimento *</label><input name="birth_date" type="date" required></div>
+<div><label>Telefone *</label><input name="phone" required></div><div><label>WhatsApp</label><input name="whatsapp"></div><div><label>E-mail *</label><input name="courier_email" type="email" required></div>
+</div>
+<h3>Endereço</h3><div class="grid3">
+<div><label>CEP *</label><input name="cep" required></div><div><label>Rua *</label><input name="street" required></div><div><label>Número *</label><input name="number" required></div><div><label>Bairro *</label><input name="district" required></div><div><label>Cidade *</label><input name="city" value="Mateus Leme" required></div><div><label>UF *</label><input name="state" value="MG" required></div>
+</div>
+<h3>CNH</h3><div class="grid3">
+<div><label>Número CNH *</label><input name="cnh_number" required></div><div><label>Categoria *</label><input name="cnh_category" required></div><div><label>Validade *</label><input name="cnh_expiry" type="date" required></div>
+<div><label>EAR *</label><select name="has_ear" required><option value="">Selecione</option><option value="true">Sim</option><option value="false">Não</option></select></div>
+</div>
+<h3>Veículo</h3><div class="grid3">
+<div><label>Tipo *</label><select name="vehicle_type" required><option value="motorcycle">Motocicleta</option><option value="car">Automóvel</option></select></div>
+<div><label>Placa *</label><input name="plate" required></div><div><label>Renavam *</label><input name="renavam" required></div><div><label>Marca *</label><input name="brand" required></div><div><label>Modelo *</label><input name="model" required></div><div><label>Ano *</label><input name="model_year" type="number" min="1980" required></div><div><label>Cor *</label><input name="color" required></div>
+</div>
+<h3>Documentos</h3><div class="grid3">
+<div><label>Foto do entregador *</label><input id="c_photo" type="file" accept="image/*" required></div>
+<div><label>CNH *</label><input id="c_cnh" type="file" required></div>
+<div><label>Antecedentes criminais *</label><input id="c_criminal" type="file" required></div>
+<div><label>Comprovante de endereço *</label><input id="c_address" type="file" required></div>
+<div><label>Documento do veículo *</label><input id="c_vehicle" type="file" required></div>
+</div>
+<div class="row" style="margin-top:14px"><button type="submit">Enviar para análise</button></div><div id="courierMsg"></div>
+</form>
+</div>
+
+<div id="merchantPanel" class="view hide card">
+<h2>Painel do Lojista</h2><div id="merchantPanelBody" class="mut">Carregando...</div>
+</div>
+
+<div id="courierPanel" class="view hide card"><h2>Entregas disponíveis</h2><div id="courierPanelBody" class="mut">Carregando...</div></div>
+<div id="customerOrders" class="view hide card"><h2>Meus Pedidos</h2><div id="customerOrdersBody" class="mut">Carregando...</div></div>
+<div id="masterPanel" class="view hide card">
+<h2>Painel Master</h2><div id="masterBody" class="mut">Verificando permissão...</div>
+</div>
+</section>
+</div>
+
+<script>
+const SUPABASE_URL='https://iwbxyhcmcxeaqkkqveni.supabase.co';
+const SUPABASE_KEY='YOUR_SUPABASE_PUBLISHABLE_KEY';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let currentUser=null;
+
+function msg(id,text,bad=false){document.getElementById(id).innerHTML='<div class="msg '+(bad?'err':'')+'">'+text+'</div>'}
+function val(fd,k){const v=fd.get(k);return typeof v==='string'?v.trim():v}
+async function signIn(){
+ const {data,error}=await sb.auth.signInWithPassword({email:email.value.trim(),password:password.value});
+ if(error)return msg('authMsg',error.message,true); await setSession(data.user);
+}
+async function signUp(){
+ const {data,error}=await sb.auth.signUp({email:email.value.trim(),password:password.value,options:{data:{full_name:email.value.split('@')[0]}}});
+ if(error)return msg('authMsg',error.message,true);
+ msg('authMsg',data.session?'Conta criada e conectada.':'Conta criada. Confira o e-mail para confirmar o cadastro.');
+ if(data.user&&data.session)await setSession(data.user);
+}
+async function signOut(){await sb.auth.signOut();location.reload()}
+async function setSession(user){
+ currentUser=user;authCard.classList.add('hide');app.classList.remove('hide');
+ sessionLabel.textContent=user.email;who.textContent='Usuário: '+user.email+' • ID '+user.id;
+ await loadMerchantPanel();await loadCourierPanel();await loadCustomerOrders();await loadMaster();await loadNotificationCount();
+}
+document.querySelectorAll('nav [data-view]').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav [data-view]').forEach(x=>x.classList.remove('on'));b.classList.add('on');document.querySelectorAll('.view').forEach(v=>v.classList.add('hide'));document.getElementById(b.dataset.view).classList.remove('hide')});
+
+async function uploadDoc(file,ownerType,appId,docType){
+ if(!file)return null;
+ const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+ const path=`${currentUser.id}/${ownerType}/${appId}/${Date.now()}_${docType}_${safe}`;
+ const {error:uerr}=await sb.storage.from('partner-documents').upload(path,file,{upsert:false});
+ if(uerr)throw uerr;
+ const {error:derr}=await sb.from('partner_documents').insert({user_id:currentUser.id,owner_type:ownerType,application_id:appId,document_type:docType,storage_path:path,original_filename:file.name,mime_type:file.type||null});
+ if(derr)throw derr; return path;
+}
+
+merchantForm.addEventListener('submit',async e=>{
+ e.preventDefault();merchantMsg.innerHTML='';const fd=new FormData(e.target);
+ try{
+  const payload={user_id:currentUser.id,status:'submitted',legal_name:val(fd,'legal_name'),trade_name:val(fd,'trade_name'),cpf_cnpj:val(fd,'cpf_cnpj'),state_registration:val(fd,'state_registration')||null,municipal_registration:val(fd,'municipal_registration')||null,responsible_name:val(fd,'responsible_name'),responsible_cpf:val(fd,'responsible_cpf'),phone:val(fd,'phone'),whatsapp:val(fd,'whatsapp')||null,email:val(fd,'shop_email'),cep:val(fd,'cep'),street:val(fd,'street'),number:val(fd,'number'),district:val(fd,'district'),city:val(fd,'city'),state:val(fd,'state'),category:val(fd,'category')||null,business_hours:val(fd,'business_hours')||null,pix_key:val(fd,'pix_key')||null,bank_name:val(fd,'bank_name')||null,bank_agency:val(fd,'bank_agency')||null,bank_account:val(fd,'bank_account')||null,submitted_at:new Date().toISOString()};
+  const {data,error}=await sb.from('merchant_applications').insert(payload).select('id').single();if(error)throw error;
+  await uploadDoc(m_company.files[0],'merchant',data.id,'company_proof');await uploadDoc(m_responsible.files[0],'merchant',data.id,'responsible_id');await uploadDoc(m_address.files[0],'merchant',data.id,'address_proof');if(m_license.files[0])await uploadDoc(m_license.files[0],'merchant',data.id,'business_license');
+  msg('merchantMsg','Cadastro enviado com sucesso. Status: enviado para análise.');e.target.reset();await loadMaster();
+ }catch(x){msg('merchantMsg','Não foi possível enviar: '+x.message,true)}
+});
+
+courierForm.addEventListener('submit',async e=>{
+ e.preventDefault();courierMsg.innerHTML='';const fd=new FormData(e.target);
+ try{
+  const payload={user_id:currentUser.id,status:'submitted',full_name:val(fd,'full_name'),cpf:val(fd,'cpf'),birth_date:val(fd,'birth_date'),phone:val(fd,'phone'),whatsapp:val(fd,'whatsapp')||null,email:val(fd,'courier_email'),cep:val(fd,'cep'),street:val(fd,'street'),number:val(fd,'number'),district:val(fd,'district'),city:val(fd,'city'),state:val(fd,'state'),cnh_number:val(fd,'cnh_number'),cnh_category:val(fd,'cnh_category'),cnh_expiry:val(fd,'cnh_expiry'),has_ear:val(fd,'has_ear')==='true',criminal_record_declared:true,submitted_at:new Date().toISOString()};
+  const {data,error}=await sb.from('courier_applications').upsert(payload,{onConflict:'user_id'}).select('id').single();if(error)throw error;
+  const vehicle={courier_application_id:data.id,user_id:currentUser.id,vehicle_type:val(fd,'vehicle_type'),plate:val(fd,'plate'),renavam:val(fd,'renavam'),brand:val(fd,'brand'),model:val(fd,'model'),model_year:Number(val(fd,'model_year')),color:val(fd,'color')};
+  const {error:verr}=await sb.from('courier_vehicles').insert(vehicle);if(verr)throw verr;
+  const photoPath=await uploadDoc(c_photo.files[0],'courier',data.id,'profile_photo');
+  await sb.from('courier_applications').update({profile_photo_path:photoPath}).eq('id',data.id);
+  await uploadDoc(c_cnh.files[0],'courier',data.id,'cnh');await uploadDoc(c_criminal.files[0],'courier',data.id,'criminal_record');await uploadDoc(c_address.files[0],'courier',data.id,'address_proof');await uploadDoc(c_vehicle.files[0],'courier',data.id,'vehicle_document');
+  msg('courierMsg','Cadastro enviado com sucesso. O acesso às entregas dependerá da aprovação do Master.');e.target.reset();await loadMaster();
+ }catch(x){msg('courierMsg','Não foi possível enviar: '+x.message,true)}
+});
+
+const STATUS_LABEL={awaiting_payment:'Aguardando pagamento',paid:'Pago / Confirmado',preparing:'Em preparação',ready:'Pronto',awaiting_courier:'Procurando entregador',courier_assigned:'Entregador a caminho da loja',picked_up:'Pedido coletado',out_for_delivery:'Saiu para entrega',delivered:'Entregue',cancel_requested:'Cancelamento solicitado',cancelled:'Cancelado',returning:'Em devolução',returned:'Devolvido'};
+async function advanceOrder(id,status){const {error}=await sb.rpc('smart_order_transition',{p_order_id:id,p_new_status:status,p_notes:null});if(error)return alert(error.message);await loadMerchantPanel();await loadCourierPanel();await loadCustomerOrders()}
+async function loadMerchantPanel(){
+ const body=document.getElementById('merchantPanelBody');const {data:members,error}=await sb.from('store_members').select('store_id,role,stores(id,name,approval_status)').eq('user_id',currentUser.id);
+ if(error){body.textContent='Acesso indisponível: '+error.message;return} if(!members?.length){body.innerHTML='Você ainda não possui loja aprovada vinculada a esta conta.';return}
+ let html='';for(const m of members){const st=m.stores;const {data:items}=await sb.from('order_items').select('order_id,orders(id,order_number,status_code,total_amount,delivery_method)').eq('store_id',m.store_id);const seen=new Map();(items||[]).forEach(i=>i.orders&&seen.set(i.orders.id,i.orders));const orders=[...seen.values()];
+ html+=`<div class="card"><b>${esc(st?.name||'Loja')}</b> <span class="tag">${esc(m.role)}</span><table><tr><th>Pedido</th><th>Status</th><th>Ação</th></tr>${orders.map(o=>`<tr><td>${esc(o.order_number)}</td><td>${esc(STATUS_LABEL[o.status_code]||o.status_code)}</td><td>${merchantAction(o)}</td></tr>`).join('')||'<tr><td colspan="3">Nenhum pedido.</td></tr>'}</table></div>`}body.innerHTML=html;
+}
+function merchantAction(o){
+ if(o.status_code==='paid')return `<button onclick="advanceOrder('${o.id}','preparing')">Iniciar preparação</button>`;
+ if(o.status_code==='preparing')return `<button onclick="advanceOrder('${o.id}','ready')">Marcar como pronto</button>`;
+ if(o.status_code==='ready'&&o.delivery_method==='smart_partner')return `<button class="alt" onclick="advanceOrder('${o.id}','awaiting_courier')">Solicitar entregador</button>`;
+ if(['awaiting_courier','courier_assigned'].includes(o.status_code))return `<button class="ghost" onclick="showVerificationCode('${o.id}','pickup')">Ver código de retirada</button>`;
+ return '<span class="mut">Aguardando próxima etapa</span>'
+}
+async function loadCourierPanel(){
+ const b=document.getElementById('courierPanelBody');
+ const {data:app}=await sb.from('courier_applications').select('status').eq('user_id',currentUser.id).maybeSingle();
+ if(!app||app.status!=='approved'){b.innerHTML='Seu cadastro precisa estar <b>aprovado</b> para visualizar e realizar entregas.';return}
+ const {data:v}=await sb.from('courier_vehicles').select('id,brand,model,plate').eq('user_id',currentUser.id).eq('active',true);
+ const vehicle=v?.[0];if(!vehicle){b.textContent='Nenhum veículo ativo.';return}
+ const [offersRes,myRes]=await Promise.all([
+   sb.from('deliveries').select('id,order_id,freight_amount,status,orders(order_number,status_code)').eq('status','waiting_courier').is('courier_user_id',null),
+   sb.from('deliveries').select('id,order_id,freight_amount,status,orders(order_number,status_code)').eq('courier_user_id',currentUser.id).in('status',['accepted','arrived_store','picked_up','out_for_delivery'])
+ ]);
+ if(offersRes.error){b.textContent=offersRes.error.message;return}
+ if(myRes.error){b.textContent=myRes.error.message;return}
+ const my=myRes.data||[], offers=offersRes.data||[];
+ let html=`<p class="mut">Veículo ativo: ${esc(vehicle.brand||'')} ${esc(vehicle.model||'')} • ${esc(vehicle.plate||'')}</p>`;
+ html+=`<h3>Minhas entregas em andamento</h3>`;
+ html+=my.map(x=>`<div class="card"><b>${esc(x.orders?.order_number||'Pedido')}</b><p><span class="tag">${esc(courierStatusLabel(x.status))}</span></p>${courierAction(x)}</div>`).join('')||'<p class="mut">Nenhuma entrega em andamento.</p>';
+ html+=`<h3>Ofertas disponíveis</h3>`;
+ html+=offers.map(x=>`<div class="card"><b>${esc(x.orders?.order_number||'Pedido')}</b><p>Frete: R$ ${Number(x.freight_amount||0).toFixed(2).replace('.',',')}</p><button onclick="acceptDelivery('${x.id}','${vehicle.id}')">Aceitar entrega</button></div>`).join('')||'<p class="mut">Nenhuma oferta disponível agora.</p>';
+ b.innerHTML=html;
+}
+function courierStatusLabel(s){return {accepted:'Aceita • a caminho da loja',arrived_store:'Na loja',picked_up:'Pedido coletado',out_for_delivery:'Saiu para entrega'}[s]||s}
+function courierAction(x){
+ if(x.status==='accepted')return `<button onclick="courierArrived('${x.order_id}')">Cheguei à loja</button>`;
+ if(x.status==='arrived_store')return `<button onclick="confirmPickup('${x.order_id}')">Confirmar retirada</button>`;
+ if(x.status==='picked_up')return `<button onclick="startDelivery('${x.order_id}')">Sair para entrega</button>`;
+ if(x.status==='out_for_delivery')return `<button onclick="confirmDelivery('${x.order_id}')">Confirmar entrega</button>`;
+ return '';
+}
+async function acceptDelivery(id,v){const {error}=await sb.rpc('accept_smart_delivery',{p_delivery_id:id,p_vehicle_id:v});if(error)return alert(error.message);alert('Entrega aceita. Agora siga para a loja.');await refreshFlow()}
+async function courierArrived(orderId){const {error}=await sb.rpc('courier_arrived_store',{p_order_id:orderId});if(error)return alert(error.message);alert('Chegada à loja registrada. Solicite ao lojista o código de retirada.');await refreshFlow()}
+async function confirmPickup(orderId){const code=prompt('Digite o código de retirada informado pelo lojista:');if(code===null)return;const {error}=await sb.rpc('confirm_order_pickup',{p_order_id:orderId,p_code:code.trim()});if(error)return alert('Código inválido ou retirada não permitida.');alert('Retirada confirmada.');await refreshFlow()}
+async function startDelivery(orderId){const {error}=await sb.rpc('courier_start_delivery',{p_order_id:orderId});if(error)return alert(error.message);alert('Pedido saiu para entrega.');await refreshFlow()}
+async function confirmDelivery(orderId){const code=prompt('Digite o código de entrega informado pelo cliente:');if(code===null)return;const {error}=await sb.rpc('confirm_order_delivery',{p_order_id:orderId,p_code:code.trim()});if(error)return alert('Código inválido ou entrega não permitida.');alert('Entrega concluída com sucesso.');await refreshFlow()}
+async function refreshFlow(){await loadMerchantPanel();await loadCourierPanel();await loadCustomerOrders();await loadNotificationCount()}
+async function loadCustomerOrders(){
+ const b=document.getElementById('customerOrdersBody');
+ const {data:o,error}=await sb.from('orders').select('id,order_number,status_code,total_amount,created_at').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+ if(error){b.textContent=error.message;return}
+ b.innerHTML=(o||[]).map(x=>`<div class="card"><b>${esc(x.order_number)}</b><p><span class="tag">${esc(STATUS_LABEL[x.status_code]||x.status_code)}</span></p><p class="mut" style="line-height:1.8">${esc(statusProgress(x.status_code))}</p>
+ ${['out_for_delivery'].includes(x.status_code)?`<button onclick="showVerificationCode('${x.id}','delivery')">Ver código de entrega</button>`:''}
+ <button class="ghost" onclick="showTimeline('${x.id}')">Acompanhar</button></div>`).join('')||'Você ainda não possui pedidos.';
+}
+async function showVerificationCode(orderId,type){
+ const {data,error}=await sb.rpc('get_order_verification_code',{p_order_id:orderId,p_code_type:type});
+ if(error)return alert(error.message);
+ alert(type==='pickup'?'Código de retirada para informar ao entregador: '+data:'Código de entrega para informar ao entregador somente quando receber o pedido: '+data);
+}
+async function showTimeline(id){const {data,error}=await sb.from('order_status_history').select('status_code,label,created_at').eq('order_id',id).order('created_at');if(error)return alert(error.message);alert((data||[]).map(x=>'• '+(x.label||STATUS_LABEL[x.status_code]||x.status_code)).join('\n')||'Sem histórico ainda.')}
+
+async function loadNotificationCount(){
+ if(!currentUser)return;
+ const {count}=await sb.from('notifications').select('id',{count:'exact',head:true}).eq('user_id',currentUser.id).neq('status','read');
+ const el=document.getElementById('notifCount');if(el)el.textContent=count||0;
+}
+async function showNotifications(){
+ const {data,error}=await sb.from('notifications').select('id,title,body,status,created_at').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(30);
+ if(error)return alert(error.message);
+ const unread=(data||[]).filter(n=>n.status!=='read').map(n=>n.id);
+ if(unread.length)await sb.from('notifications').update({status:'read',read_at:new Date().toISOString()}).in('id',unread);
+ alert((data||[]).map(n=>`${n.status!=='read'?'● ':'○ '}${n.title}\n${n.body}`).join('\n\n')||'Nenhuma notificação.');
+ await loadNotificationCount();
+}
+function statusProgress(status){
+ const steps=['paid','preparing','ready','courier_assigned','picked_up','out_for_delivery','delivered'];
+ const labels=['Confirmado','Preparando','Pronto','Entregador','Coletado','A caminho','Entregue'];
+ let idx=steps.indexOf(status);if(status==='awaiting_courier')idx=2;
+ return labels.map((l,i)=>`${i<=idx?'✓':'○'} ${l}`).join('  ›  ');
+}
+async function loadMaster(){
+ const body=document.getElementById('masterBody');
+ const {data:roles,error}=await sb.from('platform_roles').select('role,active').eq('user_id',currentUser.id).eq('active',true);
+ if(error||!roles||!roles.some(r=>['master','admin'].includes(r.role))){body.innerHTML='Esta conta não possui permissão Master/Admin.';return}
+ const [m,c,d]=await Promise.all([
+  sb.from('merchant_applications').select('id,trade_name,legal_name,status,cpf_cnpj,created_at').order('created_at',{ascending:false}).limit(30),
+  sb.from('courier_applications').select('id,full_name,cpf,status,has_ear,created_at').order('created_at',{ascending:false}).limit(30),
+  sb.from('partner_documents').select('id,user_id,owner_type,application_id,document_type,status,storage_path,original_filename,created_at').order('created_at',{ascending:false}).limit(100)
+ ]);
+ const merchants=m.data||[],couriers=c.data||[],docs=d.data||[];
+ const docsFor=(type,id)=>docs.filter(x=>x.owner_type===type&&x.application_id===id);
+ const docButtons=(type,id)=>docsFor(type,id).map(x=>`<button class="ghost" onclick="openPrivateDoc(decodeURIComponent('${encodeURIComponent(x.storage_path)}'))">${esc(x.document_type)}</button>`).join(' ')||'<span class="mut">Sem documentos</span>';
+ const merchantRows=merchants.map(x=>`<tr>
+  <td><b>${esc(x.trade_name)}</b><div class="mut">${esc(x.legal_name||'')} • ${esc(x.cpf_cnpj||'')}</div></td>
+  <td><span class="tag">${esc(x.status)}</span></td>
+  <td>${docButtons('merchant',x.id)}</td>
+  <td><div class="row">
+   ${x.status!=='approved'?`<button onclick="approveMerchant('${x.id}')">Aprovar</button>`:''}
+   ${x.status!=='approved'?`<button class="alt" onclick="reviewMerchant('${x.id}','documents_pending')">Solicitar correção</button>`:''}
+   ${x.status!=='approved'?`<button class="bad" onclick="reviewMerchant('${x.id}','rejected')">Rejeitar</button>`:''}
+  </div></td>
+ </tr>`).join('');
+ const courierRows=couriers.map(x=>`<tr>
+  <td><b>${esc(x.full_name)}</b><div class="mut">${esc(x.cpf||'')} • EAR: ${x.has_ear?'Sim':'Não'}</div></td>
+  <td><span class="tag">${esc(x.status)}</span></td>
+  <td>${docButtons('courier',x.id)}</td>
+  <td><div class="row">
+   ${x.status!=='approved'?`<button onclick="reviewCourier('${x.id}','approved')">Aprovar</button>`:''}
+   ${x.status!=='approved'?`<button class="alt" onclick="reviewCourier('${x.id}','documents_pending')">Solicitar correção</button>`:''}
+   ${x.status!=='approved'?`<button class="bad" onclick="reviewCourier('${x.id}','rejected')">Rejeitar</button>`:''}
+  </div></td>
+ </tr>`).join('');
+ body.innerHTML=`<div class="grid3">
+   <div class="card"><b>Lojistas</b><div style="font-size:28px">${merchants.length}</div></div>
+   <div class="card"><b>Entregadores</b><div style="font-size:28px">${couriers.length}</div></div>
+   <div class="card"><b>Documentos privados</b><div style="font-size:28px">${docs.length}</div></div>
+  </div>
+  <div id="masterMsg"></div>
+  <h3>Solicitações de lojistas</h3>
+  <div style="overflow:auto"><table><tr><th>Loja</th><th>Status</th><th>Documentos</th><th>Ações</th></tr>${merchantRows||'<tr><td colspan="4">Nenhuma solicitação.</td></tr>'}</table></div>
+  <h3>Solicitações de entregadores</h3>
+  <div style="overflow:auto"><table><tr><th>Entregador</th><th>Status</th><th>Documentos</th><th>Ações</th></tr>${courierRows||'<tr><td colspan="4">Nenhuma solicitação.</td></tr>'}</table></div>`;
+}
+async function approveMerchant(id){
+ if(!confirm('Aprovar este lojista e criar/vincular a loja?'))return;
+ const notes=prompt('Observação da aprovação (opcional):','')||null;
+ const {error}=await sb.rpc('approve_merchant_application',{p_application_id:id,p_notes:notes});
+ if(error){alert('Erro ao aprovar: '+error.message);return}
+ alert('Lojista aprovado. A loja foi criada/vinculada automaticamente.');
+ await loadMaster();await loadMerchantPanel();
+}
+async function reviewMerchant(id,status){
+ const label=status==='rejected'?'rejeitar':'solicitar correção para';
+ const notes=prompt('Informe o motivo/observação para '+label+' esta solicitação:','');
+ if(notes===null)return;
+ if(status==='documents_pending'&&!notes.trim()){alert('Informe o que precisa ser corrigido.');return}
+ const {error}=await sb.rpc('review_merchant_application',{p_application_id:id,p_status:status,p_notes:notes||null});
+ if(error){alert('Erro: '+error.message);return}
+ alert(status==='rejected'?'Solicitação rejeitada.':'Correção solicitada ao lojista.');
+ await loadMaster();
+}
+async function reviewCourier(id,status){
+ const action=status==='approved'?'aprovar':status==='rejected'?'rejeitar':'solicitar correção para';
+ if(status==='approved'&&!confirm('Aprovar este entregador para receber ofertas de entrega?'))return;
+ let notes=null;
+ if(status!=='approved'){notes=prompt('Informe o motivo/observação para '+action+' esta solicitação:','');if(notes===null)return;if(status==='documents_pending'&&!notes.trim()){alert('Informe o que precisa ser corrigido.');return}}
+ const {error}=await sb.rpc('review_courier_application',{p_application_id:id,p_status:status,p_notes:notes});
+ if(error){alert('Erro: '+error.message);return}
+ alert(status==='approved'?'Entregador aprovado.':status==='rejected'?'Solicitação rejeitada.':'Correção solicitada ao entregador.');
+ await loadMaster();
+}
+async function openPrivateDoc(path){
+ const {data,error}=await sb.storage.from('partner-documents').createSignedUrl(path,120);
+ if(error){alert('Não foi possível abrir o documento: '+error.message);return}
+ window.open(data.signedUrl,'_blank','noopener,noreferrer');
+}
+
+function esc(v){return String(v??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]))}
+(async()=>{const {data:{session}}=await sb.auth.getSession();if(session?.user)await setSession(session.user)})();
+</script>
+</body>
+</html>

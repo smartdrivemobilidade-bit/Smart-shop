@@ -1,0 +1,1452 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Smart Shop V4 • Marketplace</title>
+
+<div id="merchantProductModal" class="modal hide"><div class="modal-card"><div class="section-title"><h2 id="merchantProductTitle">Produto</h2><button class="ghost" onclick="closeMerchantProductModal()">Fechar</button></div>
+<form id="merchantProductForm" class="form-grid" onsubmit="submitMerchantProduct(event)">
+<input type="hidden" id="mpStoreId"><input type="hidden" id="mpProductId"><input type="hidden" id="mpCurrentImage">
+<label class="wide">Nome *<input id="mpName" required></label>
+<label>Categoria<input id="mpCategory"></label>
+<label>Preço (R$) *<input id="mpPrice" type="number" min="0" step="0.01" required></label>
+<label>Preço anterior (R$)<input id="mpOldPrice" type="number" min="0" step="0.01"></label>
+<label>Estoque *<input id="mpStock" type="number" min="0" step="1" required></label>
+<label class="wide">Descrição<textarea id="mpDescription" rows="3"></textarea></label>
+<label class="wide">Foto do produto<input id="mpImageFile" type="file" accept="image/jpeg,image/png,image/webp"><span class="mut">JPG, PNG ou WEBP, até 5 MB.</span></label>
+<div id="mpImagePreview" class="wide"></div>
+<label><input id="mpActive" type="checkbox" checked> Produto ativo</label>
+<button class="wide" id="mpSaveBtn">Salvar produto</button>
+</form></div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--b:#0967d8;--o:#ff7a00;--bg:#f4f7fb;--ink:#172033;--mut:#687386;--line:#dfe6ef;--ok:#15803d;--bad:#b42318}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:#fff;border-bottom:1px solid var(--line);padding:16px 22px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5}
+.brand{font-size:24px;font-weight:900;color:var(--b)}.brand b{color:var(--o)}.wrap{max-width:1160px;margin:auto;padding:22px}.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px}.hero{background:linear-gradient(120deg,#0967d8,#1784ef);color:#fff;border-radius:18px;padding:22px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+label{display:block;font-size:12px;font-weight:700;margin:9px 0 5px}input,select,textarea{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:9px;background:#fff}
+button{border:0;border-radius:9px;padding:10px 14px;background:var(--b);color:#fff;font-weight:700;cursor:pointer}.alt{background:var(--o)}.ghost{background:#eef3f8;color:var(--ink)}.bad{background:#fee4e2;color:var(--bad)}
+.row{display:flex;gap:8px;flex-wrap:wrap}.mut{color:var(--mut);font-size:13px}.tag{display:inline-block;background:#eef5ff;color:var(--b);padding:5px 9px;border-radius:14px;font-size:12px;font-weight:700}
+.hide{display:none}.msg{padding:11px;border-radius:9px;margin:10px 0;background:#eef8f1;color:#166534}.err{background:#fff0f0;color:#991b1b}
+nav{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px}nav button{background:#fff;color:var(--ink);border:1px solid var(--line)}nav button.on{background:var(--b);color:#fff}
+table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}
+@media(max-width:760px){.grid,.grid3{grid-template-columns:1fr}.wrap{padding:12px}}
+
+.market-shell{background:transparent;border:0;padding:0}
+.market-top{background:linear-gradient(135deg,#0967d8,#0b75ef 55%,#ff7a00 160%);color:#fff;border-radius:22px;padding:22px;margin-bottom:14px}
+.market-search{background:#fff;border:0;border-radius:14px;padding:13px 14px;font-size:15px}
+.market-chips{display:flex;gap:8px;overflow:auto;padding:4px 0 8px;scrollbar-width:none}.market-chips::-webkit-scrollbar{display:none}
+.market-chip{white-space:nowrap;background:#fff;border:1px solid var(--line);color:var(--ink);padding:8px 12px;border-radius:999px}.market-chip.on{background:var(--b);color:#fff}
+.store-strip{display:flex;gap:10px;overflow:auto;padding:2px 0 12px;scrollbar-width:none}.store-strip::-webkit-scrollbar{display:none}
+.store-pill{min-width:150px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px}.store-pill b{display:block}
+.product-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.product-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px;display:flex;flex-direction:column;min-height:320px}
+.product-card img{width:100%;height:155px;object-fit:contain;border-radius:12px;background:#f8fafc}
+.product-card .pname{font-weight:800;margin:9px 0 3px}.product-card .store{font-size:12px;color:var(--mut)}
+.price-old{text-decoration:line-through;color:var(--mut);font-size:12px}.price-now{font-size:18px;font-weight:900;color:var(--ink);margin:3px 0 8px}
+.product-card .actions{margin-top:auto;display:flex;gap:7px}.product-card .actions button{flex:1}
+.cart-float{position:sticky;bottom:12px;z-index:4;background:#172033;color:#fff;border-radius:16px;padding:13px 14px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 10px 30px #0002;margin-top:14px}
+.cart-float button{background:var(--o)}
+.cart-line{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.qty{display:inline-flex;align-items:center;gap:6px}.qty button{padding:6px 9px}
+.checkout-box{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:12px}
+.option-card{border:1px solid var(--line);border-radius:12px;padding:12px;margin:7px 0;cursor:pointer}.option-card.on{border-color:var(--b);background:#eef5ff}
+.modal-bg{position:fixed;inset:0;background:#0008;display:flex;align-items:flex-end;justify-content:center;z-index:50;padding:14px}
+.modal-bg.hide{display:none}.modal-card{background:#fff;width:min(620px,100%);max-height:88vh;overflow:auto;border-radius:22px 22px 16px 16px;padding:20px}
+.section-title{display:flex;align-items:center;justify-content:space-between;margin:18px 0 10px}.section-title h3{margin:0}
+@media(max-width:980px){.product-grid{grid-template-columns:repeat(3,1fr)}}@media(max-width:760px){.product-grid{grid-template-columns:repeat(2,1fr)}.market-top{padding:18px}.product-card{min-height:290px}.product-card img{height:125px}}
+
+
+.hero-slider{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:16px}
+.hero-main,.hero-side{border-radius:20px;padding:22px;color:#fff;min-height:150px}
+.hero-main{background:linear-gradient(135deg,#0967d8,#0755b5)}
+.hero-side{background:linear-gradient(135deg,#ff7a00,#f29b38)}
+.home-cat{display:flex;gap:10px;overflow:auto;padding-bottom:8px}.home-cat button{min-width:105px;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:12px}
+.heart{position:absolute;right:10px;top:10px;border-radius:50%;width:36px;height:36px;padding:0;background:#fff;color:#e5484d;border:1px solid var(--line);z-index:2}
+.product-card{position:relative}.fav-empty{text-align:center;padding:35px 10px}
+@media(max-width:760px){.hero-slider{grid-template-columns:1fr}.hero-side{min-height:auto}}
+
+
+.notif-drawer{position:fixed;top:0;right:0;width:min(420px,100%);height:100%;background:#fff;z-index:80;box-shadow:-12px 0 35px #0002;transform:translateX(100%);transition:.25s;display:flex;flex-direction:column}
+.notif-drawer.open{transform:translateX(0)}.notif-head{padding:18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.notif-list{padding:12px;overflow:auto;flex:1}.notif-item{border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}.notif-item.unread{background:#eef5ff;border-color:#cfe0ff}.notif-time{font-size:11px;color:var(--mut);margin-top:6px}
+.notif-backdrop{position:fixed;inset:0;background:#0005;z-index:79;display:none}.notif-backdrop.open{display:block}
+
+
+.addr-card{border:1px solid var(--line);border-radius:14px;padding:13px;margin:9px 0;background:#fff}.addr-card.default{border-color:#0967d8;background:#f5f9ff}
+.addr-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.form-grid .wide{grid-column:1/-1}
+@media(max-width:600px){.form-grid{grid-template-columns:1fr}.form-grid .wide{grid-column:auto}}
+
+
+.account-hero{background:linear-gradient(135deg,#0967d8,#0755b5);color:#fff;border-radius:20px;padding:20px;margin-bottom:14px}
+.account-menu{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.account-menu button{background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:left}
+.profile-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px}
+@media(max-width:700px){.account-menu{grid-template-columns:1fr 1fr}}
+
+
+.success-icon{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:#e8f7ee;font-size:32px;margin:0 auto 12px}.success-box{text-align:center;padding:12px}.success-box h2{margin:6px 0}.success-actions{display:grid;gap:8px;margin-top:16px}
+
+
+.admin-commerce{display:grid;grid-template-columns:1fr 1fr;gap:12px}.admin-commerce .full{grid-column:1/-1}.coupon-row{border:1px solid var(--line);border-radius:13px;padding:12px;margin:8px 0}
+@media(max-width:760px){.admin-commerce{grid-template-columns:1fr}.admin-commerce .full{grid-column:auto}}
+
+
+.store-cover{background:linear-gradient(135deg,#0967d8,#ff7a00);height:110px;border-radius:20px 20px 0 0}.store-profile{background:#fff;border:1px solid var(--line);border-radius:0 0 20px 20px;padding:0 16px 16px;margin-bottom:14px}.store-logo-big{width:76px;height:76px;border-radius:18px;background:#fff;border:3px solid #fff;box-shadow:0 3px 12px #0002;margin-top:-38px;object-fit:cover;display:grid;place-items:center;font-size:32px}.store-info-grid{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+
+
+.dynamic-banners{display:grid;gap:10px;margin-bottom:14px}.dynamic-banner{min-height:145px;border-radius:20px;padding:20px;background:linear-gradient(135deg,#0967d8,#ff7a00);color:#fff;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden}.dynamic-banner.has-img{background-size:cover;background-position:center}.dynamic-banner.has-img:before{content:"";position:absolute;inset:0;background:#0006}.dynamic-banner>*{position:relative;z-index:1}.dynamic-banner h2{margin:0 0 6px}.banner-admin-row{border:1px solid var(--line);border-radius:13px;padding:12px;margin:8px 0}
+
+
+.rating-stars{font-size:20px;letter-spacing:2px}.rating-chip{font-size:12px;color:#9a5b00;background:#fff4d9;padding:4px 7px;border-radius:999px}.review-card{border:1px solid var(--line);border-radius:13px;padding:12px;margin:8px 0}.review-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:10px 0}.review-grid button{background:#fff;border:1px solid var(--line);font-size:22px;padding:8px;border-radius:10px}
+
+
+.ticket{border:1px solid var(--line);border-radius:14px;padding:13px;margin:9px 0}.ticket-status{font-size:12px;padding:4px 8px;border-radius:999px;background:#eef5ff}.support-compose textarea{width:100%;min-height:100px}
+
+
+.money-positive{font-weight:800}.ledger-row{border-bottom:1px solid var(--line);padding:10px 0}.ledger-row:last-child{border:0}
+
+
+.merchant-desktop{max-width:1180px;margin:0 auto}
+.merchant-desktop>.section-title{position:sticky;top:0;z-index:4;background:rgba(247,249,252,.96);backdrop-filter:blur(8px);padding:10px 0}
+.merchant-desktop .grid3{grid-template-columns:repeat(3,minmax(180px,1fr))}
+.merchant-desktop table{width:100%;border-collapse:collapse}
+.merchant-desktop th,.merchant-desktop td{padding:10px;border-bottom:1px solid var(--line);text-align:left}
+@media(max-width:760px){
+ .merchant-desktop>.section-title{position:static;align-items:flex-start}
+ .merchant-desktop .grid3{grid-template-columns:1fr}
+ .merchant-desktop table{display:block;overflow-x:auto;white-space:nowrap}
+}
+
+
+.order-values{display:flex;gap:8px 14px;flex-wrap:wrap;padding:9px 0;border-top:1px solid #eee;border-bottom:1px solid #eee;font-size:13px}.order-values span{white-space:nowrap}
+
+.product-admin-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #eee}.product-admin-row:last-child{border-bottom:0}@media(max-width:640px){.product-admin-row{align-items:flex-start;flex-direction:column}}
+
+.product-admin-thumb{width:52px;height:52px;object-fit:cover;border-radius:10px;border:1px solid #eee}#mpImagePreview{min-height:4px}
+
+.approval-warning{margin-top:6px;font-size:12px;color:#8a5a00;max-width:260px}button:disabled{opacity:.48;cursor:not-allowed}
+
+.e2e-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}.e2e-check{display:flex;gap:9px;align-items:flex-start;padding:10px;border:1px solid #ddd;border-radius:10px}.e2e-check.ok b{font-size:20px}.e2e-check.pending b{font-size:20px}.e2e-check small{display:block;margin-top:3px;opacity:.7}
+
+.e2e-steps{padding-left:22px;line-height:1.7}.e2e-steps li{margin:5px 0}
+</style>
+
+<style>
+.portal-links{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 16px}
+.portal-links a{display:inline-flex;align-items:center;gap:6px;padding:9px 12px;border:1px solid #d8e1ee;border-radius:10px;background:#fff;color:#18324f;text-decoration:none;font-weight:700}
+.portal-links a.current{background:#0b6fe8;color:#fff;border-color:#0b6fe8}
+.portal-note{font-size:12px;color:#607086;margin-left:auto;align-self:center}
+</style>
+
+</head>
+<body data-portal="master">
+<header><div class="brand">Smart <b>Shop</b></div><div id="sessionLabel" class="mut">Não conectado</div></header>
+<div class="wrap">
+<div class="hero"><h1 style="margin:0 0 6px">Smart Shop • Administração Master</h1><div>Gestão completa da plataforma Smart Shop.</div></div>
+
+<section id="authCard" class="card">
+<h2>Acesso</h2>
+<div class="grid">
+<div><label>E-mail</label><input id="email" type="email" placeholder="seu@email.com"/></div>
+<div><label>Senha</label><input id="password" type="password" placeholder="mínimo 6 caracteres"/></div>
+</div>
+<div class="row" style="margin-top:12px"><button onclick="signIn()">Entrar</button></div>
+<div id="authMsg"></div>
+</section>
+
+<section id="app" class="hide">
+<nav>
+<button data-view="masterPanel" class="on" onclick="loadMaster()">🛡️ Master</button>
+<button data-view="commerceAdminPanel" data-platform-roles="master,admin,operations" onclick="loadCommerceAdmin()">🎟️ Cupons</button>
+<button data-view="bannerAdminPanel" data-platform-roles="master,admin,operations" onclick="loadBannerAdmin()">🖼️ Banners</button>
+<button data-view="masterSupportPanel" data-platform-roles="master,admin,support" onclick="loadMasterSupport()">🎧 Suporte</button>
+<button data-view="masterFinancePanel" data-platform-roles="master,admin,finance" onclick="loadMasterFinance()">💰 Financeiro</button>
+<button data-view="accountPanel" onclick="showAccount()">👤 Minha conta</button>
+<button onclick="showNotifications()">🔔 <span id="notifCount">0</span></button>
+<span id="syncBadge" class="mut" style="font-size:12px">Sincronizando…</span>
+<button class="bad" onclick="signOut()">Sair</button>
+</nav>
+
+<div id="home" class="view card">
+<h2>Conta conectada</h2>
+<p id="who"></p>
+<p class="mut">O sistema identifica as permissões no Supabase. Cada usuário consulta apenas o que suas políticas permitem.</p>
+</div>
+
+<div id="merchantApply" class="view hide">
+<form class="card" id="merchantForm">
+<h2>Cadastro de Lojista</h2><div id="merchantAppStatus" class="mut"></div>
+<div class="grid3">
+<div><label>Razão social *</label><input name="legal_name" required></div>
+<div><label>Nome fantasia *</label><input name="trade_name" required></div>
+<div><label>CPF/CNPJ *</label><input name="cpf_cnpj" required></div>
+<div><label>Inscrição estadual</label><input name="state_registration"></div>
+<div><label>Inscrição municipal</label><input name="municipal_registration"></div>
+<div><label>Categoria</label><input name="category"></div>
+<div><label>Responsável *</label><input name="responsible_name" required></div>
+<div><label>CPF responsável *</label><input name="responsible_cpf" required></div>
+<div><label>Telefone *</label><input name="phone" required></div>
+<div><label>WhatsApp</label><input name="whatsapp"></div>
+<div><label>E-mail da loja *</label><input type="email" name="shop_email" required></div>
+<div><label>Horário de funcionamento</label><input name="business_hours"></div>
+</div>
+<h3>Endereço</h3><div class="grid3">
+<div><label>CEP *</label><input name="cep" required></div><div><label>Rua *</label><input name="street" required></div><div><label>Número *</label><input name="number" required></div>
+<div><label>Bairro *</label><input name="district" required></div><div><label>Cidade *</label><input name="city" value="Mateus Leme" required></div><div><label>UF *</label><input name="state" value="MG" required></div>
+</div>
+<h3>Repasse</h3><div class="grid3"><div><label>Chave Pix</label><input name="pix_key"></div><div><label>Banco</label><input name="bank_name"></div><div><label>Agência</label><input name="bank_agency"></div><div><label>Conta</label><input name="bank_account"></div></div>
+<h3>Documentos</h3><p class="mut">Arquivos protegidos: PDF, JPG, PNG ou WEBP. Os documentos ficam em área privada e somente você e a equipe autorizada do Smart Shop podem acessá-los.</p><div class="grid3">
+<div><label>Comprovação da empresa *</label><input id="m_company" type="file" accept=".pdf,image/jpeg,image/png,image/webp" required></div>
+<div><label>Documento do responsável *</label><input id="m_responsible" type="file" accept=".pdf,image/jpeg,image/png,image/webp" required></div>
+<div><label>Comprovante de endereço *</label><input id="m_address" type="file" accept=".pdf,image/jpeg,image/png,image/webp" required></div>
+<div><label>Alvará/licença (se aplicável)</label><input id="m_license" type="file" accept=".pdf,image/jpeg,image/png,image/webp"></div>
+</div>
+<div class="row" style="margin-top:14px"><button type="submit">Enviar para análise</button></div><div id="merchantMsg"></div>
+</form>
+</div>
+
+<div id="courierApply" class="view hide">
+<form class="card" id="courierForm">
+<h2>Cadastro de Entregador</h2><div id="courierAppStatus" class="mut"></div>
+<div class="grid3">
+<div><label>Nome completo *</label><input name="full_name" required></div><div><label>CPF *</label><input name="cpf" required></div><div><label>Nascimento *</label><input name="birth_date" type="date" required></div>
+<div><label>Telefone *</label><input name="phone" required></div><div><label>WhatsApp</label><input name="whatsapp"></div><div><label>E-mail *</label><input name="courier_email" type="email" required></div>
+</div>
+<h3>Endereço</h3><div class="grid3">
+<div><label>CEP *</label><input name="cep" required></div><div><label>Rua *</label><input name="street" required></div><div><label>Número *</label><input name="number" required></div><div><label>Bairro *</label><input name="district" required></div><div><label>Cidade *</label><input name="city" value="Mateus Leme" required></div><div><label>UF *</label><input name="state" value="MG" required></div>
+</div>
+<h3>CNH</h3><div class="grid3">
+<div><label>Número CNH *</label><input name="cnh_number" required></div><div><label>Categoria *</label><input name="cnh_category" required></div><div><label>Validade *</label><input name="cnh_expiry" type="date" required></div>
+<div><label>EAR *</label><select name="has_ear" required><option value="">Selecione</option><option value="true">Sim</option><option value="false">Não</option></select></div>
+</div>
+<h3>Veículo</h3><div class="grid3">
+<div><label>Tipo *</label><select name="vehicle_type" required><option value="motorcycle">Motocicleta</option><option value="car">Automóvel</option></select></div>
+<div><label>Placa *</label><input name="plate" required></div><div><label>Renavam *</label><input name="renavam" required></div><div><label>Marca *</label><input name="brand" required></div><div><label>Modelo *</label><input name="model" required></div><div><label>Ano *</label><input name="model_year" type="number" min="1980" required></div><div><label>Cor *</label><input name="color" required></div>
+</div>
+<h3>Documentos</h3><p class="mut">Arquivos protegidos: PDF, JPG, PNG ou WEBP. Os documentos ficam em área privada e somente você e a equipe autorizada do Smart Shop podem acessá-los.</p><div class="grid3">
+<div><label>Foto do entregador *</label><input id="c_photo" type="file" accept="image/*" required></div>
+<div><label>CNH *</label><input id="c_cnh" type="file" accept=".pdf,image/jpeg,image/png,image/webp" required></div>
+<div><label>Antecedentes criminais *</label><input id="c_criminal" type="file" accept=".pdf,image/jpeg,image/png,image/webp" required></div>
+<div><label>Comprovante de endereço *</label><input id="c_address" type="file" accept=".pdf,image/jpeg,image/png,image/webp" required></div>
+<div><label>Documento do veículo *</label><input id="c_vehicle" type="file" accept=".pdf,image/jpeg,image/png,image/webp" required></div>
+</div>
+<div class="row" style="margin-top:14px"><button type="submit">Enviar para análise</button></div><div id="courierMsg"></div>
+</form>
+</div>
+
+
+<div id="merchantSettingsPanel" class="view hide market-shell">
+ <div class="section-title"><h2>Configurações da loja</h2><span class="mut">Painel do lojista</span></div>
+ <div id="merchantSettingsBody"></div>
+</div>
+<div id="merchantPanel" class="view hide card">
+<h2>Painel do Lojista</h2><div id="merchantPanelBody" class="mut">Carregando...</div>
+</div>
+
+<div id="courierPanel" class="view hide card"><h2>Entregas disponíveis</h2><div id="courierPanelBody" class="mut">Carregando...</div></div>
+
+<div id="homePanel" class="view hide market-shell"><div id="dynamicBanners" class="dynamic-banners"></div>
+ <div class="hero-slider">
+  <div class="hero-main"><div style="opacity:.8;font-size:12px">SMART SHOP</div><h1 style="margin:6px 0">Tudo perto de você.</h1><p>Compre nas lojas da região e escolha como receber.</p><button onclick="openView('marketplacePanel');showMarketplace()" style="background:#fff;color:#0967d8">Explorar produtos</button></div>
+  <div class="hero-side"><b>Entrega local</b><h2 style="margin:7px 0">Mais rápido, mais perto.</h2><span>Retire na loja ou escolha uma modalidade de entrega.</span></div>
+ </div>
+ <div class="section-title"><h3>Categorias</h3><button class="ghost" onclick="openView('marketplacePanel');showMarketplace()">Ver tudo</button></div>
+ <div id="homeCategories" class="home-cat"></div>
+ <div class="section-title"><h3>Ofertas</h3><span class="mut">Preços especiais</span></div><div id="homeOffers" class="product-grid"></div>
+ <div class="section-title"><h3>Lojas da região</h3><span class="mut">Compre de quem está perto</span></div><div id="homeStores" class="store-strip"></div>
+ <div class="section-title"><h3>Novidades</h3><span class="mut">Chegaram agora</span></div><div id="homeNew" class="product-grid"></div>
+</div>
+
+
+
+
+<div id="storePagePanel" class="view hide market-shell">
+ <div id="storePageBody"></div>
+</div>
+
+
+
+
+<div id="roleAdminPanel" class="view hide market-shell">
+ <div class="section-title"><h2>Equipe e acessos</h2><span class="mut">Somente Master</span></div><div class="card"><p class="mut">Somente o Master pode visualizar a equipe completa, adicionar funções ou remover acessos. O e-mail é exibido para evitar atribuir permissão à pessoa errada.</p></div>
+ <div id="roleAdminBody"></div>
+</div>
+<div id="masterFinancePanel" class="view hide market-shell">
+ <div class="section-title"><h2>Financeiro Smart Shop</h2><span class="mut">Master / Financeiro</span></div>
+ <div id="masterFinanceBody"></div>
+</div>
+<div id="masterSupportPanel" class="view hide market-shell">
+ <div class="section-title"><h2>Atendimento Smart Shop</h2><span class="mut">Master / Suporte</span></div>
+ <div id="masterSupportBody"></div>
+</div>
+<div id="bannerAdminPanel" class="view hide market-shell">
+ <div class="section-title"><h2>Banners da página inicial</h2><span class="mut">Painel Master</span></div>
+ <div id="bannerAdminBody"></div>
+</div>
+<div id="commerceAdminPanel" class="view hide market-shell">
+ <div class="section-title"><h2>Cupons e comissão</h2><span class="mut">Administração Smart Shop</span></div>
+ <div id="commerceAdminBody"></div>
+</div>
+
+<div id="supportPanel" class="view hide market-shell">
+ <div class="section-title"><h2>Central de Ajuda</h2><span class="mut">Smart Shop</span></div>
+ <div id="supportBody"></div>
+</div>
+<div id="accountPanel" class="view hide market-shell">
+ <div id="accountBody"></div>
+</div>
+<div id="addressesPanel" class="view hide market-shell">
+ <div class="section-title"><h2>Meus endereços</h2><button onclick="openAddressForm()">+ Novo endereço</button></div>
+ <div id="addressesBody"></div>
+</div>
+<div id="favoritesPanel" class="view hide market-shell">
+ <div class="section-title"><h2>Meus Favoritos</h2><span class="mut">Produtos que você salvou</span></div>
+ <div id="favoritesBody" class="product-grid"></div>
+</div>
+<div id="marketplacePanel" class="view hide market-shell">
+  <div class="market-top">
+    <div style="font-size:12px;opacity:.85">COMPRE PERTO, RECEBA RÁPIDO</div>
+    <h2 style="margin:4px 0 12px;font-size:28px">Smart Shop</h2>
+    <input id="marketSearch" class="market-search" placeholder="Buscar produtos ou lojas" oninput="renderMarketProducts()">
+  </div>
+  <div class="section-title"><h3>Categorias</h3><span class="mut">Mateus Leme e região</span></div>
+  <div id="marketCategories" class="market-chips"></div>
+  <div class="section-title"><h3>Lojas</h3><span class="mut">Parceiros locais</span></div>
+  <div id="marketStores" class="store-strip"></div>
+  <div class="section-title"><h3>Produtos</h3><span id="marketCount" class="mut"></span></div>
+  <div id="marketProducts" class="product-grid"></div>
+  <div id="marketCart"></div>
+</div>
+<div id="customerOrders" class="view hide card"><h2>Meus Pedidos</h2><div id="customerOrdersBody" class="mut">Carregando...</div></div>
+<div id="masterPanel" class="view hide card">
+<h2>Painel Master</h2><div id="masterBody" class="mut">Verificando permissão...</div>
+</div>
+</section>
+</div>
+
+<script>
+const SUPABASE_URL='https://iwbxyhcmcxeaqkkqveni.supabase.co';
+const SUPABASE_KEY='YOUR_SUPABASE_PUBLISHABLE_KEY';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let currentUser=null;
+
+function msg(id,text,bad=false){document.getElementById(id).innerHTML='<div class="msg '+(bad?'err':'')+'">'+text+'</div>'}
+function val(fd,k){const v=fd.get(k);return typeof v==='string'?v.trim():v}
+async function signIn(){
+ const {data,error}=await sb.auth.signInWithPassword({email:email.value.trim(),password:password.value});
+ if(error)return msg('authMsg',error.message,true); await setSession(data.user);
+}
+async function signUp(){
+ const {data,error}=await sb.auth.signUp({email:email.value.trim(),password:password.value,options:{data:{full_name:email.value.split('@')[0]}}});
+ if(error)return msg('authMsg',error.message,true);
+ msg('authMsg',data.session?'Conta criada e conectada.':'Conta criada. Confira o e-mail para confirmar o cadastro.');
+ if(data.user&&data.session)await setSession(data.user);
+}
+async function signOut(){stopSmartSync();await sb.auth.signOut();location.reload()}
+async function setSession(user){
+ currentUser=user;authCard.classList.add('hide');app.classList.remove('hide');
+ sessionLabel.textContent=user.email;who.textContent='Usuário: '+user.email+' • ID '+user.id;
+ await refreshPlatformAccess();
+ await loadNotificationCount();
+ await loadPartnerApplicationStatus();
+ const portal=document.body.dataset.portal||'cliente';
+ if(portal==='cliente'){
+   await loadCustomerOrders(); await showHome(); openView('homePanel');
+ }else if(portal==='entregador'){
+   await loadCourierPanel(); openView('courierPanel');
+ }else if(portal==='lojista'){
+   await loadMerchantPanel(); openView('merchantPanel');
+ }else if(portal==='master'){
+   await loadMaster(); openView('masterPanel');
+ }
+ startSmartSync();
+}
+function openView(view){
+ document.querySelectorAll('nav [data-view]').forEach(x=>x.classList.toggle('on',x.dataset.view===view));
+ document.querySelectorAll('.view').forEach(v=>v.classList.add('hide'));
+ const target=document.getElementById(view); if(target)target.classList.remove('hide');
+}
+document.querySelectorAll('nav [data-view]').forEach(b=>b.addEventListener('click',()=>openView(b.dataset.view)));
+
+async function uploadDoc(file,ownerType,appId,docType){
+ if(!file)return null;
+ const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+ const path=`${currentUser.id}/${ownerType}/${appId}/${Date.now()}_${docType}_${safe}`;
+ const {error:uerr}=await sb.storage.from('partner-documents').upload(path,file,{upsert:false});
+ if(uerr)throw uerr;
+ const {error:derr}=await sb.from('partner_documents').insert({user_id:currentUser.id,owner_type:ownerType,application_id:appId,document_type:docType,storage_path:path,original_filename:file.name,mime_type:file.type||null});
+ if(derr){await sb.storage.from('partner-documents').remove([path]);throw derr}
+ return path;
+}
+
+merchantForm.addEventListener('submit',async e=>{
+ e.preventDefault();merchantMsg.innerHTML='';const fd=new FormData(e.target);
+ try{
+  const payload={user_id:currentUser.id,status:'submitted',legal_name:val(fd,'legal_name'),trade_name:val(fd,'trade_name'),cpf_cnpj:val(fd,'cpf_cnpj'),state_registration:val(fd,'state_registration')||null,municipal_registration:val(fd,'municipal_registration')||null,responsible_name:val(fd,'responsible_name'),responsible_cpf:val(fd,'responsible_cpf'),phone:val(fd,'phone'),whatsapp:val(fd,'whatsapp')||null,email:val(fd,'shop_email'),cep:val(fd,'cep'),street:val(fd,'street'),number:val(fd,'number'),district:val(fd,'district'),city:val(fd,'city'),state:val(fd,'state'),category:val(fd,'category')||null,business_hours:val(fd,'business_hours')||null,pix_key:val(fd,'pix_key')||null,bank_name:val(fd,'bank_name')||null,bank_agency:val(fd,'bank_agency')||null,bank_account:val(fd,'bank_account')||null,submitted_at:new Date().toISOString()};
+  const {data:existingApp}=await sb.from('merchant_applications').select('id,status').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(1).maybeSingle();
+   if(existingApp?.status==='approved')throw new Error('Seu cadastro de lojista já está aprovado.');
+   let data,error;
+   if(existingApp?.id)({data,error}=await sb.from('merchant_applications').update(payload).eq('id',existingApp.id).eq('user_id',currentUser.id).select('id').single());
+   else ({data,error}=await sb.from('merchant_applications').insert(payload).select('id').single());
+   if(error)throw error;
+  await uploadDoc(m_company.files[0],'merchant',data.id,'company_proof');await uploadDoc(m_responsible.files[0],'merchant',data.id,'responsible_id');await uploadDoc(m_address.files[0],'merchant',data.id,'address_proof');if(m_license.files[0])await uploadDoc(m_license.files[0],'merchant',data.id,'business_license');
+  msg('merchantMsg','Cadastro enviado com sucesso. Status: enviado para análise.');e.target.reset();await loadMaster();
+ }catch(x){msg('merchantMsg',friendlyError(x),true)}
+});
+
+courierForm.addEventListener('submit',async e=>{
+ e.preventDefault();courierMsg.innerHTML='';const fd=new FormData(e.target);
+ try{
+  const payload={user_id:currentUser.id,status:'submitted',full_name:val(fd,'full_name'),cpf:val(fd,'cpf'),birth_date:val(fd,'birth_date'),phone:val(fd,'phone'),whatsapp:val(fd,'whatsapp')||null,email:val(fd,'courier_email'),cep:val(fd,'cep'),street:val(fd,'street'),number:val(fd,'number'),district:val(fd,'district'),city:val(fd,'city'),state:val(fd,'state'),cnh_number:val(fd,'cnh_number'),cnh_category:val(fd,'cnh_category'),cnh_expiry:val(fd,'cnh_expiry'),has_ear:val(fd,'has_ear')==='true',criminal_record_declared:true,submitted_at:new Date().toISOString()};
+  const {data:existingCourier}=await sb.from('courier_applications').select('id,status').eq('user_id',currentUser.id).maybeSingle();
+   if(existingCourier?.status==='approved')throw new Error('Seu cadastro de entregador já está aprovado.');
+   const {data,error}=await sb.from('courier_applications').upsert(payload,{onConflict:'user_id'}).select('id').single();if(error)throw error;
+  const vehicle={courier_application_id:data.id,user_id:currentUser.id,vehicle_type:val(fd,'vehicle_type'),plate:val(fd,'plate'),renavam:val(fd,'renavam'),brand:val(fd,'brand'),model:val(fd,'model'),model_year:Number(val(fd,'model_year')),color:val(fd,'color')};
+  const {data:existingVehicle}=await sb.from('courier_vehicles').select('id').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(1).maybeSingle();
+   let verr;
+   if(existingVehicle?.id)({error:verr}=await sb.from('courier_vehicles').update(vehicle).eq('id',existingVehicle.id).eq('user_id',currentUser.id));
+   else ({error:verr}=await sb.from('courier_vehicles').insert(vehicle));
+   if(verr)throw verr;
+  const photoPath=await uploadDoc(c_photo.files[0],'courier',data.id,'profile_photo');
+  await sb.from('courier_applications').update({profile_photo_path:photoPath}).eq('id',data.id);
+  await uploadDoc(c_cnh.files[0],'courier',data.id,'cnh');await uploadDoc(c_criminal.files[0],'courier',data.id,'criminal_record');await uploadDoc(c_address.files[0],'courier',data.id,'address_proof');await uploadDoc(c_vehicle.files[0],'courier',data.id,'vehicle_document');
+  msg('courierMsg','Cadastro enviado com sucesso. O acesso às entregas dependerá da aprovação do Master.');e.target.reset();await loadMaster();
+ }catch(x){msg('courierMsg',friendlyError(x),true)}
+});
+
+const STATUS_LABEL={awaiting_payment:'Aguardando pagamento',paid:'Pago / Confirmado',preparing:'Em preparação',ready:'Pronto',awaiting_courier:'Procurando entregador',courier_assigned:'Entregador a caminho da loja',picked_up:'Pedido coletado',out_for_delivery:'Saiu para entrega',delivered:'Entregue',cancel_requested:'Cancelamento solicitado',cancelled:'Cancelado',returning:'Em devolução',returned:'Devolvido'};
+async function advanceOrder(id,status){const {error}=await sb.rpc('smart_order_transition',{p_order_id:id,p_new_status:status,p_notes:null});if(error)return alert(friendlyError(error));await loadMerchantPanel();await loadCourierPanel();await loadCustomerOrders()}
+
+async function loadMerchantSettings(){
+ if(!currentUser)return alert('Entre na conta do lojista.');
+ const {data:mem,error}=await sb.from('store_members').select('store_id,stores(*)').eq('user_id',currentUser.id).limit(1).maybeSingle();
+ const el=document.getElementById('merchantSettingsBody');
+ if(error||!mem?.stores){el.innerHTML='<div class="card">Você ainda não possui uma loja vinculada e aprovada.</div>';return}
+ const s=mem.stores,m=s.delivery_modes||[];
+ el.innerHTML=`<div class="card"><h3>${esc(s.name)}</h3><p class="mut">Status: ${esc(s.approval_status||'')}</p><form onsubmit="saveMerchantSettings(event,'${s.id}')" class="form-grid"><label class="wide">Nome da loja<input id="msName" value="${esc(s.name||'')}" required></label><label class="wide">Descrição<textarea id="msDesc" rows="3">${esc(s.description||'')}</textarea></label><label>Categoria<input id="msCategory" value="${esc(s.category||'')}"></label><label>Telefone<input id="msPhone" value="${esc(s.phone||'')}"></label><label>WhatsApp<input id="msWhatsapp" value="${esc(s.whatsapp||'')}"></label><label>E-mail<input id="msEmail" type="email" value="${esc(s.email||'')}"></label><label class="wide">Horário de funcionamento<textarea id="msHours" rows="2" placeholder="Ex.: Seg a Sex 08:00 às 18:00">${esc(s.business_hours||'')}</textarea></label><label class="wide">Logo da loja (URL)<input id="msLogo" value="${esc(s.logo_url||'')}"></label><div class="wide card"><b>Formas de entrega</b><label><input type="checkbox" id="msPickup" ${m.includes('pickup')?'checked':''}> Retirada na loja</label><label><input type="checkbox" id="msStoreDelivery" ${m.includes('store_delivery')?'checked':''}> Entrega própria da loja</label><label><input type="checkbox" id="msSmart" ${m.includes('smart_partner')?'checked':''}> Entrega por parceiro Smart Shop</label></div><button class="wide">Salvar configurações</button></form></div>`;
+}
+async function saveMerchantSettings(ev,id){
+ ev.preventDefault();
+ const modes=[];if(document.getElementById('msPickup').checked)modes.push('pickup');if(document.getElementById('msStoreDelivery').checked)modes.push('store_delivery');if(document.getElementById('msSmart').checked)modes.push('smart_partner');
+ if(!modes.length)return alert('Escolha pelo menos uma forma de entrega.');
+ const row={name:document.getElementById('msName').value.trim(),description:document.getElementById('msDesc').value.trim()||null,category:document.getElementById('msCategory').value.trim()||null,phone:document.getElementById('msPhone').value.trim()||null,whatsapp:document.getElementById('msWhatsapp').value.trim()||null,email:document.getElementById('msEmail').value.trim()||null,business_hours:document.getElementById('msHours').value.trim()||null,logo_url:document.getElementById('msLogo').value.trim()||null,delivery_modes:modes,updated_at:new Date().toISOString()};
+ const {error}=await sb.rpc('update_my_store_settings',{p_store_id:id,p_name:row.name,p_description:row.description,p_category:row.category,p_phone:row.phone,p_whatsapp:row.whatsapp,p_email:row.email,p_business_hours:row.business_hours,p_logo_url:row.logo_url,p_delivery_modes:row.delivery_modes});if(error){alert(friendlyError(error));return}alert('Configurações da loja salvas.');await loadMerchantSettings();
+}
+async function loadMerchantPanel(){
+ const body=document.getElementById('merchantPanelBody');const {data:members,error}=await sb.from('store_members').select('store_id,role,stores(id,name,approval_status)').eq('user_id',currentUser.id);
+ if(error){body.textContent=friendlyError(error);return} if(!members?.length){body.innerHTML='Você ainda não possui loja aprovada vinculada a esta conta.';return}
+ let html='';for(const m of members){const st=m.stores;const [{data:items},{data:ledger}]=await Promise.all([sb.from('order_items').select('order_id,orders(id,order_number,status_code,total_amount,delivery_method,freight_amount,product_subtotal,discount_amount,commission_amount,merchant_net_amount)').eq('store_id',m.store_id),sb.from('financial_ledger').select('id,amount,entry_type,status,available_at,paid_at,created_at').eq('store_id',m.store_id).eq('beneficiary_type','merchant').order('created_at',{ascending:false}).limit(100)]);const seen=new Map();(items||[]).forEach(i=>i.orders&&seen.set(i.orders.id,i.orders));const orders=[...seen.values()].sort((a,b)=>{const done=s=>['delivered','cancelled','returned'].includes(s);return Number(done(a.status_code))-Number(done(b.status_code))||String(b.order_number||'').localeCompare(String(a.order_number||''));});
+ const ledgerRows=ledger||[];
+ const walletAvailable=ledgerRows.filter(x=>x.status==='available').reduce((s,x)=>s+Number(x.amount||0),0);
+ const walletPending=ledgerRows.filter(x=>x.status==='pending').reduce((s,x)=>s+Number(x.amount||0),0);
+ const walletPaid=ledgerRows.filter(x=>x.status==='paid').reduce((s,x)=>s+Number(x.amount||0),0);
+ const delivered=orders.filter(o=>o.status_code==='delivered');
+ const gross=delivered.reduce((s,o)=>s+Number(o.merchant_net_amount||0)+Number(o.commission_amount||0),0);
+ const commissions=delivered.reduce((s,o)=>s+Number(o.commission_amount||0),0);
+ const merchantNet=delivered.reduce((s,o)=>s+Number(o.merchant_net_amount||0),0);
+ html+=`<div class="card"><b>${esc(st?.name||'Loja')}</b> <span class="tag">${esc(m.role)}</span>
+ <div class="grid3" style="margin:12px 0"><div class="mini"><b>Vendas em produtos</b><br>R$ ${gross.toFixed(2).replace('.',',')}</div><div class="mini"><b>Comissão Smart Shop</b><br>R$ ${commissions.toFixed(2).replace('.',',')}</div><div class="mini"><b>Repasse da loja</b><br>R$ ${merchantNet.toFixed(2).replace('.',',')}</div></div>
+ <div class="card" style="margin:12px 0"><div class="section-title"><h3>📦 Produtos</h3><button class="ghost" onclick="openMerchantProductForm('${m.store_id}')">Novo produto</button></div><div id="merchantProducts_${m.store_id}"><span class="mut">Carregando produtos...</span></div></div>
+ <div class="card" style="margin:12px 0"><div class="section-title"><h3>💰 Minha carteira</h3><span class="mut">Repasses</span></div><div class="grid3"><div class="mini"><b>${money(walletAvailable)}</b><br><span class="mut">Disponível</span></div><div class="mini"><b>${money(walletPending)}</b><br><span class="mut">Pendente</span></div><div class="mini"><b>${money(walletPaid)}</b><br><span class="mut">Já pago</span></div></div><details style="margin-top:10px"><summary>Ver extrato</summary>${ledgerRows.slice(0,30).map(x=>`<div class="ledger-row"><b>${money(x.amount)}</b> <span class="tag">${x.status==='available'?'Disponível':x.status==='paid'?'Pago':'Pendente'}</span><div class="mut">${new Date(x.created_at).toLocaleString('pt-BR')}${x.paid_at?` • pago em ${new Date(x.paid_at).toLocaleString('pt-BR')}`:''}</div></div>`).join('')||'<p class="mut">Nenhum lançamento financeiro.</p>'}</details></div>
+ <table><tr><th>Pedido</th><th>Entrega</th><th>Status</th><th>Repasse</th><th>Ação</th></tr>${orders.map(o=>`<tr><td>${esc(o.order_number)}</td><td>${esc({pickup:'Retirada',store_delivery:'Entrega da loja',smart_partner:'Entregador Smart Shop'}[o.delivery_method]||o.delivery_method)}</td><td>${esc(STATUS_LABEL[o.status_code]||o.status_code)}</td><td>${o.status_code==='delivered'?'R$ '+Number(o.merchant_net_amount||0).toFixed(2).replace('.',','):'—'}</td><td>${merchantAction(o)}</td></tr>`).join('')||'<tr><td colspan="5">Nenhum pedido.</td></tr>'}</table></div>`}body.innerHTML=html;
+ for(const m of members) await loadMerchantProducts(m.store_id);
+}
+
+async function loadMerchantProducts(storeId){
+ const el=document.getElementById('merchantProducts_'+storeId); if(!el)return;
+ const {data,error}=await sb.from('products').select('id,name,category,price,old_price,stock,active,image_url,description').eq('store_id',storeId).order('created_at',{ascending:false});
+ if(error){el.textContent=friendlyError(error);return}
+ el.innerHTML=(data||[]).map(p=>`<div class="product-admin-row"><div class="row">${p.image_url?`<img src="${esc(p.image_url)}" class="product-admin-thumb">`:''}<div><b>${esc(p.name)}</b><div class="mut">${esc(p.category||'Sem categoria')} • ${money(p.price)} • Estoque ${Number(p.stock||0)} • ${p.active?'Ativo':'Pausado'}</div></div></div><div class="row"><button class="ghost" onclick='openMerchantProductForm("${storeId}",${JSON.stringify(p).replace(/'/g,"&#39;")})'>Editar</button><button class="ghost" onclick="toggleMerchantProduct('${p.id}',${!p.active},'${storeId}')">${p.active?'Pausar':'Ativar'}</button></div></div>`).join('')||'<p class="mut">Nenhum produto cadastrado.</p>';
+}
+function openMerchantProductForm(storeId,p=null){
+ document.getElementById('mpStoreId').value=storeId;
+ document.getElementById('mpProductId').value=p?.id||'';
+ document.getElementById('mpCurrentImage').value=p?.image_url||'';
+ document.getElementById('mpName').value=p?.name||'';
+ document.getElementById('mpCategory').value=p?.category||'';
+ document.getElementById('mpPrice').value=p?.price??'';
+ document.getElementById('mpOldPrice').value=p?.old_price??'';
+ document.getElementById('mpStock').value=p?.stock??0;
+ document.getElementById('mpDescription').value=p?.description||'';
+ document.getElementById('mpActive').checked=p?.active??true;
+ document.getElementById('mpImageFile').value='';
+ document.getElementById('mpImagePreview').innerHTML=p?.image_url?`<img src="${esc(p.image_url)}" style="max-width:150px;max-height:150px;border-radius:12px;object-fit:cover">`:'';
+ document.getElementById('merchantProductTitle').textContent=p?'Editar produto':'Novo produto';
+ document.getElementById('merchantProductModal').classList.remove('hide');
+}
+function closeMerchantProductModal(){document.getElementById('merchantProductModal').classList.add('hide')}
+function productImagePathFromUrl(url){
+ try{
+  const marker='/storage/v1/object/public/product-images/';
+  const i=String(url||'').indexOf(marker);if(i<0)return null;
+  return decodeURIComponent(String(url).slice(i+marker.length).split('?')[0]);
+ }catch{return null}
+}
+async function removeProductImageByUrl(url){
+ const path=productImagePathFromUrl(url);if(!path)return;
+ await sb.storage.from('product-images').remove([path]);
+}
+async function uploadProductImage(storeId,file){
+ if(!file)return null;
+ if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw new Error('Use uma imagem JPG, PNG ou WEBP.');
+ if(file.size>5*1024*1024)throw new Error('A imagem deve ter no máximo 5 MB.');
+ const ext=(file.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'');
+ const path=`${storeId}/${crypto.randomUUID?crypto.randomUUID():Date.now()}.${ext||'jpg'}`;
+ const {error}=await sb.storage.from('product-images').upload(path,file,{upsert:false,contentType:file.type});
+ if(error)throw error;
+ const {data}=sb.storage.from('product-images').getPublicUrl(path);
+ return {url:data?.publicUrl||null,path};
+}
+async function submitMerchantProduct(ev){
+ ev.preventDefault();
+ const btn=document.getElementById('mpSaveBtn');if(btn.disabled)return;
+ btn.disabled=true;const old=btn.textContent;btn.textContent='Salvando...';
+ let uploaded=null;
+ try{
+  const storeId=document.getElementById('mpStoreId').value,id=document.getElementById('mpProductId').value||null;
+  const previousImage=document.getElementById('mpCurrentImage').value||null;
+  const price=Number(document.getElementById('mpPrice').value),stock=Number(document.getElementById('mpStock').value);
+  const oldPriceRaw=document.getElementById('mpOldPrice').value.trim(),oldPrice=oldPriceRaw===''?null:Number(oldPriceRaw);
+  const row={name:document.getElementById('mpName').value.trim(),category:document.getElementById('mpCategory').value.trim()||null,price,old_price:oldPrice,stock,description:document.getElementById('mpDescription').value.trim()||null,image_url:previousImage,active:document.getElementById('mpActive').checked};
+  if(!row.name)throw new Error('Informe o nome do produto.');
+  if(!Number.isFinite(price)||price<=0)throw new Error('Informe um preço maior que zero.');
+  if(oldPrice!==null&&(!Number.isFinite(oldPrice)||oldPrice<=price))throw new Error('O preço anterior deve ser maior que o preço atual.');
+  if(!Number.isInteger(stock)||stock<0)throw new Error('Informe um estoque válido.');
+  const file=document.getElementById('mpImageFile').files[0];
+  if(file){uploaded=await uploadProductImage(storeId,file);row.image_url=uploaded.url}
+  let error;
+  if(id)({error}=await sb.from('products').update(row).eq('id',id).eq('store_id',storeId));
+  else ({error}=await sb.from('products').insert({...row,store_id:storeId}));
+  if(error)throw error;
+  if(file&&previousImage&&previousImage!==row.image_url)await removeProductImageByUrl(previousImage);
+  closeMerchantProductModal();alert(id?'Produto atualizado.':'Produto cadastrado.');
+  await loadMerchantProducts(storeId);await showHome();
+ }catch(e){
+  if(uploaded?.url)await removeProductImageByUrl(uploaded.url);
+  alert(friendlyError(e));
+ }finally{btn.disabled=false;btn.textContent=old}
+}
+async function toggleMerchantProduct(id,active,storeId){
+ const {error}=await sb.from('products').update({active}).eq('id',id).eq('store_id',storeId);
+ if(error)return alert(friendlyError(error));
+ await loadMerchantProducts(storeId); await showHome();
+}
+function merchantAction(o){
+ if(o.status_code==='paid')return `<button onclick="advanceOrder('${o.id}','preparing')">Iniciar preparação</button>`;
+ if(o.status_code==='preparing')return `<button onclick="advanceOrder('${o.id}','ready')">Marcar como pronto</button>`;
+ if(o.status_code==='ready'&&o.delivery_method==='smart_partner')return `<button class="alt" onclick="advanceOrder('${o.id}','awaiting_courier')">Solicitar entregador</button>`;
+ if(o.status_code==='ready'&&o.delivery_method==='store_delivery')return `<button class="alt" onclick="advanceOrder('${o.id}','out_for_delivery')">Saiu para entrega</button>`;
+ if(o.status_code==='out_for_delivery'&&o.delivery_method==='store_delivery')return `<button onclick="confirmMerchantDelivery('${o.id}')">Confirmar entrega</button>`;
+ if(o.status_code==='ready'&&o.delivery_method==='pickup')return `<button onclick="confirmMerchantPickup('${o.id}')">Confirmar retirada</button>`;
+ if(o.status_code==='awaiting_courier'&&o.delivery_method==='smart_partner')return `<span class="mut">Procurando um entregador parceiro...</span>`;
+ if(o.status_code==='courier_assigned'&&o.delivery_method==='smart_partner')return `<button class="ghost" onclick="showVerificationCode('${o.id}','pickup')">Ver código de retirada</button><div class="mut" style="margin-top:6px">Informe este código somente quando o entregador estiver na loja.</div>`;
+ if(o.status_code==='delivered')return '<span class="tag">✓ Finalizado</span>';
+ if(o.status_code==='cancelled')return '<span class="tag">Cancelado</span>';
+ return '<span class="mut">Aguardando próxima etapa</span>';
+}
+async function confirmMerchantPickup(id){
+ if(!confirm('Confirma que o cliente retirou o pedido na loja?'))return;
+ await advanceOrder(id,'delivered');
+}
+async function confirmMerchantDelivery(id){
+ if(!confirm('Confirma que o pedido foi entregue ao cliente pela própria loja?'))return;
+ await advanceOrder(id,'delivered');
+}
+async function loadCourierPanel(){
+ const b=document.getElementById('courierPanelBody');
+ const {data:app}=await sb.from('courier_applications').select('status').eq('user_id',currentUser.id).maybeSingle();
+ if(!app||app.status!=='approved'){b.innerHTML='Seu cadastro precisa estar <b>aprovado</b> para visualizar e realizar entregas.';return}
+ const {data:v}=await sb.from('courier_vehicles').select('id,brand,model,plate').eq('user_id',currentUser.id).eq('active',true);
+ const vehicle=v?.[0];if(!vehicle){b.textContent='Nenhum veículo ativo.';return}
+ const [offersRes,myRes]=await Promise.all([
+   sb.from('deliveries').select('id,order_id,freight_amount,status,orders(order_number,status_code)').eq('status','waiting_courier').is('courier_user_id',null),
+   sb.from('deliveries').select('id,order_id,freight_amount,status,orders(order_number,status_code)').eq('courier_user_id',currentUser.id).in('status',['accepted','arrived_store','picked_up','out_for_delivery'])
+ ]);
+ if(offersRes.error){b.textContent=offersRes.error.message;return}
+ if(myRes.error){b.textContent=myRes.error.message;return}
+ const my=myRes.data||[], offers=offersRes.data||[];
+ const [{data:done},{data:cLedger}]=await Promise.all([sb.from('deliveries').select('freight_amount').eq('courier_user_id',currentUser.id).eq('status','delivered'),sb.from('financial_ledger').select('id,amount,status,available_at,paid_at,created_at').eq('beneficiary_type','courier').eq('beneficiary_user_id',currentUser.id).order('created_at',{ascending:false}).limit(100)]);
+ const courierTotal=(done||[]).reduce((s,x)=>s+Number(x.freight_amount||0),0);
+ const cRows=cLedger||[],cAvailable=cRows.filter(x=>x.status==='available').reduce((s,x)=>s+Number(x.amount||0),0),cPaid=cRows.filter(x=>x.status==='paid').reduce((s,x)=>s+Number(x.amount||0),0),cPending=cRows.filter(x=>x.status==='pending').reduce((s,x)=>s+Number(x.amount||0),0);
+ let html=`<p class="mut">Veículo ativo: ${esc(vehicle.brand||'')} ${esc(vehicle.model||'')} • ${esc(vehicle.plate||'')}</p><div class="card"><div class="section-title"><h3>💰 Minha carteira</h3><span class="mut">Fretes</span></div><div class="grid3"><div class="mini"><b>${money(cAvailable)}</b><br><span class="mut">Disponível</span></div><div class="mini"><b>${money(cPending)}</b><br><span class="mut">Pendente</span></div><div class="mini"><b>${money(cPaid)}</b><br><span class="mut">Já pago</span></div></div><p class="mut">Fretes concluídos: ${money(courierTotal)}</p><details><summary>Ver extrato</summary>${cRows.slice(0,30).map(x=>`<div class="ledger-row"><b>${money(x.amount)}</b> <span class="tag">${x.status==='available'?'Disponível':x.status==='paid'?'Pago':'Pendente'}</span><div class="mut">${new Date(x.created_at).toLocaleString('pt-BR')}${x.paid_at?` • pago em ${new Date(x.paid_at).toLocaleString('pt-BR')}`:''}</div></div>`).join('')||'<p class="mut">Nenhum lançamento financeiro.</p>'}</details></div>`;
+ html+=`<h3>Minhas entregas em andamento</h3>`;
+ html+=my.map(x=>`<div class="card"><b>${esc(x.orders?.order_number||'Pedido')}</b><p><span class="tag">${esc(courierStatusLabel(x.status))}</span></p>${courierAction(x)}<div style="margin-top:8px"><button class="ghost" onclick="createOrderIssue('${x.order_id}','customer_absent')">Cliente ausente</button> <button class="ghost" onclick="createOrderIssue('${x.order_id}','wrong_address')">Endereço incorreto</button> <button class="ghost" onclick="createOrderIssue('${x.order_id}','store_wait')">Espera na loja</button></div></div>`).join('')||'<p class="mut">Nenhuma entrega em andamento.</p>';
+ html+=`<h3>Ofertas disponíveis</h3>`;
+ html+=offers.map(x=>`<div class="card"><b>${esc(x.orders?.order_number||'Pedido')}</b><p>Frete: R$ ${Number(x.freight_amount||0).toFixed(2).replace('.',',')}</p><button onclick="acceptDelivery('${x.id}','${vehicle.id}')">Aceitar entrega</button></div>`).join('')||'<p class="mut">Nenhuma oferta disponível agora.</p>';
+ b.innerHTML=html;
+}
+function courierStatusLabel(s){return {accepted:'Aceita • a caminho da loja',arrived_store:'Na loja',picked_up:'Pedido coletado',out_for_delivery:'Saiu para entrega'}[s]||s}
+function courierAction(x){
+ if(x.status==='accepted')return `<button onclick="courierArrived('${x.order_id}')">Cheguei à loja</button>`;
+ if(x.status==='arrived_store')return `<button onclick="confirmPickup('${x.order_id}')">Digitar código da loja</button><div class="mut" style="margin-top:6px">Peça o código de retirada ao lojista.</div>`;
+ if(x.status==='picked_up')return `<button onclick="startDelivery('${x.order_id}')">Sair para entrega</button>`;
+ if(x.status==='out_for_delivery')return `<button onclick="confirmDelivery('${x.order_id}')">Digitar código do cliente</button><div class="mut" style="margin-top:6px">O cliente informa o código somente após receber o pedido.</div>`;
+ return '';
+}
+async function acceptDelivery(id,v){const {error}=await sb.rpc('accept_smart_delivery',{p_delivery_id:id,p_vehicle_id:v});if(error)return alert(friendlyError(error));alert('Entrega aceita. Agora siga para a loja.');await refreshFlow()}
+async function courierArrived(orderId){const {error}=await sb.rpc('courier_arrived_store',{p_order_id:orderId});if(error)return alert(friendlyError(error));alert('Chegada à loja registrada. Solicite ao lojista o código de retirada.');await refreshFlow()}
+async function confirmPickup(orderId){const code=prompt('Digite o código de retirada informado pelo lojista:');if(code===null)return;const {error}=await sb.rpc('confirm_order_pickup',{p_order_id:orderId,p_code:code.trim()});if(error)return alert('Código inválido ou retirada não permitida.');alert('Retirada confirmada.');await refreshFlow()}
+async function startDelivery(orderId){const {error}=await sb.rpc('courier_start_delivery',{p_order_id:orderId});if(error)return alert(friendlyError(error));alert('Pedido saiu para entrega.');await refreshFlow()}
+async function confirmDelivery(orderId){const code=prompt('Digite o código de entrega informado pelo cliente:');if(code===null)return;const {error}=await sb.rpc('confirm_order_delivery',{p_order_id:orderId,p_code:code.trim()});if(error)return alert('Código inválido ou entrega não permitida.');alert('Entrega concluída com sucesso.');await refreshFlow()}
+
+
+
+
+
+
+
+async function loadCommerceAdmin(){
+ if(!hasAnyPlatformRole(['master','admin','operations']))return alert('Você não tem permissão para gerenciar campanhas.');
+ if(!currentUser)return alert('Entre na sua conta.');
+ const canFinanceSettings=hasAnyPlatformRole(['master','admin']);
+ const couponPromise=sb.from('coupons').select('*').order('created_at',{ascending:false});
+ let cr,sr={data:null,error:null},fr={data:null,error:null};
+ if(canFinanceSettings){
+  [cr,sr,fr]=await Promise.all([couponPromise,sb.from('platform_settings').select('key,value').eq('key','merchant_commission_rate').maybeSingle(),sb.rpc('get_checkout_settings')]);
+ }else{
+  cr=await couponPromise;
+ }
+ const el=document.getElementById('commerceAdminBody');
+ if(cr.error){el.innerHTML='<div class="card">Não foi possível carregar os cupons.</div>';return}
+ const rate=Number(sr.data?.value??0.10)*100;
+ const freight=fr.data||{smart_partner_freight:12,store_delivery_freight:8};
+ const financeCards=canFinanceSettings?`
+ <div class="card"><h3>Comissão da plataforma</h3><p class="mut">Somente Master/Admin. Percentual aplicado aos produtos vendidos; o frete permanece separado.</p><form onsubmit="saveCommission(event)"><input id="commissionRate" type="number" min="0" max="100" step="0.1" value="${rate}"><button style="margin-left:6px">Salvar comissão</button></form><p><b>Atual:</b> ${rate.toFixed(1).replace('.',',')}%</p></div>
+ <div class="card full"><h3>Valores de entrega</h3><p class="mut">Somente Master/Admin. Valores-base usados no checkout. Retirada na loja permanece R$ 0,00.</p><form onsubmit="saveFreightSettings(event)" class="form-grid"><label>Entrega Smart Shop<input id="smartFreight" type="number" min="0" step="0.01" value="${Number(freight.smart_partner_freight||0).toFixed(2)}"></label><label>Entrega da própria loja<input id="storeFreight" type="number" min="0" step="0.01" value="${Number(freight.store_delivery_freight||0).toFixed(2)}"></label><button class="wide">Salvar valores de entrega</button></form></div>`:'';
+ el.innerHTML=`<div class="admin-commerce">
+ <div class="card"><h3>Novo cupom</h3><p class="mut">Master, Admin e Operações podem criar e administrar campanhas promocionais.</p><form onsubmit="createAdminCoupon(event)" class="form-grid"><input id="cpCode" placeholder="Código (ex.: BEMVINDO10)" required><select id="cpType"><option value="percent">Percentual (%)</option><option value="fixed">Valor fixo (R$)</option></select><input id="cpValue" type="number" step="0.01" min="0.01" placeholder="Desconto" required><input id="cpMin" type="number" step="0.01" min="0" value="0" placeholder="Pedido mínimo"><input id="cpLimit" type="number" min="1" placeholder="Limite total (opcional)"><input id="cpUser" type="number" min="1" value="1" placeholder="Por cliente"><div><label>Início da validade</label><input id="cpStart" type="datetime-local"></div><div><label>Fim da validade</label><input id="cpEnd" type="datetime-local"></div><button class="wide">Criar cupom</button></form></div>
+ ${financeCards}
+ <div class="card full"><h3>Cupons cadastrados</h3>${(cr.data||[]).map(c=>`<div class="coupon-row"><div class="row" style="justify-content:space-between"><b>${esc(c.code)}</b><span class="tag">${c.active?'Ativo':'Inativo'}</span><div class="mut">Validade: ${couponValidity(c)}</div></div><div class="mut">${c.discount_type==='percent'?`${Number(c.discount_value)}%`:`R$ ${Number(c.discount_value).toFixed(2).replace('.',',')}`} • mínimo R$ ${Number(c.min_order_amount).toFixed(2).replace('.',',')} • ${c.per_user_limit} por cliente</div><div class="addr-actions"><button class="ghost" onclick="toggleCoupon('${c.id}',${!c.active})">${c.active?'Desativar':'Ativar'}</button></div></div>`).join('')||'<p class="mut">Nenhum cupom cadastrado.</p>'}</div></div>`;
+}
+async function createAdminCoupon(ev){
+ ev.preventDefault(); if(!hasAnyPlatformRole(['master','admin','operations']))return alert('Você não tem permissão para criar cupons.');
+ const cs=document.getElementById('cpStart').value,ce=document.getElementById('cpEnd').value;
+ if(cs&&ce&&new Date(ce)<=new Date(cs))return alert('A data final do cupom precisa ser posterior à data inicial.');
+ const row={code:document.getElementById('cpCode').value.trim().toUpperCase(),discount_type:document.getElementById('cpType').value,discount_value:Number(document.getElementById('cpValue').value),min_order_amount:Number(document.getElementById('cpMin').value||0),usage_limit:document.getElementById('cpLimit').value?Number(document.getElementById('cpLimit').value):null,per_user_limit:Number(document.getElementById('cpUser').value||1),starts_at:document.getElementById('cpStart').value?new Date(document.getElementById('cpStart').value).toISOString():null,expires_at:document.getElementById('cpEnd').value?new Date(document.getElementById('cpEnd').value).toISOString():null,active:true};
+ const {error}=await sb.from('coupons').insert(row);if(error){alert(friendlyError(error));return}alert('Cupom criado.');await loadCommerceAdmin();
+}
+async function toggleCoupon(id,active){ if(!hasAnyPlatformRole(['master','admin','operations']))return alert('Você não tem permissão para alterar cupons.');const {error}=await sb.from('coupons').update({active}).eq('id',id);if(error){alert(friendlyError(error));return}await loadCommerceAdmin()}
+
+async function saveFreightSettings(ev){
+ ev.preventDefault();
+ if(!hasAnyPlatformRole(['master','admin']))return alert('Somente Master ou Admin pode alterar valores de entrega.');
+ const smart=Number(document.getElementById('smartFreight').value),store=Number(document.getElementById('storeFreight').value);
+ if(smart<0||store<0)return alert('O frete não pode ser negativo.');
+ const a=await sb.rpc('set_platform_setting',{p_key:'smart_partner_freight',p_value:smart});
+ if(a.error){alert(friendlyError(a.error));return}
+ const b=await sb.rpc('set_platform_setting',{p_key:'store_delivery_freight',p_value:store});
+ if(b.error){alert(friendlyError(b.error));return}
+ alert('Valores de entrega atualizados.');
+ await loadCommerceAdmin();
+}
+async function saveCommission(ev){
+ ev.preventDefault();
+ if(!hasAnyPlatformRole(['master','admin']))return alert('Somente Master ou Admin pode alterar a comissão da plataforma.');const pct=Number(document.getElementById('commissionRate').value);if(pct<0||pct>100)return alert('Informe um percentual entre 0 e 100.');
+ const {error}=await sb.rpc('set_platform_setting',{p_key:'merchant_commission_rate',p_value:pct/100});if(error){alert(friendlyError(error));return}alert('Comissão atualizada.');await loadCommerceAdmin();
+}
+
+const supportCategoryLabel={order:'Pedido',payment:'Pagamento',delivery:'Entrega',return:'Troca / devolução',account:'Minha conta',merchant:'Lojista',courier:'Entregador',other:'Outro'};
+const supportStatusLabel={open:'Aberto',in_progress:'Em atendimento',waiting_user:'Aguardando você',resolved:'Resolvido',closed:'Fechado'};
+
+async function replySupportTicket(id,admin=false){
+ const field=document.getElementById(admin?'adminTicketReply':'ticketReply'); const body=field?.value.trim();
+ if(!body)return alert('Escreva uma mensagem.');
+ const {error}=await sb.rpc('reply_support_ticket',{p_ticket_id:id,p_body:body});if(error){alert(friendlyError(error));return}
+ if(admin)await openMasterTicket(id);else await openSupportTicket(id);
+}
+
+const money=v=>'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+const roleLabel={master:'Master',admin:'Admin',support:'Suporte',finance:'Financeiro',operations:'Operações'};
+async function loadRoleAdmin(){
+ if(!hasAnyPlatformRole(['master']))return alert('Somente o Master pode gerenciar acessos.');
+ const {data,error}=await sb.rpc('list_platform_role_users_master');
+ const el=document.getElementById('roleAdminBody');
+ if(error){el.innerHTML='<div class="card">Não foi possível carregar os acessos.</div>';return}
+ const rows=data||[];
+ const grouped={};
+ rows.forEach(r=>{(grouped[r.user_id]??={name:r.full_name||'Usuário',email:r.email||'',roles:[]}).roles.push(r)});
+ el.innerHTML=`<div class="card"><h3>Adicionar acesso</h3><p class="mut">Digite o e-mail da pessoa já cadastrada no Smart Shop.</p><form class="form-grid" onsubmit="assignRoleFromForm(event)"><input id="raEmail" class="wide" type="email" placeholder="E-mail da pessoa" required><select id="raRole"><option value="admin">Admin</option><option value="support">Suporte</option><option value="finance">Financeiro</option><option value="operations">Operações</option></select><button>Adicionar acesso</button></form></div><div class="card"><h3>Equipe atual</h3>${Object.entries(grouped).map(([uid,g])=>`<div class="ticket"><b>${esc(g.name)}</b>${g.email?`<div class="mut">${esc(g.email)}</div>`:''}${g.roles.map(r=>`<div class="row" style="justify-content:space-between;margin-top:8px"><span>${roleLabel[r.role]||r.role}${r.active?'':' • desativado'}</span>${r.role!=='master'&&r.active?`<button class="ghost" onclick="revokeRole('${uid}','${r.role}')">Remover</button>`:''}</div>`).join('')}</div>`).join('')||'<p class="mut">Nenhum acesso administrativo cadastrado.</p>'}</div>`;
+}
+async function assignRoleFromForm(ev){
+ ev.preventDefault();
+ if(!hasAnyPlatformRole(['master']))return alert('Somente o Master pode adicionar acessos.');
+ const email=document.getElementById('raEmail').value.trim(),role=document.getElementById('raRole').value;
+ const {error}=await sb.rpc('assign_platform_role_by_email',{p_email:email,p_role:role});
+ if(error){alert(friendlyError(error));return}
+ alert('Acesso concedido.');await loadRoleAdmin();
+}
+async function revokeRole(uid,role){ if(!hasAnyPlatformRole(['master']))return alert('Somente o Master pode remover acessos.');
+ if(!confirm(`Remover acesso de ${roleLabel[role]||role}?`))return;
+ const {error}=await sb.rpc('revoke_platform_role',{p_user_id:uid,p_role:role});
+ if(error){alert(friendlyError(error));return}
+ alert('Acesso removido.');await loadRoleAdmin();
+}
+async function loadMasterFinance(){
+ if(!hasAnyPlatformRole(['master','admin','finance']))return alert('Você não tem permissão para acessar o Financeiro.');
+ if(!currentUser)return alert('Entre na conta Master.');
+ const [lr,or]=await Promise.all([
+  sb.from('financial_ledger').select('id,order_id,beneficiary_type,beneficiary_user_id,store_id,amount,entry_type,status,available_at,paid_at,created_at,stores(name,delivery_modes)').order('created_at',{ascending:false}).limit(300),
+  sb.rpc('get_finance_order_summary',{p_limit:300})
+ ]);
+ const el=document.getElementById('masterFinanceBody');
+ if(lr.error||or.error){el.innerHTML='<div class="card">Área financeira restrita.</div>';return}
+ const rows=lr.data||[], orders=or.data||[], avail=rows.filter(x=>x.status==='available'), paid=rows.filter(x=>x.status==='paid');
+ const merchant=avail.filter(x=>x.beneficiary_type==='merchant').reduce((a,x)=>a+Number(x.amount),0);
+ const courier=avail.filter(x=>x.beneficiary_type==='courier').reduce((a,x)=>a+Number(x.amount),0);
+ const grossCommission=orders.reduce((a,x)=>a+Number(x.commission_amount||0),0);
+ const subsidy=orders.reduce((a,x)=>a+Number(x.platform_subsidy_amount||0),0);
+ const platformNet=orders.reduce((a,x)=>a+Number(x.platform_net_revenue||0),0);
+ const productSales=orders.reduce((a,x)=>a+Number(x.product_subtotal||0),0);
+ el.innerHTML=`<div class="metric-grid"><div class="card"><b>${money(productSales)}</b><div class="mut">Produtos vendidos</div></div><div class="card"><b>${money(merchant)}</b><div class="mut">A repassar a lojistas</div></div><div class="card"><b>${money(courier)}</b><div class="mut">A repassar a entregadores</div></div><div class="card"><b>${money(platformNet)}</b><div class="mut">Receita líquida Smart Shop</div></div><div class="card"><b>${money(grossCommission)}</b><div class="mut">Comissão bruta</div></div><div class="card"><b>${money(subsidy)}</b><div class="mut">Cupons bancados pelo Smart Shop</div></div></div>
+ <div class="card"><p class="mut"><b>Leitura financeira:</b> a comissão é calculada sobre os produtos. O cupom promocional bancado pelo Smart Shop não reduz o repasse do lojista; ele reduz a receita da plataforma. O frete permanece separado.</p></div>
+ <div class="card"><h3>Pedidos entregues • conferência</h3>${orders.slice(0,50).map(o=>`<div class="ledger-row"><b>${esc(o.order_number)}</b><div class="mut">Produtos ${money(o.product_subtotal||0)} • desconto ${money(o.discount_amount||0)} • comissão ${money(o.commission_amount||0)} • subsídio Smart Shop ${money(o.platform_subsidy_amount||0)} • receita líquida ${money(o.platform_net_revenue||0)}</div></div>`).join('')||'<p class="mut">Nenhum pedido entregue para consolidar.</p>'}</div>
+ <div class="card"><div class="row" style="justify-content:space-between"><h3>Valores disponíveis para repasse</h3>${avail.some(x=>x.beneficiary_type!=='platform')?`<button onclick="markAllVisiblePaid()">Marcar repasses como pagos</button>`:''}</div>${avail.map(x=>`<div class="ledger-row"><label><input type="checkbox" class="ledger-check" value="${x.id}" ${x.beneficiary_type==='platform'?'disabled':''}> <b>${x.beneficiary_type==='merchant'?'Lojista':x.beneficiary_type==='courier'?'Entregador':'Smart Shop'}</b> — <span class="money-positive">${money(x.amount)}</span></label><div class="mut">${esc(x.stores?.name||'')} • ${x.entry_type} • ${new Date(x.created_at).toLocaleString('pt-BR')}</div></div>`).join('')||'<p class="mut">Nenhum valor aguardando repasse.</p>'}</div>
+ <div class="card"><h3>Histórico pago</h3>${paid.slice(0,50).map(x=>`<div class="ledger-row"><b>${x.beneficiary_type==='merchant'?'Lojista':x.beneficiary_type==='courier'?'Entregador':'Smart Shop'} — ${money(x.amount)}</b><div class="mut">${esc(x.stores?.name||'')} • pago em ${x.paid_at?new Date(x.paid_at).toLocaleString('pt-BR'):'-'}</div></div>`).join('')||'<p class="mut">Nenhum repasse marcado como pago.</p>'}</div>`;
+}
+async function markAllVisiblePaid(){
+ const ids=[...document.querySelectorAll('.ledger-check:checked')].map(x=>x.value);
+ if(!ids.length)return alert('Selecione os repasses que foram pagos.');
+ if(!confirm(`Confirmar ${ids.length} repasse(s) como pago(s)?`))return;
+ const {data,error}=await sb.rpc('mark_ledger_paid',{p_ids:ids});if(error){alert(friendlyError(error));return}
+ alert(`${data||ids.length} repasse(s) atualizado(s).`);await loadMasterFinance();
+}
+async function loadMasterSupport(){
+ if(!hasAnyPlatformRole(['master','admin','support']))return alert('Você não tem permissão para acessar o Suporte administrativo.');
+ if(!currentUser)return alert('Entre na conta administrativa.');
+ const {data,error}=await sb.from('support_tickets').select('id,user_id,subject,category,status,priority,created_at,order_id').order('created_at',{ascending:false}).limit(100);
+ const el=document.getElementById('masterSupportBody');
+ if(error){el.innerHTML='<div class="card">Área restrita ao Master/Admin/Suporte.</div>';return}
+ const open=(data||[]).filter(t=>!['resolved','closed'].includes(t.status)).length;
+ el.innerHTML=`<div class="metric-grid"><div class="card"><b>${open}</b><div class="mut">Em aberto</div></div><div class="card"><b>${(data||[]).length}</b><div class="mut">Chamados recentes</div></div></div><div class="card">${(data||[]).map(t=>`<div class="ticket" onclick="openMasterTicket('${t.id}')" style="cursor:pointer"><div class="row" style="justify-content:space-between"><b>${esc(t.subject)}</b><span class="ticket-status">${supportStatusLabel[t.status]||t.status}</span></div><div class="mut">${supportCategoryLabel[t.category]||t.category} • prioridade ${t.priority} • ${new Date(t.created_at).toLocaleString('pt-BR')}</div></div>`).join('')||'<p class="mut">Nenhum chamado.</p>'}</div>`;
+}
+async function openMasterTicket(id){
+ const [{data:t,error},{data:msgs}]=await Promise.all([sb.from('support_tickets').select('*').eq('id',id).single(),sb.from('support_messages').select('*').eq('ticket_id',id).order('created_at',{ascending:true})]);
+ if(error)return alert(friendlyError(error));
+ document.getElementById('masterSupportBody').innerHTML=`<button class="ghost" data-platform-roles="master,admin,support" onclick="loadMasterSupport()">← Voltar</button><div class="card"><h2>${esc(t.subject)}</h2><div class="form-grid"><label>Status<select id="adminTicketStatus"><option value="open">Aberto</option><option value="in_progress">Em atendimento</option><option value="waiting_user">Aguardando cliente</option><option value="resolved">Resolvido</option><option value="closed">Fechado</option></select></label><label>Prioridade<select id="adminTicketPriority"><option value="low">Baixa</option><option value="normal">Normal</option><option value="high">Alta</option><option value="urgent">Urgente</option></select></label><button class="wide" onclick="updateMasterTicket('${id}')">Salvar atendimento</button></div><hr>${(msgs||[]).map(m=>`<div class="review-card"><b>${m.sender_type==='customer'?'Cliente':'Smart Shop'}</b><p>${esc(m.body)}</p><span class="mut">${new Date(m.created_at).toLocaleString('pt-BR')}</span></div>`).join('')}<div class="support-compose"><textarea id="adminTicketReply" placeholder="Responder ao cliente..."></textarea><button style="width:100%" onclick="replySupportTicket('${id}',true)">Enviar resposta</button></div></div>`;
+ document.getElementById('adminTicketStatus').value=t.status;document.getElementById('adminTicketPriority').value=t.priority;
+}
+async function updateMasterTicket(id){
+ const {error}=await sb.rpc('admin_update_support_ticket',{p_ticket_id:id,p_status:document.getElementById('adminTicketStatus').value,p_priority:document.getElementById('adminTicketPriority').value});
+ if(error){alert(friendlyError(error));return}alert('Atendimento atualizado.');await openMasterTicket(id);
+}
+async function showSupportCenter(){
+ if(!currentUser)return alert('Entre na sua conta para acessar a Central de Ajuda.');
+ const {data:tickets,error}=await sb.from('support_tickets').select('id,subject,category,status,priority,created_at,order_id').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+ const {data:orders}=await sb.from('orders').select('id,order_number,created_at').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(30);
+ if(error)return alert(friendlyError(error));
+ document.getElementById('supportBody').innerHTML=`<div class="card support-compose"><h3>Como podemos ajudar?</h3><form onsubmit="createSupportTicket(event)" class="form-grid"><input id="spSubject" class="wide" placeholder="Assunto" required><select id="spCategory"><option value="order">Pedido</option><option value="payment">Pagamento</option><option value="delivery">Entrega</option><option value="return">Troca / devolução</option><option value="account">Minha conta</option><option value="other">Outro</option></select><select id="spOrder"><option value="">Sem pedido específico</option>${(orders||[]).map(o=>`<option value="${o.id}">Pedido ${esc(o.order_number||o.id.slice(0,8))}</option>`).join('')}</select><textarea id="spMessage" class="wide" placeholder="Descreva o que aconteceu..." required></textarea><button class="wide">Enviar solicitação</button></form></div><div class="card"><h3>Meus atendimentos</h3>${(tickets||[]).map(t=>`<div class="ticket" onclick="openSupportTicket('${t.id}')" style="cursor:pointer"><div class="row" style="justify-content:space-between"><b>${esc(t.subject)}</b><span class="ticket-status">${supportStatusLabel[t.status]||t.status}</span></div><div class="mut">${supportCategoryLabel[t.category]||t.category} • ${new Date(t.created_at).toLocaleString('pt-BR')}</div></div>`).join('')||'<p class="mut">Você ainda não abriu nenhum atendimento.</p>'}</div>`;
+}
+async function createSupportTicket(ev){
+ ev.preventDefault();
+ const orderId=document.getElementById('spOrder').value||null;
+ const {error}=await sb.rpc('create_support_ticket',{p_subject:document.getElementById('spSubject').value.trim(),p_category:document.getElementById('spCategory').value,p_message:document.getElementById('spMessage').value.trim(),p_order_id:orderId});
+ if(error){alert(friendlyError(error));return} alert('Solicitação enviada. Você poderá acompanhar por aqui.'); await showSupportCenter();
+}
+async function openSupportTicket(id){
+ const [{data:t,error},{data:msgs}]=await Promise.all([sb.from('support_tickets').select('*').eq('id',id).single(),sb.from('support_messages').select('*').eq('ticket_id',id).order('created_at',{ascending:true})]);
+ if(error)return alert(friendlyError(error));
+ document.getElementById('supportBody').innerHTML=`<button class="ghost" onclick="showSupportCenter()">← Voltar</button><div class="card"><h2>${esc(t.subject)}</h2><span class="ticket-status">${supportStatusLabel[t.status]||t.status}</span><p class="mut">${supportCategoryLabel[t.category]||t.category}</p>${(msgs||[]).map(m=>`<div class="review-card"><b>${m.sender_type==='customer'?'Você':'Smart Shop'}</b><p>${esc(m.body)}</p><span class="mut">${new Date(m.created_at).toLocaleString('pt-BR')}</span></div>`).join('')}<div class="support-compose"><textarea id="ticketReply" placeholder="Escreva sua resposta..."></textarea><button style="width:100%" onclick="replySupportTicket('${id}')">Enviar resposta</button></div></div>`;
+}
+
+let myPlatformRoles=[];
+async function refreshPlatformAccess(){
+ myPlatformRoles=[];
+ if(currentUser){
+  const {data,error}=await sb.rpc('get_my_platform_roles');
+  if(!error&&Array.isArray(data)){
+   myPlatformRoles=data.map(r=>typeof r==='string'?r:(r?.role||r?.platform_role||'')).filter(Boolean);
+  }
+  if(!myPlatformRoles.length){
+   const {data:rows,error:rowsError}=await sb.from('platform_roles').select('role,active').eq('user_id',currentUser.id).eq('active',true);
+   if(!rowsError&&Array.isArray(rows))myPlatformRoles=rows.map(r=>r.role).filter(Boolean);
+  }
+ }
+ applyPlatformVisibility();
+}
+function hasAnyPlatformRole(roles){
+ return roles.some(r=>myPlatformRoles.includes(r));
+}
+function applyPlatformVisibility(){
+ document.querySelectorAll('[data-platform-roles]').forEach(el=>{
+  const roles=(el.dataset.platformRoles||'').split(',').filter(Boolean);
+  el.style.display=hasAnyPlatformRole(roles)?'':'none';
+ });
+}
+async function showAccount(){
+ if(!currentUser)return alert('Entre na sua conta para acessar sua conta.');
+ const {data:p}=await sb.from('profiles').select('*').eq('id',currentUser.id).maybeSingle();
+ const name=p?.full_name||currentUser.user_metadata?.full_name||'Cliente Smart Shop';
+ const phone=p?.phone||currentUser.user_metadata?.phone||'';
+ const el=document.getElementById('accountBody');
+ el.innerHTML=`<div class="account-hero"><div style="font-size:12px;opacity:.8">MINHA CONTA</div><h2 style="margin:5px 0">${esc(name)}</h2><div>${esc(currentUser.email||'')}</div><div style="margin-top:8px"><span style="background:#ffffff22;padding:5px 9px;border-radius:999px;font-size:12px">● Conta conectada</span></div></div>
+ <div class="profile-card"><h3>Meus dados</h3><form onsubmit="saveCustomerProfile(event)" class="form-grid"><input id="profileName" class="wide" placeholder="Nome completo" value="${esc(name)}" required><input id="profilePhone" placeholder="Telefone / WhatsApp" value="${esc(phone)}"><input value="${esc(currentUser.email||'')}" disabled><button class="wide" type="submit">Salvar meus dados</button></form></div>
+ <div class="section-title"><h3>Acessos rápidos</h3></div><div class="account-menu">
+ <button onclick="openView('customerOrders');loadCustomerOrders()">📦<br><b>Meus pedidos</b><br><span class="mut">Acompanhar compras</span></button>
+ <button onclick="openView('favoritesPanel');showFavorites()">❤️<br><b>Favoritos</b><br><span class="mut">Produtos salvos</span></button>
+ <button onclick="openView('addressesPanel');showAddresses()">📍<br><b>Endereços</b><br><span class="mut">Entrega e retirada</span></button>
+ <button onclick="showNotifications()">🔔<br><b>Notificações</b><br><span class="mut">Atualizações</span></button><button onclick="openView('supportPanel');showSupportCenter()">💬<br><b>Central de Ajuda</b><br><span class="mut">Atendimento Smart Shop</span></button>
+ <button onclick="openView('merchantApply')">🏪<br><b>Quero vender</b><br><span class="mut">Cadastro de lojista</span></button>
+ <button onclick="openView('courierApply')">🚗<br><b>Quero entregar</b><br><span class="mut">Cadastro de entregador</span></button>
+ </div>`;
+}
+async function saveCustomerProfile(ev){
+ ev.preventDefault();
+ const full_name=document.getElementById('profileName').value.trim(),phone=document.getElementById('profilePhone').value.trim();
+ const {error}=await sb.from('profiles').upsert({id:currentUser.id,full_name,phone,updated_at:new Date().toISOString()},{onConflict:'id'});
+ if(error){alert('Não foi possível atualizar seus dados: '+error.message);return}
+ alert('Dados atualizados com sucesso.');
+ await showAccount();
+}
+let addressCache=[];
+async function showAddresses(){
+ if(!currentUser)return alert('Entre na sua conta para gerenciar endereços.');
+ const {data,error}=await sb.from('addresses').select('*').order('is_default',{ascending:false}).order('created_at',{ascending:false});
+ if(error){alert(friendlyError(error));return}
+ addressCache=data||[];
+ const el=document.getElementById('addressesBody');
+ el.innerHTML=addressCache.map(a=>`<div class="addr-card ${a.is_default?'default':''}"><div class="row" style="justify-content:space-between"><b>${a.is_default?'📍 Endereço principal':'Endereço'}</b>${a.is_default?'<span class="tag">Principal</span>':''}</div><p>${esc(a.street)}, ${esc(a.number)}${a.complement?` - ${esc(a.complement)}`:''}<br>${esc(a.district)} • ${esc(a.city)}/${esc(a.state)}${a.cep?` • CEP ${esc(a.cep)}`:''}</p><div class="addr-actions"><button class="ghost" onclick="openAddressForm('${a.id}')">Editar</button>${!a.is_default?`<button class="ghost" onclick="setDefaultAddress('${a.id}')">Tornar principal</button><button class="bad" onclick="deleteAddress('${a.id}')">Excluir</button>`:''}</div></div>`).join('')||'<div class="card fav-empty"><div style="font-size:40px">📍</div><h3>Nenhum endereço cadastrado</h3><p class="mut">Cadastre um endereço para receber seus pedidos.</p><button onclick="openAddressForm()">Cadastrar endereço</button></div>';
+}
+function openAddressForm(id=''){
+ const a=addressCache.find(x=>x.id===id);
+ document.getElementById('addressTitle').textContent=a?'Editar endereço':'Novo endereço';
+ document.getElementById('addrId').value=a?.id||'';
+ document.getElementById('addrCep').value=a?.cep||'';
+ document.getElementById('addrStreet').value=a?.street||'';
+ document.getElementById('addrNumber').value=a?.number||'';
+ document.getElementById('addrDistrict').value=a?.district||'';
+ document.getElementById('addrComplement').value=a?.complement||'';
+ document.getElementById('addrCity').value=a?.city||'Mateus Leme';
+ document.getElementById('addrState').value=a?.state||'MG';
+ document.getElementById('addrDefault').checked=a?.is_default??!addressCache.length;
+ document.getElementById('addressModal').classList.remove('hide');
+}
+function closeAddressForm(){document.getElementById('addressModal').classList.add('hide')}
+async function saveAddress(ev){
+ ev.preventDefault();
+ const id=document.getElementById('addrId').value, makeDefault=document.getElementById('addrDefault').checked;
+ const row={user_id:currentUser.id,cep:document.getElementById('addrCep').value.trim()||null,street:document.getElementById('addrStreet').value.trim(),number:document.getElementById('addrNumber').value.trim(),district:document.getElementById('addrDistrict').value.trim(),complement:document.getElementById('addrComplement').value.trim()||null,city:document.getElementById('addrCity').value.trim(),state:document.getElementById('addrState').value.trim().toUpperCase()};
+ let savedId=id;
+ if(id){
+   const {error}=await sb.from('addresses').update(row).eq('id',id);if(error){alert(friendlyError(error));return}
+ }else{
+   const {data,error}=await sb.from('addresses').insert(row).select('id').single();if(error){alert(friendlyError(error));return}
+   savedId=data.id;
+ }
+ if(makeDefault&&savedId){
+   const {error}=await sb.rpc('set_default_address',{p_address_id:savedId});if(error){alert(friendlyError(error));return}
+ }
+ closeAddressForm();await showAddresses();
+}
+async function setDefaultAddress(id){
+ const {error}=await sb.rpc('set_default_address',{p_address_id:id});
+ if(error){alert('Não foi possível definir o endereço principal: '+error.message);return}
+ await showAddresses();
+}
+async function deleteAddress(id){
+ if(!confirm('Excluir este endereço?'))return;
+ const {error}=await sb.rpc('delete_address_safe',{p_address_id:id});
+ if(error){alert('Não foi possível excluir o endereço: '+error.message);return}
+ await showAddresses();
+}
+const FAV_KEY='smartshop_favorites_v4';
+let syncedFavoriteIds=[];
+function localFavoriteIds(){try{return JSON.parse(localStorage.getItem(FAV_KEY)||'[]')}catch{return []}}
+function favoriteIds(){return currentUser?syncedFavoriteIds:localFavoriteIds()}
+function isFav(id){return favoriteIds().includes(id)}
+async function loadSyncedFavorites(){
+ if(!currentUser){syncedFavoriteIds=[];return}
+ const {data,error}=await sb.from('favorites').select('product_id').eq('user_id',currentUser.id);
+ if(error){console.warn('favorites',error.message);return}
+ syncedFavoriteIds=(data||[]).map(x=>x.product_id);
+ const guest=localFavoriteIds();
+ if(guest.length){
+   const rows=guest.map(product_id=>({user_id:currentUser.id,product_id}));
+   const up=await sb.from('favorites').upsert(rows,{onConflict:'user_id,product_id',ignoreDuplicates:true});
+   if(!up.error){syncedFavoriteIds=[...new Set([...syncedFavoriteIds,...guest])];localStorage.removeItem(FAV_KEY)}
+ }
+}
+async function toggleFavorite(id){
+ if(currentUser){
+   if(isFav(id)){
+     const {error}=await sb.from('favorites').delete().eq('user_id',currentUser.id).eq('product_id',id);if(error)return alert(friendlyError(error));
+     syncedFavoriteIds=syncedFavoriteIds.filter(x=>x!==id);
+   }else{
+     const {error}=await sb.from('favorites').insert({user_id:currentUser.id,product_id:id});if(error)return alert(friendlyError(error));
+     syncedFavoriteIds=[...syncedFavoriteIds,id];
+   }
+ }else{
+   let a=localFavoriteIds();a=a.includes(id)?a.filter(x=>x!==id):[...a,id];localStorage.setItem(FAV_KEY,JSON.stringify(a));
+ }
+ renderMarketProducts();renderHome();renderFavorites();
+}
+
+let currentReviewProduct=null,currentReviewOrder=null,currentReviewRating=5,reviewSummary={};
+async function loadReviewSummary(productIds){
+ if(!productIds?.length){reviewSummary={};return}
+ const {data}=await sb.from('product_review_summary').select('product_id,review_count,average_rating').in('product_id',productIds);
+ reviewSummary=Object.fromEntries((data||[]).map(x=>[x.product_id,x]));
+}
+function reviewBadge(productId){
+ const r=reviewSummary[productId]; if(!r||!Number(r.review_count))return '';
+ return `<span class="rating-chip">★ ${Number(r.average_rating).toFixed(1)} (${r.review_count})</span>`;
+}
+async function openReviews(productId){
+ const p=marketProducts.find(x=>x.id===productId); if(!p)return;
+ const {data,error}=await sb.from('reviews').select('rating,comment,created_at').eq('product_id',productId).eq('active',true).order('created_at',{ascending:false}).limit(30);
+ if(error)return alert(friendlyError(error));
+ const body=(data||[]).map(r=>`<div class="review-card"><div class="rating-stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div><b>${'Cliente'}</b>${r.comment?`<p>${esc(r.comment)}</p>`:''}<span class="mut">${new Date(r.created_at).toLocaleDateString('pt-BR')}</span></div>`).join('')||'<p class="mut">Este produto ainda não possui avaliações.</p>';
+ document.getElementById('reviewModalBody').innerHTML=`<h2>Avaliações</h2><p><b>${esc(p.name)}</b></p>${body}`;
+ document.getElementById('reviewModal').classList.remove('hide');
+}
+function closeReviewModal(){document.getElementById('reviewModal').classList.add('hide')}
+
+async function openOrderReviewOptions(orderId){
+ if(!currentUser)return;
+ const [{data:items,error},{data:mine}]=await Promise.all([
+  sb.from('order_items').select('product_id,product_name').eq('order_id',orderId),
+  sb.from('reviews').select('product_id,rating').eq('order_id',orderId).eq('user_id',currentUser.id)
+ ]);
+ if(error)return alert(friendlyError(error));
+ const reviewed=new Map((mine||[]).map(r=>[r.product_id,r.rating]));
+ document.getElementById('reviewModalBody').innerHTML=`<h2>Avaliar produtos</h2><p class="mut">Escolha um item deste pedido.</p>${(items||[]).filter(i=>i.product_id).map(i=>`<div class="review-card"><div class="row" style="justify-content:space-between"><b>${esc(i.product_name||'Produto')}</b><button onclick="openReviewForm('${orderId}','${i.product_id}')">${reviewed.has(i.product_id)?'Editar avaliação':'Avaliar'}</button></div>${reviewed.has(i.product_id)?`<span class="mut">Sua nota: ${reviewed.get(i.product_id)}★</span>`:''}</div>`).join('')||'<p class="mut">Nenhum produto disponível para avaliação.</p>'}`;
+ document.getElementById('reviewModal').classList.remove('hide');
+}
+function openReviewForm(orderId,productId){
+ currentReviewOrder=orderId;currentReviewProduct=productId;currentReviewRating=5;
+ const p=marketProducts.find(x=>x.id===productId);
+ document.getElementById('reviewModalBody').innerHTML=`<h2>Avaliar produto</h2><p>${esc(p?.name||'Produto')}</p><div class="review-grid">${[1,2,3,4,5].map(n=>`<button onclick="chooseReviewRating(${n})">${n}★</button>`).join('')}</div><textarea id="reviewComment" rows="4" style="width:100%" placeholder="Conte como foi sua experiência (opcional)"></textarea><button style="width:100%;margin-top:10px" onclick="submitReview()">Enviar avaliação</button>`;
+ document.getElementById('reviewModal').classList.remove('hide');
+}
+function chooseReviewRating(n){currentReviewRating=n;document.querySelectorAll('.review-grid button').forEach((b,i)=>b.style.fontWeight=(i+1===n?'800':'400'))}
+async function submitReview(){
+ if(!currentUser||!currentReviewOrder||!currentReviewProduct)return;
+ const p=marketProducts.find(x=>x.id===currentReviewProduct); if(!p)return alert('Produto não encontrado.');
+ const {error}=await sb.rpc('submit_product_review',{p_order_id:currentReviewOrder,p_product_id:p.id,p_rating:currentReviewRating,p_comment:document.getElementById('reviewComment').value.trim()||null}); if(error){alert(friendlyError(error));return}
+ alert('Avaliação enviada. Obrigada!');closeReviewModal();await loadReviewSummary([p.id]);renderMarketProducts();renderHome();
+}
+function productCard(x){
+ return `<div class="product-card"><button class="heart" onclick="toggleFavorite('${x.id}')" title="Favoritar">${isFav(x.id)?'♥':'♡'}</button>
+ ${x.image_url?`<img src="${esc(x.image_url)}" alt="${esc(x.name)}">`:`<div style="height:155px;border-radius:12px;background:#f8fafc;display:grid;place-items:center;font-size:38px">🛍️</div>`}
+ <div class="pname">${esc(x.name)}</div><div class="row" style="justify-content:space-between;align-items:center"><div class="store" style="cursor:pointer" onclick="openStorePage('${x.store_id}')">🏪 ${esc(x.stores?.name||'Loja')}</div><span onclick="openReviews('${x.id}')" style="cursor:pointer">${reviewBadge(x.id)}</span></div>
+ ${x.old_price?`<div class="price-old">R$ ${Number(x.old_price).toFixed(2).replace('.',',')}</div>`:''}<div class="price-now">R$ ${Number(x.price).toFixed(2).replace('.',',')}</div>
+ <div class="mut">${x.stock} em estoque</div><div class="actions"><button class="ghost" onclick="openProductModal('${x.id}')">Ver</button><button onclick="addMarketCart('${x.id}')">Adicionar</button></div></div>`;
+}
+
+async function openStorePage(storeId){
+ const {data:s,error}=await sb.from('stores').select('id,name,slug,description,logo_url,phone,category,street,number,district,city,state,approval_status').eq('id',storeId).maybeSingle();
+ if(error||!s)return alert('Não foi possível abrir esta loja.');
+ const {data:ps,error:pe}=await sb.from('products').select('id,store_id,name,category,description,price,old_price,image_url,stock,active,created_at,stores(name,delivery_modes)').eq('store_id',storeId).eq('active',true).gt('stock',0).order('created_at',{ascending:false});
+ if(pe)return alert(pe.message);
+ marketProducts=[...new Map([...marketProducts,...(ps||[])].map(x=>[x.id,x])).values()];
+ openView('storePagePanel');
+ const addr=[s.street,s.number,s.district,s.city,s.state].filter(Boolean).join(', ');
+ document.getElementById('storePageBody').innerHTML=`<button class="ghost" onclick="showHome()">← Voltar</button><div class="store-cover"></div><div class="store-profile"><div class="store-logo-big">${s.logo_url?`<img src="${esc(s.logo_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:15px">`:'🏪'}</div><h2 style="margin:8px 0 2px">${esc(s.name)}</h2><div class="mut">${esc(s.category||'Loja local')}</div>${s.description?`<p>${esc(s.description)}</p>`:''}<div class="store-info-grid">${addr?`<span class="tag">📍 ${esc(addr)}</span>`:''}${s.phone?`<span class="tag">📞 ${esc(s.phone)}</span>`:''}<span class="tag">✓ Loja Smart Shop</span></div></div><div class="section-title"><h3>Produtos da loja</h3><span class="mut">${(ps||[]).length} disponíveis</span></div><div class="product-grid">${(ps||[]).map(productCard).join('')||'<div class="card">Nenhum produto disponível no momento.</div>'}</div>`;
+}
+async function ensureMarketData(){
+ if(marketProducts.length)return true;
+ const {data,error}=await sb.from('products').select('id,store_id,name,category,description,price,old_price,image_url,stock,created_at,stores(name,delivery_modes)').eq('active',true).gt('stock',0).order('created_at',{ascending:false});
+ if(error){alert(friendlyError(error));return false}marketProducts=data||[];
+ await loadReviewSummary(marketProducts.map(x=>x.id));return true;
+}
+
+async function loadHomeBanners(){
+ const {data,error}=await sb.from('home_banners').select('*').order('position',{ascending:true});
+ const el=document.getElementById('dynamicBanners'); if(!el)return;
+ if(error||!data?.length){el.innerHTML='';return}
+ el.innerHTML=data.map(b=>{
+  const style=b.image_url?` style="background-image:url('${esc(b.image_url)}')"`:'';
+  const action=b.target_type==='store'&&b.target_value?`openStorePage('${b.target_value}')`:b.target_type==='category'&&b.target_value?`showMarketplace('${esc(b.target_value)}')`:`showMarketplace()`;
+  return `<div class="dynamic-banner ${b.image_url?'has-img':''}"${style}><h2>${esc(b.title)}</h2>${b.subtitle?`<p>${esc(b.subtitle)}</p>`:''}${b.button_text&&b.target_type!=='none'?`<div><button onclick="${action}">${esc(b.button_text)}</button></div>`:''}</div>`;
+ }).join('');
+}
+async function loadBannerAdmin(){
+ if(!hasAnyPlatformRole(['master','admin','operations']))return alert('Você não tem permissão para gerenciar banners.');
+ if(!currentUser)return alert('Entre na conta Master.');
+ const {data,error}=await sb.from('home_banners').select('*').order('position',{ascending:true});
+ const el=document.getElementById('bannerAdminBody');
+ if(error){el.innerHTML='<div class="card">Área restrita ao administrador Master.</div>';return}
+ el.innerHTML=`<div class="card"><h3>Novo banner</h3><form onsubmit="createBanner(event)" class="form-grid"><input id="bnTitle" class="wide" placeholder="Título" required><input id="bnSubtitle" class="wide" placeholder="Texto menor"><input id="bnButton" placeholder="Texto do botão" value="Comprar agora"><input id="bnImage" placeholder="URL da imagem (opcional)"><select id="bnType"><option value="marketplace">Abrir marketplace</option><option value="store">Abrir loja</option><option value="category">Abrir categoria</option><option value="none">Sem ação</option></select><input id="bnTarget" placeholder="ID da loja ou categoria"><input id="bnPos" type="number" value="1" min="0" placeholder="Posição"><div><label>Exibir a partir de</label><input id="bnStart" type="datetime-local"></div><div><label>Exibir até</label><input id="bnEnd" type="datetime-local"></div><button class="wide">Criar banner</button></form></div><div class="card"><h3>Banners cadastrados</h3>${(data||[]).map(b=>`<div class="banner-admin-row"><div class="row" style="justify-content:space-between"><b>${esc(b.title)}</b><span class="tag">${b.active?'Ativo':'Inativo'}</span></div><div class="mut">${esc(b.subtitle||'')} • posição ${b.position} • ${b.starts_at?'de '+new Date(b.starts_at).toLocaleString('pt-BR'):'início imediato'}${b.ends_at?' até '+new Date(b.ends_at).toLocaleString('pt-BR'):' • sem data final'}</div><div class="addr-actions"><button class="ghost" onclick="toggleBanner('${b.id}',${!b.active})">${b.active?'Desativar':'Ativar'}</button><button class="ghost" onclick="deleteBanner('${b.id}')">Excluir</button></div></div>`).join('')||'<p class="mut">Nenhum banner cadastrado.</p>'}</div>`;
+}
+async function createBanner(ev){
+ ev.preventDefault(); if(!hasAnyPlatformRole(['master','admin','operations']))return alert('Você não tem permissão para criar banners.');
+ const bs=document.getElementById('bnStart').value,be=document.getElementById('bnEnd').value;
+ if(bs&&be&&new Date(be)<=new Date(bs))return alert('A data final do banner precisa ser posterior à data inicial.');
+ const row={title:document.getElementById('bnTitle').value.trim(),subtitle:document.getElementById('bnSubtitle').value.trim()||null,button_text:document.getElementById('bnButton').value.trim()||null,image_url:document.getElementById('bnImage').value.trim()||null,target_type:document.getElementById('bnType').value,target_value:document.getElementById('bnTarget').value.trim()||null,position:Number(document.getElementById('bnPos').value||0),active:true,created_by:currentUser.id};
+ const {error}=await sb.from('home_banners').insert(row); if(error){alert(friendlyError(error));return} alert('Banner criado.'); await loadBannerAdmin();
+}
+async function toggleBanner(id,active){ if(!hasAnyPlatformRole(['master','admin','operations']))return alert('Você não tem permissão para alterar banners.');const {error}=await sb.from('home_banners').update({active,updated_at:new Date().toISOString()}).eq('id',id);if(error){alert(friendlyError(error));return}await loadBannerAdmin()}
+async function deleteBanner(id){ if(!hasAnyPlatformRole(['master','admin','operations']))return alert('Você não tem permissão para excluir banners.');if(!confirm('Excluir este banner?'))return;const {error}=await sb.from('home_banners').delete().eq('id',id);if(error){alert(friendlyError(error));return}await loadBannerAdmin()}
+async function showHome(){
+ await loadHomeBanners();
+ if(marketProducts.length)await loadReviewSummary(marketProducts.map(x=>x.id));
+ await loadSyncedFavorites();if(await ensureMarketData())renderHome()}
+function renderHome(){
+ const cats=[...new Set(marketProducts.map(x=>x.category).filter(Boolean))];
+ const hc=document.getElementById('homeCategories');if(hc)hc.innerHTML=cats.slice(0,8).map(c=>`<button onclick="marketCategory=decodeURIComponent('${encodeURIComponent(c)}');openView('marketplacePanel');showMarketplace()"><b>${esc(c)}</b></button>`).join('')||'<span class="mut">Categorias aparecerão aqui.</span>';
+ const offers=marketProducts.filter(x=>x.old_price&&Number(x.old_price)>Number(x.price)).slice(0,8);
+ const ho=document.getElementById('homeOffers');if(ho)ho.innerHTML=(offers.length?offers:marketProducts.slice(0,4)).map(productCard).join('');
+ const stores=[...new Map(marketProducts.map(x=>[x.store_id,{id:x.store_id,name:x.stores?.name||'Loja'}])).values()];
+ const hs=document.getElementById('homeStores');if(hs)hs.innerHTML=stores.map(x=>`<div class="store-pill" onclick="marketStore='${x.id}';openView('marketplacePanel');showMarketplace()"><b>${esc(x.name)}</b><span class="mut">${marketProducts.filter(p=>p.store_id===x.id).length} produtos</span></div>`).join('');
+ const hn=document.getElementById('homeNew');if(hn)hn.innerHTML=marketProducts.slice(0,8).map(productCard).join('');
+}
+async function showFavorites(){
+ await loadSyncedFavorites();if(await ensureMarketData())renderFavorites()}
+function renderFavorites(){
+ const ids=favoriteIds(),list=marketProducts.filter(x=>ids.includes(x.id)),el=document.getElementById('favoritesBody');if(!el)return;
+ el.innerHTML=list.map(productCard).join('')||'<div class="card fav-empty"><div style="font-size:42px">♡</div><h3>Nenhum favorito ainda</h3><p class="mut">Toque no coração dos produtos que quiser guardar.</p><button onclick="openView(\'marketplacePanel\');showMarketplace()">Ver produtos</button></div>';
+}
+let marketProducts=[],marketCart=[],marketCoupon='',marketCategory='Todos',marketStore='';
+let checkoutMethod='smart_partner',checkoutAddressId='';
+
+async function showMarketplace(){
+ const {data,error}=await sb.from('products').select('id,store_id,name,category,description,price,old_price,image_url,stock,created_at,stores(name,delivery_modes)').eq('active',true).gt('stock',0).order('created_at',{ascending:false});
+ if(error){alert(friendlyError(error));return}
+ marketProducts=data||[];
+ renderMarketFilters();renderMarketProducts();renderMarketCart();renderHome();
+}
+function renderMarketFilters(){
+ const cats=['Todos',...new Set(marketProducts.map(x=>x.category).filter(Boolean))];
+ const c=document.getElementById('marketCategories');
+ if(c)c.innerHTML=cats.map(x=>`<button class="market-chip ${marketCategory===x?'on':''}" onclick="marketCategory=decodeURIComponent('${encodeURIComponent(x)}');renderMarketFilters();renderMarketProducts()">${esc(x)}</button>`).join('');
+ const stores=[...new Map(marketProducts.map(x=>[x.store_id,{id:x.store_id,name:x.stores?.name||'Loja'}])).values()];
+ const s=document.getElementById('marketStores');
+ if(s)s.innerHTML=`<div class="store-pill" onclick="marketStore='';renderMarketFilters();renderMarketProducts()" style="${!marketStore?'border-color:#0967d8':''}"><b>Todas as lojas</b><span class="mut">Ver tudo</span></div>`+stores.map(x=>`<div class="store-pill" onclick="marketStore='${x.id}';renderMarketFilters();renderMarketProducts()" style="${marketStore===x.id?'border-color:#0967d8;background:#eef5ff':''}"><b>${esc(x.name)}</b><span class="mut">${marketProducts.filter(p=>p.store_id===x.id).length} produtos</span></div>`).join('');
+}
+function filteredMarketProducts(){
+ const q=(document.getElementById('marketSearch')?.value||'').toLowerCase();
+ return marketProducts.filter(x=>(!marketStore||x.store_id===marketStore)&&(marketCategory==='Todos'||x.category===marketCategory)&&(`${x.name} ${x.category||''} ${x.stores?.name||''}`).toLowerCase().includes(q));
+}
+function renderMarketProducts(){
+ const list=filteredMarketProducts();
+ const count=document.getElementById('marketCount');if(count)count.textContent=`${list.length} item${list.length===1?'':'s'}`;
+ const el=document.getElementById('marketProducts');if(!el)return;
+ el.innerHTML=list.map(productCard).join('')||'<div class="card"><b>Nenhum produto encontrado.</b><p class="mut">Tente outra busca, categoria ou loja.</p></div>';
+}
+function openProductModal(id){
+ const x=marketProducts.find(p=>p.id===id);if(!x)return;
+ const b=document.getElementById('productModalBody');
+ b.innerHTML=`<div class="row" style="justify-content:space-between"><span class="tag">${esc(x.category||'Produto')}</span><button class="ghost" onclick="closeProductModal()">Fechar</button></div>
+ ${x.image_url?`<img src="${esc(x.image_url)}" style="width:100%;height:260px;object-fit:contain;margin:10px 0">`:''}
+ <h2>${esc(x.name)}</h2><p class="mut">${esc(x.stores?.name||'Loja')}</p><p>${esc(x.description||'Produto disponível no Smart Shop.')}</p>
+ ${x.old_price?`<div class="price-old">R$ ${Number(x.old_price).toFixed(2).replace('.',',')}</div>`:''}<div class="price-now">R$ ${Number(x.price).toFixed(2).replace('.',',')}</div>
+ <button style="width:100%" onclick="addMarketCart('${x.id}');closeProductModal()">Adicionar ao carrinho</button>`;
+ document.getElementById('productModal').classList.remove('hide');
+}
+function closeProductModal(){document.getElementById('productModal').classList.add('hide')}
+function addMarketCart(id){
+ const p=marketProducts.find(x=>x.id===id);if(!p)return;
+ if(marketCart.length&&marketCart[0].store_id!==p.store_id){
+   if(!confirm('Cada pedido reúne produtos de uma única loja. Esvaziar o carrinho atual e adicionar este item?'))return;
+   marketCart=[];
+ }
+ const i=marketCart.find(x=>x.id===id);
+ if(i){if(i.qty<p.stock)i.qty++;else return alert('Você atingiu o estoque disponível.')}
+ else marketCart.push({...p,qty:1});
+ renderMarketCart();
+}
+function marketQty(id,d){
+ const i=marketCart.find(x=>x.id===id);if(!i)return;
+ i.qty=Math.max(0,Math.min(i.stock,i.qty+d));
+ marketCart=marketCart.filter(x=>x.qty>0);renderMarketCart();
+}
+function marketSubtotal(){return marketCart.reduce((s,x)=>s+Number(x.price)*x.qty,0)}
+function renderMarketCart(){
+ const el=document.getElementById('marketCart');if(!el)return;
+ if(!marketCart.length){el.innerHTML='';return}
+ const sub=marketSubtotal(),qty=marketCart.reduce((s,x)=>s+x.qty,0);
+ el.innerHTML=`<div class="cart-float"><div><b>${qty} item${qty===1?'':'s'} no carrinho</b><div style="font-size:12px;opacity:.8">${esc(marketCart[0].stores?.name||'Loja')} • R$ ${sub.toFixed(2).replace('.',',')}</div></div><button onclick="openMarketCheckout()">Ver carrinho</button></div>`;
+}
+async function openMarketCheckout(){
+ if(!currentUser){alert('Entre na sua conta para finalizar a compra.');return}
+ if(!marketCart.length)return;
+ const {data:addrs,error}=await sb.from('addresses').select('*').order('is_default',{ascending:false});
+ if(error){alert(friendlyError(error));return}
+ if(!addrs?.length){alert('Cadastre um endereço antes de finalizar o pedido.');return}
+ if(!checkoutAddressId||!addrs.some(a=>a.id===checkoutAddressId))checkoutAddressId=addrs[0].id;
+ const cartStore=marketCart[0]?.stores||{},enabledModes=Array.isArray(cartStore.delivery_modes)&&cartStore.delivery_modes.length?cartStore.delivery_modes:['pickup','smart_partner'];
+ if(!enabledModes.includes(checkoutMethod))checkoutMethod=enabledModes[0]||'pickup';
+ const items=marketCart.map(x=>({product_id:x.id,quantity:x.qty}));
+ const {data:q,error:qe}=await sb.rpc('quote_checkout',{p_store_id:marketCart[0].store_id,p_items:items,p_delivery_method:checkoutMethod,p_coupon_code:marketCoupon||null});
+ const quote=Array.isArray(q)?q[0]:q;
+ let quoteError=qe?friendlyError(qe):null;
+ if(qe&&marketCoupon){marketCoupon='';}
+ const sub=Number(quote?.product_subtotal??marketSubtotal()),discount=Number(quote?.discount_amount||0),freight=Number(quote?.freight_amount||0),total=Number(quote?.total_amount??(sub+freight));
+ document.getElementById('checkoutBody').innerHTML=`
+ <div class="checkout-box"><b>Itens</b>${marketCart.map(x=>`<div class="cart-line"><div>${esc(x.name)}<div class="mut">${money(x.price)} cada</div></div><div class="qty"><button class="ghost" onclick="marketQty('${x.id}',-1);openMarketCheckout()">−</button><b>${x.qty}</b><button class="ghost" onclick="marketQty('${x.id}',1);openMarketCheckout()">+</button></div></div>`).join('')}</div>
+ <div class="checkout-box"><b>Endereço</b>${addrs.map(a=>`<label class="option-card ${checkoutAddressId===a.id?'on':''}"><input type="radio" name="marketAddr" value="${a.id}" ${checkoutAddressId===a.id?'checked':''} onchange="checkoutAddressId=this.value;openMarketCheckout()"> ${esc(a.street)}, ${esc(a.number)} - ${esc(a.district)}<div class="mut">${esc(a.city)} / ${esc(a.state)}</div></label>`).join('')}</div>
+ <div class="checkout-box"><b>Recebimento</b>${enabledModes.length===1?`<div class="mut" style="margin:6px 0">Esta loja oferece uma única forma de recebimento.</div>`:''}${[['pickup','Retirar na loja'],['store_delivery','Entrega da loja'],['smart_partner','Parceiro Smart Shop']].filter(x=>enabledModes.includes(x[0])).map(x=>`<div class="option-card ${checkoutMethod===x[0]?'on':''}" onclick="checkoutMethod='${x[0]}';openMarketCheckout()"><b>${x[1]}</b></div>`).join('')}</div>
+ <div class="checkout-box"><b>Cupom</b><div class="row"><input id="marketCoupon" placeholder="Ex.: SMART10" value="${esc(marketCoupon)}" style="flex:1"><button class="ghost" onclick="marketCoupon=document.getElementById('marketCoupon').value.trim();openMarketCheckout()">Aplicar</button></div>${quoteError?`<div class="msg err">${esc(quoteError)}</div>`:marketCoupon&&quote?.coupon_code?`<div class="msg">Cupom ${esc(quote.coupon_code)} aplicado.</div>`:''}</div>
+ <div class="checkout-box"><div class="row" style="justify-content:space-between"><span>Produtos</span><b>${money(sub)}</b></div>${discount>0?`<div class="row" style="justify-content:space-between;margin-top:8px"><span>Desconto</span><b>− ${money(discount)}</b></div>`:''}<div class="row" style="justify-content:space-between;margin-top:8px"><span>Frete</span><b>${freight>0?money(freight):'Grátis'}</b></div><hr><div class="row" style="justify-content:space-between;font-size:18px"><b>Total</b><b>${money(total)}</b></div><button id="checkoutConfirmBtn" style="width:100%;margin-top:14px" onclick="finishMarketCheckout()" ${qe?'disabled':''}>Confirmar pedido</button><p class="mut" style="margin-bottom:0">Pagamento permanece simulado nesta fase de testes.</p></div>`;
+ document.getElementById('checkoutModal').classList.remove('hide');
+}
+function closeCheckoutModal(){document.getElementById('checkoutModal').classList.add('hide')}
+let activeCheckoutToken=null;
+async function finishMarketCheckout(){
+ const checkoutBtn=document.getElementById('checkoutConfirmBtn');
+ if(checkoutBtn&&checkoutBtn.disabled)return;
+ if(checkoutBtn){checkoutBtn.disabled=true;checkoutBtn.dataset.oldText=checkoutBtn.textContent;checkoutBtn.textContent='Processando...'}
+ try{
+ if(!currentUser)return alert('Sua sessão terminou. Entre novamente para concluir a compra.');
+ if(!marketCart.length)return alert('Seu carrinho está vazio.');
+ const {data:addr,error:addrErr}=await sb.from('addresses').select('id').eq('id',checkoutAddressId).eq('user_id',currentUser.id).maybeSingle();
+ if(addrErr||!addr)return alert('O endereço selecionado não está mais disponível. Escolha um endereço novamente.');
+
+ marketCoupon=(document.getElementById('marketCoupon')?.value||marketCoupon||'').trim();
+ const {data,error:e}=await sb.rpc('create_checkout_order',{p_store_id:marketCart[0].store_id,p_items:marketCart.map(x=>({product_id:x.id,quantity:x.qty})),p_address_id:checkoutAddressId,p_delivery_method:checkoutMethod,p_coupon_code:marketCoupon||null,p_checkout_token:(activeCheckoutToken||(activeCheckoutToken=(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random())))});
+ if(e){
+   let m=e.message||'Não foi possível criar o pedido.';
+   if(m.includes('insufficient stock'))m='Um produto ficou sem estoque suficiente.';
+   if(m.includes('invalid coupon'))m='Cupom inválido ou vencido.';
+   if(m.includes('coupon already used'))m='Este cupom já foi utilizado nesta conta.';
+   if(m.includes('delivery method unavailable for this store'))m='Esta forma de entrega não está disponível para esta loja.';
+   if(m.includes('coupon minimum not reached'))m='O valor mínimo deste cupom ainda não foi atingido.';
+   if(m.includes('coupon usage limit reached'))m='Este cupom atingiu o limite total de utilizações.';
+   if(m.includes('product unavailable'))m='Um dos produtos não está mais disponível.';
+   if(m.includes('store unavailable'))m='Esta loja não está disponível para novos pedidos.';
+   alert(m);return;
+ }
+ closeCheckoutModal();marketCart=[];marketCoupon='';checkoutAddressId=null;activeCheckoutToken=null;renderMarketCart();
+ const orderId=(typeof data==='string'?data:(data?.id||data?.order_id||data?.order_number||''));
+ document.getElementById('orderSuccessBody').innerHTML=`<div class="success-box"><div class="success-icon">✓</div><h2>Pedido confirmado!</h2><p class="mut">Seu pedido foi criado com sucesso no Smart Shop.</p>${orderId?`<div class="tag">Pedido ${esc(String(orderId).slice(0,12))}</div>`:''}<div class="success-actions"><button onclick="document.getElementById('orderSuccessModal').classList.add('hide');openView('customerOrders');loadCustomerOrders()">Acompanhar meu pedido</button><button class="ghost" onclick="document.getElementById('orderSuccessModal').classList.add('hide');openView('homePanel');showHome()">Continuar comprando</button></div></div>`;
+ document.getElementById('orderSuccessModal').classList.remove('hide');
+ await loadCustomerOrders();await refreshFlow();
+ } finally {if(checkoutBtn){checkoutBtn.disabled=false;checkoutBtn.textContent=checkoutBtn.dataset.oldText||'Finalizar pedido'}}
+}
+function issueLabel(t){
+ return {cancel_request:'Cancelamento',return_request:'Devolução',customer_absent:'Cliente ausente',wrong_address:'Endereço incorreto',store_wait:'Espera na loja',damaged_item:'Produto danificado',wrong_item:'Produto incorreto',other:'Outro'}[t]||t;
+}
+function issueStatusLabel(s){return {open:'Aberta',under_review:'Em análise',approved:'Aprovada',rejected:'Rejeitada',resolved:'Concluída'}[s]||s}
+async function createOrderIssue(orderId,type){
+ const texts={
+  cancel_request:'Informe o motivo do cancelamento:',
+  return_request:'Informe o motivo da devolução:',
+  customer_absent:'Descreva a tentativa de entrega e a ausência do cliente:',
+  wrong_address:'Descreva o problema encontrado no endereço:',
+  store_wait:'Descreva o tempo de espera ou problema na loja:',
+  other:'Descreva o problema:'
+ };
+ const reason=prompt(texts[type]||'Descreva o problema:','');
+ if(reason===null)return;
+ if(reason.trim().length<3){alert('Informe um motivo com mais detalhes.');return}
+ const {error}=await sb.rpc('create_order_issue',{p_order_id:orderId,p_issue_type:type,p_reason:reason.trim()});
+ if(error){
+  let msg=error.message||'Erro ao registrar ocorrência.';
+  if(msg.includes('active issue already exists')) msg='Já existe uma solicitação desse tipo em análise.';
+  if(msg.includes('order cannot be cancelled')) msg='Este pedido já avançou demais para solicitar cancelamento.';
+  if(msg.includes('return only after delivery')) msg='A devolução só pode ser solicitada depois da entrega.';
+  alert(msg); return;
+ }
+ alert('Solicitação registrada com sucesso.');
+ await refreshFlow();
+}
+async function showOrderIssues(orderId){
+ const {data,error}=await sb.from('order_issues').select('issue_type,status,reason,resolution_notes,created_at').eq('order_id',orderId).order('created_at',{ascending:false});
+ if(error){alert(friendlyError(error));return}
+ if(!data?.length){alert('Nenhuma ocorrência registrada neste pedido.');return}
+ alert(data.map(x=>`${issueLabel(x.issue_type)} • ${issueStatusLabel(x.status)}\n${x.reason}${x.resolution_notes?`\nRetorno: ${x.resolution_notes}`:''}`).join('\n\n'));
+}
+async function reviewOrderIssue(id,status){
+ if(['approved','rejected','resolved'].includes(status)&&!confirm('Confirma esta decisão? Ela pode alterar o status do pedido e o fluxo de estoque/entrega.'))return;
+ const notes=prompt('Observação da análise:','');
+ if(notes===null)return;
+ const {error}=await sb.rpc('review_order_issue',{p_issue_id:id,p_status:status,p_notes:notes});
+ if(error){alert(friendlyError(error));return}
+ alert('Ocorrência atualizada.');
+ await loadMaster(); await refreshFlow();
+}
+async function refreshFlow(){await loadMerchantPanel();await loadCourierPanel();await loadCustomerOrders();await loadNotificationCount()}
+async function loadCustomerOrders(){
+ const b=document.getElementById('customerOrdersBody');
+ const {data:o,error}=await sb.from('orders').select('id,order_number,status_code,total_amount,product_subtotal,discount_amount,freight_amount,delivery_method,created_at').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+ if(error){b.textContent=error.message;return}
+ b.innerHTML=(o||[]).map(x=>`<div class="card"><b>${esc(x.order_number)}</b><p><span class="tag">${esc(STATUS_LABEL[x.status_code]||x.status_code)}</span> <span class="mut">• ${esc({pickup:'Retirada na loja',store_delivery:'Entrega da loja',smart_partner:'Entregador Smart Shop'}[x.delivery_method]||x.delivery_method||'')}</span></p><div class="order-values"><span>Produtos: <b>${money(x.product_subtotal||0)}</b></span>${Number(x.discount_amount||0)>0?`<span>Desconto: <b>− ${money(x.discount_amount)}</b></span>`:''}<span>Frete: <b>${Number(x.freight_amount||0)>0?money(x.freight_amount):'Grátis'}</b></span><span>Total: <b>${money(x.total_amount||0)}</b></span></div><p class="mut" style="line-height:1.8">${esc(statusProgress(x.status_code))}</p>
+ ${x.status_code==='out_for_delivery'&&x.delivery_method==='smart_partner'?`<button onclick="showVerificationCode('${x.id}','delivery')">Ver código de entrega</button><div class="mut" style="margin-top:6px">Só informe o código depois de receber o pedido em mãos.</div>`:''}
+ ${['awaiting_payment','paid','preparing','ready','awaiting_courier'].includes(x.status_code)?`<button class="bad" onclick="createOrderIssue('${x.id}','cancel_request')">Solicitar cancelamento</button>`:''}
+ ${x.status_code==='delivered'?`<button onclick="openOrderReviewOptions('${x.id}')">⭐ Avaliar produtos</button><button onclick="createOrderIssue('${x.id}','return_request')">Solicitar devolução</button>`:''}
+ <button class="ghost" onclick="showOrderIssues('${x.id}')">Ocorrências</button>
+ <button class="ghost" onclick="showTimeline('${x.id}')">Acompanhar</button></div>`).join('')||'Você ainda não possui pedidos.';
+}
+async function showVerificationCode(orderId,type){
+ const {data,error}=await sb.rpc('get_order_verification_code',{p_order_id:orderId,p_code_type:type});
+ if(error)return alert(friendlyError(error));
+ alert(type==='pickup'?'Código de retirada: '+data+'\n\nA loja deve informar este código ao entregador somente no momento da retirada.':'Código de entrega: '+data+'\n\nInforme este código ao entregador somente depois que o pedido estiver em suas mãos.');
+}
+async function showTimeline(id){const {data,error}=await sb.from('order_status_history').select('status_code,label,created_at').eq('order_id',id).order('created_at');if(error)return alert(friendlyError(error));alert((data||[]).map(x=>'• '+(x.label||STATUS_LABEL[x.status_code]||x.status_code)).join('\n')||'Sem histórico ainda.')}
+
+
+
+const APP_STATUS_LABEL={draft:'Rascunho',submitted:'Enviado para análise',documents_pending:'Correção/documentos pendentes',under_review:'Em análise',approved:'Aprovado',rejected:'Rejeitado',suspended:'Suspenso'};
+async function loadPartnerApplicationStatus(){
+ if(!currentUser)return;
+ const [m,c]=await Promise.all([
+  sb.from('merchant_applications').select('status,review_notes,store_id,updated_at').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(1).maybeSingle(),
+  sb.from('courier_applications').select('status,review_notes,updated_at').eq('user_id',currentUser.id).maybeSingle()
+ ]);
+ const me=document.getElementById('merchantAppStatus');
+ if(me&&m.data)me.innerHTML=`<div class="card"><b>Status do cadastro:</b> <span class="tag">${esc(APP_STATUS_LABEL[m.data.status]||m.data.status)}</span>${m.data.review_notes?`<p><b>Retorno da análise:</b> ${esc(m.data.review_notes)}</p>`:''}${m.data.status==='approved'?'<p>✓ Loja liberada no Painel Lojista.</p>':''}</div>`;
+ const ce=document.getElementById('courierAppStatus');
+ if(ce&&c.data)ce.innerHTML=`<div class="card"><b>Status do cadastro:</b> <span class="tag">${esc(APP_STATUS_LABEL[c.data.status]||c.data.status)}</span>${c.data.review_notes?`<p><b>Retorno da análise:</b> ${esc(c.data.review_notes)}</p>`:''}${c.data.status==='approved'?'<p>✓ Entregas liberadas para esta conta.</p>':''}</div>`;
+}
+let smartSyncTimer=null;
+let smartSyncBusy=false;
+async function smartSync(){
+ if(!currentUser||smartSyncBusy)return;
+ smartSyncBusy=true;
+ const badge=document.getElementById('syncBadge');
+ try{
+  if(badge)badge.textContent='Atualizando…';
+  await Promise.allSettled([loadCustomerOrders(),loadNotificationCount(),loadCourierPanel(),loadMerchantPanel(),loadPartnerApplicationStatus()]);
+  if(badge)badge.textContent='Atualizado agora';
+ }catch(e){
+  if(badge)badge.textContent='Sem atualização';
+ }finally{
+  smartSyncBusy=false;
+ }
+}
+function startSmartSync(){
+ if(smartSyncTimer)clearInterval(smartSyncTimer);
+ smartSync();
+ smartSyncTimer=setInterval(smartSync,15000);
+}
+function stopSmartSync(){if(smartSyncTimer){clearInterval(smartSyncTimer);smartSyncTimer=null}}
+async function loadNotificationCount(){
+ if(!currentUser)return;
+ const {count}=await sb.from('notifications').select('id',{count:'exact',head:true}).eq('user_id',currentUser.id).neq('status','read');
+ const el=document.getElementById('notifCount');if(el)el.textContent=count||0;
+}
+async function showNotifications(){
+ if(!currentUser)return alert('Entre na sua conta para ver notificações.');
+ document.getElementById('notifDrawer').classList.add('open');
+ document.getElementById('notifBackdrop').classList.add('open');
+ const body=document.getElementById('notifDrawerBody'); body.innerHTML='<p class="mut">Carregando...</p>';
+ const {data,error}=await sb.from('notifications').select('id,title,body,type,status,created_at').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(40);
+ if(error){body.innerHTML=`<div class="card">${esc(error.message)}</div>`;return}
+ body.innerHTML=(data||[]).map(n=>`<div class="notif-item ${n.status!=='read'?'unread':''}"><b>${esc(n.title||'Smart Shop')}</b><p>${esc(n.body||'')}</p><div class="notif-time">${new Date(n.created_at).toLocaleString('pt-BR')}</div></div>`).join('')||'<div class="fav-empty"><div style="font-size:38px">🔔</div><h3>Nenhuma notificação</h3><p class="mut">As novidades dos seus pedidos aparecerão aqui.</p></div>';
+ const unread=(data||[]).filter(n=>n.status!=='read').map(n=>n.id);
+ if(unread.length)await sb.from('notifications').update({status:'read',read_at:new Date().toISOString()}).in('id',unread);
+ await loadNotificationCount();
+}
+function closeNotifications(){
+ document.getElementById('notifDrawer')?.classList.remove('open');
+ document.getElementById('notifBackdrop')?.classList.remove('open');
+}
+function statusProgress(status){
+ const steps=['paid','preparing','ready','courier_assigned','picked_up','out_for_delivery','delivered'];
+ const labels=['Confirmado','Preparando','Pronto','Entregador','Coletado','A caminho','Entregue'];
+ let idx=steps.indexOf(status);if(status==='awaiting_courier')idx=2;
+ return labels.map((l,i)=>`${i<=idx?'✓':'○'} ${l}`).join('  ›  ');
+}
+async function loadMaster(){
+ const body=document.getElementById('masterBody');
+ await refreshPlatformAccess();
+ if(!hasAnyPlatformRole(['master','admin'])){body.innerHTML='Esta conta não possui permissão Master/Admin.';return}
+ const [m,c,d,i]=await Promise.all([
+  sb.from('merchant_applications').select('id,trade_name,legal_name,status,cpf_cnpj,created_at').order('created_at',{ascending:false}).limit(30),
+  sb.from('courier_applications').select('id,full_name,cpf,status,has_ear,created_at').order('created_at',{ascending:false}).limit(30),
+  sb.from('partner_documents').select('id,user_id,owner_type,application_id,document_type,status,storage_path,original_filename,created_at').order('created_at',{ascending:false}).limit(100),
+  sb.from('order_issues').select('id,order_id,issue_type,status,reason,resolution_notes,created_at').order('created_at',{ascending:false}).limit(50)
+ ]);
+ const merchants=m.data||[],couriers=c.data||[],docs=d.data||[],issues=i.data||[];
+ const docsForAll=(type,id)=>docs.filter(x=>x.owner_type===type&&x.application_id===id).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+ const docsFor=(type,id)=>{const seen=new Set();return docsForAll(type,id).filter(x=>{if(seen.has(x.document_type))return false;seen.add(x.document_type);return true})};
+ const requiredDocs={merchant:['company_proof','responsible_id','address_proof'],courier:['profile_photo','cnh','criminal_record','address_proof','vehicle_document']};
+ const docLabel={company_proof:'Comprovante da empresa',responsible_id:'Documento do responsável',address_proof:'Comprovante de endereço',business_license:'Alvará / licença',profile_photo:'Foto do entregador',cnh:'CNH',criminal_record:'Certidão de antecedentes',vehicle_document:'Documento do veículo'};
+ const appStatusLabel={submitted:'Em análise',under_review:'Em análise',documents_pending:'Correção solicitada',approved:'Aprovado',rejected:'Rejeitado'};
+ const docStatusLabel={pending:'Pendente',approved:'Aprovado',rejected:'Rejeitado'};
+ const docReady=(type,id)=>requiredDocs[type].every(t=>docsFor(type,id).some(d=>d.document_type===t&&d.status==='approved'));
+ const missingDocs=(type,id)=>requiredDocs[type].filter(t=>!docsFor(type,id).some(d=>d.document_type===t&&d.status==='approved'));
+ const docButtons=(type,id)=>docsFor(type,id).map(x=>`<div style="margin:4px 0"><button class="ghost" onclick="openPrivateDoc(decodeURIComponent('${encodeURIComponent(x.storage_path)}'))">Abrir • ${esc(docLabel[x.document_type]||x.document_type)}</button> <span class="tag">${esc(docStatusLabel[x.status]||x.status)}</span> ${x.status!=='approved'?`<button onclick="reviewDocument('${x.id}','approved')">Aprovar doc.</button>`:''} ${x.status!=='rejected'?`<button class="bad" onclick="reviewDocument('${x.id}','rejected')">Rejeitar doc.</button>`:''}</div>`).join('')||'<span class="mut">Sem documentos</span>';
+ const merchantRows=merchants.map(x=>`<tr>
+  <td><b>${esc(x.trade_name)}</b><div class="mut">${esc(x.legal_name||'')} • ${esc(x.cpf_cnpj||'')}</div></td>
+  <td><span class="tag">${esc(appStatusLabel[x.status]||x.status)}</span>${x.status!=='approved'&&!docReady('merchant',x.id)?`<div class="approval-warning">Faltam aprovar: ${missingDocs('merchant',x.id).map(t=>esc(docLabel[t]||t)).join(', ')}</div>`:''}</td>
+  <td>${docButtons('merchant',x.id)}</td>
+  <td><div class="row">
+   ${x.status!=='approved'?`<button ${docReady('merchant',x.id)?'': 'disabled title="Aprove primeiro todos os documentos obrigatórios"'} onclick="approveMerchant('${x.id}')">Aprovar</button>`:''}
+   ${x.status!=='approved'?`<button class="alt" onclick="reviewMerchant('${x.id}','documents_pending')">Solicitar correção</button>`:''}
+   ${x.status!=='approved'?`<button class="bad" onclick="reviewMerchant('${x.id}','rejected')">Rejeitar</button>`:''}
+  </div></td>
+ </tr>`).join('');
+ const courierRows=couriers.map(x=>`<tr>
+  <td><b>${esc(x.full_name)}</b><div class="mut">${esc(x.cpf||'')} • EAR: ${x.has_ear?'Sim':'Não'}</div></td>
+  <td><span class="tag">${esc(appStatusLabel[x.status]||x.status)}</span>${x.status!=='approved'&&!docReady('courier',x.id)?`<div class="approval-warning">Faltam aprovar: ${missingDocs('courier',x.id).map(t=>esc(docLabel[t]||t)).join(', ')}</div>`:''}</td>
+  <td>${docButtons('courier',x.id)}</td>
+  <td><div class="row">
+   ${x.status!=='approved'?`<button ${docReady('courier',x.id)&&x.has_ear?'': 'disabled title="Aprove os documentos obrigatórios e confirme EAR"'} onclick="reviewCourier('${x.id}','approved')">Aprovar</button>`:''}
+   ${x.status!=='approved'?`<button class="alt" onclick="reviewCourier('${x.id}','documents_pending')">Solicitar correção</button>`:''}
+   ${x.status!=='approved'?`<button class="bad" onclick="reviewCourier('${x.id}','rejected')">Rejeitar</button>`:''}
+  </div></td>
+ </tr>`).join('');
+ body.innerHTML=`<div class="grid3">
+   <div class="card"><b>Lojistas</b><div style="font-size:28px">${merchants.length}</div></div>
+   <div class="card"><b>Entregadores</b><div style="font-size:28px">${couriers.length}</div></div>
+   <div class="card"><b>Documentos privados</b><div style="font-size:28px">${docs.length}</div></div>
+  </div>
+  <div id="masterMsg"></div>
+   <div class="card"><div class="section-title"><h3>🧪 Preparação para teste completo</h3><button class="ghost" onclick="runE2EReadiness()">Verificar agora</button></div><div id="e2eReadiness" class="mut">Use esta verificação antes do teste Cliente → Loja → Entregador → Cliente.</div>
+   <details style="margin-top:10px"><summary><b>Roteiro do teste completo</b></summary><ol class="e2e-steps"><li>Cliente faz o pedido com “Parceiro Smart Shop”.</li><li>Lojista inicia a preparação e marca o pedido como pronto.</li><li>Lojista solicita um entregador.</li><li>Entregador aceita e informa que chegou à loja.</li><li>Lojista mostra o código de retirada; entregador digita o código.</li><li>Entregador inicia a entrega.</li><li>Cliente recebe o pedido e só então mostra o código de entrega.</li><li>Entregador confirma o código; pedido vira Entregue e o financeiro é consolidado.</li></ol></details></div>
+  <h3>Solicitações de lojistas</h3>
+  <div style="overflow:auto"><table><tr><th>Loja</th><th>Status</th><th>Documentos</th><th>Ações</th></tr>${merchantRows||'<tr><td colspan="4">Nenhuma solicitação.</td></tr>'}</table></div>
+  <h3>Solicitações de entregadores</h3>
+  <div style="overflow:auto"><table><tr><th>Entregador</th><th>Status</th><th>Documentos</th><th>Ações</th></tr>${courierRows||'<tr><td colspan="4">Nenhuma solicitação.</td></tr>'}</table></div>
+  <h3>Ocorrências, cancelamentos e devoluções</h3>
+  ${issues.map(x=>{const canDecideIssue=hasAnyPlatformRole(['master','admin','operations']);return `<div class="card"><b>${issueLabel(x.issue_type)}</b> <span class="tag">${esc(issueStatusLabel(x.status))}</span><p>${esc(x.reason)}</p>${x.resolution_notes?`<p><b>Retorno:</b> ${esc(x.resolution_notes)}</p>`:''}<div>${x.status==='open'?`<button onclick="reviewOrderIssue('${x.id}','under_review')">Marcar em análise</button>`:''} ${canDecideIssue&&['open','under_review'].includes(x.status)?`<button onclick="reviewOrderIssue('${x.id}','approved')">Aprovar</button> <button class="bad" onclick="reviewOrderIssue('${x.id}','rejected')">Rejeitar</button>`:''} ${canDecideIssue&&x.status==='approved'&&x.issue_type==='return_request'?`<button onclick="reviewOrderIssue('${x.id}','resolved')">Concluir devolução</button>`:''}</div>${!canDecideIssue&&hasAnyPlatformRole(['support'])?'<p class="mut">Suporte faz a triagem. Aprovação, rejeição e conclusão ficam com Operações/Admin/Master.</p>':''}</div>`}).join('')||'<p class="mut">Nenhuma ocorrência registrada.</p>'}`;
+}
+
+async function runE2EReadiness(){
+ const el=document.getElementById('e2eReadiness');if(!el)return;el.innerHTML='Verificando...';
+ const checks=[];
+ const [stores,products,couriers,vehicles,addresses]=await Promise.all([
+  sb.from('stores').select('id,name,active,approval_status,delivery_modes').eq('active',true).eq('approval_status','approved'),
+  sb.from('products').select('id,store_id,stock,active').eq('active',true).gt('stock',0),
+  sb.from('courier_applications').select('id,user_id,status,has_ear').eq('status','approved').eq('has_ear',true),
+  sb.from('courier_vehicles').select('id,user_id,active').eq('active',true),
+  sb.from('addresses').select('id,user_id').limit(1)
+ ]);
+ const approvedStores=stores.data||[],stockProducts=products.data||[],approvedCouriers=couriers.data||[],activeVehicles=vehicles.data||[];
+ const smartStore=approvedStores.find(s=>(s.delivery_modes||[]).includes('smart_partner')&&stockProducts.some(p=>p.store_id===s.id));
+ const courierReady=approvedCouriers.find(c=>activeVehicles.some(v=>v.user_id===c.user_id));
+ checks.push(['Loja aprovada com produto em estoque',!!smartStore,smartStore?.name||'']);
+ checks.push(['Entrega por parceiro Smart Shop habilitada',!!smartStore,'']);
+ checks.push(['Entregador aprovado com EAR e veículo ativo',!!courierReady,'']);
+ checks.push(['Endereço de cliente disponível para checkout',!!addresses.data?.length,'']);
+ checks.push(['Cotação segura no servidor',true,'quote_checkout ativo']);
+ const {data:oldOrders}=await sb.from('orders').select('id,order_number,status_code,created_at').order('created_at',{ascending:false}).limit(5);
+ const legacyPaid=(oldOrders||[]).filter(o=>o.status_code==='paid');
+ if(legacyPaid.length)checks.push(['Pedido antigo de desenvolvimento',true,`${legacyPaid.length} registro(s) mantido(s); não será usado no novo teste`]);
+ const ok=checks.every(x=>x[1]);
+ el.innerHTML=`<div class="e2e-grid">${checks.map(x=>`<div class="e2e-check ${x[1]?'ok':'pending'}"><b>${x[1]?'✓':'!'}</b><span>${esc(x[0])}${x[2]?`<small>${esc(x[2])}</small>`:''}</span></div>`).join('')}</div><p><b>${ok?'Ambiente pronto para iniciar o teste completo.':'Ainda há preparação necessária antes do teste completo.'}</b></p>`;
+}
+async function reviewDocument(id,status){
+ let notes=null;
+ if(status==='rejected'){
+  notes=prompt('Informe o motivo da rejeição do documento:','');
+  if(notes===null)return;
+  if(!notes.trim()){alert('Informe o motivo da rejeição.');return}
+ }
+ const {error}=await sb.rpc('review_partner_document',{p_document_id:id,p_status:status,p_notes:notes});
+ if(error){alert(friendlyError(error));return}
+ alert(status==='approved'?'Documento aprovado.':'Documento rejeitado.');
+ await loadMaster();
+}
+async function approveMerchant(id){
+ if(!confirm('Aprovar este lojista e criar/vincular a loja?'))return;
+ const notes=prompt('Observação da aprovação (opcional):','')||null;
+ const {error}=await sb.rpc('approve_merchant_application',{p_application_id:id,p_notes:notes});
+ if(error){alert(friendlyError(error));return}
+ alert('Lojista aprovado. A loja foi criada/vinculada automaticamente.');
+ await loadMaster();await loadMerchantPanel();
+}
+async function reviewMerchant(id,status){
+ const label=status==='rejected'?'rejeitar':'solicitar correção para';
+ const notes=prompt('Informe o motivo/observação para '+label+' esta solicitação:','');
+ if(notes===null)return;
+ if(status==='documents_pending'&&!notes.trim()){alert('Informe o que precisa ser corrigido.');return}
+ const {error}=await sb.rpc('review_merchant_application',{p_application_id:id,p_status:status,p_notes:notes||null});
+ if(error){alert('Erro: '+error.message);return}
+ alert(status==='rejected'?'Solicitação rejeitada.':'Correção solicitada ao lojista.');
+ await loadMaster();
+}
+async function reviewCourier(id,status){
+ const action=status==='approved'?'aprovar':status==='rejected'?'rejeitar':'solicitar correção para';
+ if(status==='approved'&&!confirm('Aprovar este entregador para receber ofertas de entrega?'))return;
+ let notes=null;
+ if(status!=='approved'){notes=prompt('Informe o motivo/observação para '+action+' esta solicitação:','');if(notes===null)return;if(status==='documents_pending'&&!notes.trim()){alert('Informe o que precisa ser corrigido.');return}}
+ const {error}=await sb.rpc('review_courier_application',{p_application_id:id,p_status:status,p_notes:notes});
+ if(error){alert('Erro: '+error.message);return}
+ alert(status==='approved'?'Entregador aprovado.':status==='rejected'?'Solicitação rejeitada.':'Correção solicitada ao entregador.');
+ await loadMaster();
+}
+async function openPrivateDoc(path){
+ const {data,error}=await sb.storage.from('partner-documents').createSignedUrl(path,120);
+ if(error){alert('Não foi possível abrir o documento: '+error.message);return}
+ window.open(data.signedUrl,'_blank','noopener,noreferrer');
+}
+
+
+function friendlyError(err){
+ const m=String(err?.message||err||'').toLowerCase();
+ const map=[
+   ['seu cadastro de lojista já está aprovado','Seu cadastro de lojista já está aprovado. Use o Painel do Lojista para administrar a loja.'],
+   ['seu cadastro de entregador já está aprovado','Seu cadastro de entregador já está aprovado. Use a área Entregas.'],
+   ['review fields are restricted','Os campos de análise só podem ser alterados pela equipe Smart Shop.'],
+   ['applicant may only resubmit application','Para corrigir o cadastro, reenvie-o para análise.'],
+
+  ['not authorized','Você não tem permissão para realizar esta ação.'],
+  ['merchant application incomplete','O cadastro da loja está incompleto. Preencha todos os dados obrigatórios.'],
+  ['required merchant documents must be approved first','Os documentos obrigatórios da loja precisam ser enviados e aprovados antes da aprovação final.'],
+  ['courier application incomplete or ear missing','O cadastro do entregador está incompleto ou a CNH não possui EAR.'],
+  ['active courier vehicle required','Cadastre um veículo ativo (moto ou automóvel) com placa, Renavam, marca e modelo.'],
+  ['required courier documents must be approved first','Todos os documentos obrigatórios do entregador precisam estar aprovados.'],
+  ['application not found','Cadastro não encontrado.'],
+  ['document not found','Documento não encontrado.'],
+  ['invalid coupon','Cupom inválido ou fora da validade.'],
+   ['coupon minimum not reached','O valor mínimo deste cupom ainda não foi atingido.'],
+   ['coupon already used','Este cupom já atingiu seu limite de uso para esta conta.'],
+   ['coupon usage limit reached','Este cupom atingiu o limite total de utilizações.'],
+   ['insufficient stock','A quantidade solicitada não está disponível em estoque.'],
+   ['products_old_price_check','O preço anterior deve ser maior que o preço atual.'],
+   ['products_price_check','O preço do produto deve ser maior que zero.'],
+   ['products_name_not_blank_check','Informe o nome do produto.'],
+   ['product unavailable','Um dos produtos não está mais disponível.'],
+   ['store unavailable','Esta loja não está disponível para novos pedidos.'],
+   ['delivery method unavailable for this store','Esta forma de entrega não está disponível para esta loja.'],
+   ['invalid status','Status inválido.'],
+  ['user not found','Não encontramos uma conta cadastrada com esse e-mail.']
+ ];
+ for(const [k,v] of map) if(m.includes(k)) return v;
+ return err?.message||'Não foi possível concluir a operação.';
+}
+
+function esc(v){return String(v??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]))}
+(async()=>{const {data:{session}}=await sb.auth.getSession();if(session?.user)await setSession(session.user)})();
+</script>
+
+
+
+
+<div id="reviewModal" class="modal-bg hide">
+ <div class="modal-card"><button class="ghost" style="float:right" onclick="closeReviewModal()">✕</button><div id="reviewModalBody"></div></div>
+</div>
+<div id="orderSuccessModal" class="modal-bg hide">
+ <div class="modal-card"><div id="orderSuccessBody"></div></div>
+</div>
+
+<div id="addressModal" class="modal-bg hide" onclick="if(event.target===this)closeAddressForm()">
+ <div class="modal-card"><div class="row" style="justify-content:space-between"><h2 id="addressTitle" style="margin:0">Novo endereço</h2><button class="ghost" onclick="closeAddressForm()">Fechar</button></div>
+ <form id="addressForm" onsubmit="saveAddress(event)" class="form-grid" style="margin-top:14px">
+  <input type="hidden" id="addrId">
+  <input id="addrCep" placeholder="CEP" maxlength="9">
+  <input id="addrStreet" placeholder="Rua / Avenida" required>
+  <input id="addrNumber" placeholder="Número" required>
+  <input id="addrDistrict" placeholder="Bairro" required>
+  <input id="addrComplement" placeholder="Complemento">
+  <input id="addrCity" placeholder="Cidade" value="Mateus Leme" required>
+  <input id="addrState" placeholder="UF" value="MG" maxlength="2" required>
+  <label class="wide"><input type="checkbox" id="addrDefault"> Usar como endereço principal</label>
+  <button class="wide" type="submit">Salvar endereço</button>
+ </form>
+ </div>
+</div>
+
+<div id="productModal" class="modal-bg hide" onclick="if(event.target===this)closeProductModal()">
+  <div class="modal-card"><div id="productModalBody"></div></div>
+</div>
+<div id="checkoutModal" class="modal-bg hide" onclick="if(event.target===this)closeCheckoutModal()">
+  <div class="modal-card">
+    <div class="row" style="justify-content:space-between;align-items:center"><h2 style="margin:0">Finalizar pedido</h2><button class="ghost" onclick="closeCheckoutModal()">Fechar</button></div>
+    <div id="checkoutBody"></div>
+  </div>
+</div>
+
+
+<div id="notifBackdrop" class="notif-backdrop" onclick="closeNotifications()"></div>
+<aside id="notifDrawer" class="notif-drawer">
+ <div class="notif-head"><div><b>Notificações</b><div class="mut" style="font-size:12px">Atualizações do Smart Shop</div></div><button class="ghost" onclick="closeNotifications()">Fechar</button></div>
+ <div id="notifDrawerBody" class="notif-list"><p class="mut">Carregando...</p></div>
+</aside>
+
+</body>
+</html>

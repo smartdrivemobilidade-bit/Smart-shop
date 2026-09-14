@@ -48,6 +48,11 @@ Atualizado em 14/09/2026. Projeto: `iwbxyhcmcxeaqkkqveni`.
 - raio padrão de 200 m, precisão máxima aceita de 150 m e evento válido por 15 minutos;
 - quando o endereço ainda não tem coordenadas, o GPS continua obrigatório e a exceção é registrada automaticamente;
 - fluxo completo de geofence testado em transação reversível.
+- cadastro de lojista condicionado ao tipo MEI, Empresa/LTDA ou Vendedor individual;
+- documentos obrigatórios ajustados por tipo jurídico;
+- aceite dos termos registrado com data e versão;
+- permissões da tabela de candidaturas corrigidas para `SELECT/INSERT/UPDATE` autenticado, sempre sob RLS;
+- aprovação de vendedor individual validada de ponta a ponta em transação reversível.
 
 ## Revisão dos avisos de segurança
 

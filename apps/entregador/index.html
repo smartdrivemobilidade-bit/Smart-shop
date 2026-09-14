@@ -641,41 +641,87 @@ function renderCourierCurrentDelivery(x,store,address){
 function courierStatusLabel(s){return {accepted:'Aceita • a caminho da loja',arrived_store:'Na loja',picked_up:'Pedido coletado',out_for_delivery:'Saiu para entrega'}[s]||s}
 function courierAction(x){
  if(x.status==='accepted')return `<button onclick="courierArrived('${x.order_id}','${x.id}')">Cheguei à loja</button>`;
- if(x.status==='arrived_store')return `<button onclick="confirmPickup('${x.order_id}')">Digitar código da loja</button><div class="mut" style="margin-top:6px">Peça o código de retirada ao lojista.</div>`;
+ if(x.status==='arrived_store')return `<button onclick="confirmPickup('${x.order_id}','${x.id}')">Digitar código da loja</button><div class="mut" style="margin-top:6px">Peça o código de retirada ao lojista.</div>`;
  if(x.status==='picked_up')return `<button onclick="startDelivery('${x.order_id}')">Sair para entrega</button>`;
- if(x.status==='out_for_delivery')return `<button onclick="confirmDelivery('${x.order_id}')">Digitar código do cliente</button><div class="mut" style="margin-top:6px">O cliente informa o código somente após receber o pedido.</div>`;
+ if(x.status==='out_for_delivery')return `<button onclick="confirmDelivery('${x.order_id}','${x.id}')">Digitar código do cliente</button><div class="mut" style="margin-top:6px">O cliente informa o código somente após receber o pedido.</div>`;
  return '';
 }
 async function acceptDelivery(id,v){const {error}=await sb.rpc('accept_smart_delivery',{p_delivery_id:id,p_vehicle_id:v});if(error)return alert(friendlyError(error));alert('Entrega aceita. Agora siga para a loja.');await refreshFlow()}
 function getCourierPosition(){
  return new Promise((resolve,reject)=>{
    if(!navigator.geolocation)return reject(new Error('Este aparelho/navegador não oferece localização.'));
-   navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true,timeout:15000,maximumAge:0});
+   navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true,timeout:20000,maximumAge:0});
  });
 }
-async function courierArrived(orderId,deliveryId){
+async function validateCourierLocation(deliveryId,eventType,description){
  let pos;
- try{pos=await getCourierPosition()}catch(e){return alert('Para registrar a chegada, permita o acesso à localização do aparelho. '+(e?.message||''))}
- const c=pos.coords;
- const {data:eventId,error:locErr}=await sb.rpc('record_delivery_location_event',{p_delivery_id:deliveryId,p_event_type:'arrived_store',p_latitude:c.latitude,p_longitude:c.longitude,p_accuracy_m:c.accuracy||null,p_notes:'Chegada à loja pelo App Entregador'});
- if(locErr)return alert('Não foi possível validar a localização: '+friendlyError(locErr));
- if(eventId){
-   const {data:ev}=await sb.from('delivery_location_events').select('geofence_valid,distance_to_target_m,geofence_radius_m').eq('id',eventId).maybeSingle();
-   if(ev?.geofence_valid===false)return alert(`Você ainda está fora da área da loja (${Math.round(Number(ev.distance_to_target_m||0))} m). Aproxime-se para registrar a chegada.`);
+ try{
+   pos=await getCourierPosition();
+ }catch(e){
+   alert('Para '+description+', permita o acesso à localização do aparelho. '+(e?.message||''));
+   return false;
  }
+ const coords=pos.coords;
+ const {data:eventId,error}=await sb.rpc('record_delivery_location_event',{
+   p_delivery_id:deliveryId,
+   p_event_type:eventType,
+   p_latitude:coords.latitude,
+   p_longitude:coords.longitude,
+   p_accuracy_m:coords.accuracy||null,
+   p_notes:description+' pelo App Entregador'
+ });
+ if(error){
+   alert('Não foi possível validar a localização: '+friendlyError(error));
+   return false;
+ }
+ const {data:event,error:eventError}=await sb.from('delivery_location_events')
+   .select('geofence_valid,distance_to_target_m,geofence_radius_m,accuracy_m')
+   .eq('id',eventId)
+   .maybeSingle();
+ if(eventError){
+   alert('A localização foi registrada, mas não foi possível confirmar o geofence.');
+   return false;
+ }
+ if(event?.geofence_valid===false){
+   alert('Você está fora da área permitida ('+Math.round(Number(event.distance_to_target_m||0))+' m). Aproxime-se do destino para continuar.');
+   return false;
+ }
+ if(event?.geofence_valid===null){
+   alert('Localização registrada. O destino ainda não possui coordenadas cadastradas e será tratado como exceção automática.');
+ }
+ return true;
+}
+async function courierArrived(orderId,deliveryId){
+ if(!await validateCourierLocation(deliveryId,'arrived_store','registrar a chegada à loja'))return;
  const {error}=await sb.rpc('courier_arrived_store',{p_order_id:orderId});
  if(error)return alert(friendlyError(error));
  alert('Chegada à loja registrada com localização. Solicite ao lojista o código de retirada.');
  await refreshFlow();
 }
-async function confirmPickup(orderId){const code=prompt('Digite o código de retirada informado pelo lojista:');if(code===null)return;const {error}=await sb.rpc('confirm_order_pickup',{p_order_id:orderId,p_code:code.trim()});if(error)return alert('Código inválido ou retirada não permitida.');alert('Retirada confirmada.');await refreshFlow()}
-async function startDelivery(orderId){const {error}=await sb.rpc('courier_start_delivery',{p_order_id:orderId});if(error)return alert(friendlyError(error));alert('Pedido saiu para entrega.');await refreshFlow()}
-async function confirmDelivery(orderId){const code=prompt('Digite o código de entrega informado pelo cliente:');if(code===null)return;const {error}=await sb.rpc('confirm_order_delivery',{p_order_id:orderId,p_code:code.trim()});if(error)return alert('Código inválido ou entrega não permitida.');alert('Entrega concluída com sucesso.');await refreshFlow()}
-
-
-
-
-
+async function confirmPickup(orderId,deliveryId){
+ const code=prompt('Digite o código de retirada informado pelo lojista:');
+ if(code===null)return;
+ if(!await validateCourierLocation(deliveryId,'pickup','confirmar a coleta na loja'))return;
+ const {error}=await sb.rpc('confirm_order_pickup',{p_order_id:orderId,p_code:code.trim()});
+ if(error)return alert(friendlyError(error));
+ alert('Retirada confirmada.');
+ await refreshFlow();
+}
+async function startDelivery(orderId){
+ const {error}=await sb.rpc('courier_start_delivery',{p_order_id:orderId});
+ if(error)return alert(friendlyError(error));
+ alert('Pedido saiu para entrega.');
+ await refreshFlow();
+}
+async function confirmDelivery(orderId,deliveryId){
+ const code=prompt('Digite o código de entrega informado pelo cliente:');
+ if(code===null)return;
+ if(!await validateCourierLocation(deliveryId,'delivered','confirmar a entrega no destino'))return;
+ const {error}=await sb.rpc('confirm_order_delivery',{p_order_id:orderId,p_code:code.trim()});
+ if(error)return alert(friendlyError(error));
+ alert('Entrega concluída com sucesso.');
+ await refreshFlow();
+}
 
 
 async function loadCommerceAdmin(){

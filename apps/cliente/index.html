@@ -49,6 +49,8 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 .product-card .actions{margin-top:auto;display:flex;gap:7px}.product-card .actions button{flex:1}
 .cart-float{position:sticky;bottom:12px;z-index:4;background:#172033;color:#fff;border-radius:16px;padding:13px 14px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 10px 30px #0002;margin-top:14px}
 .cart-float button{background:var(--o)}
+.cart-nav{background:#172033!important;color:#fff!important;border-color:#172033!important}
+.toast{position:fixed;top:92px;right:22px;z-index:100;background:#166534;color:#fff;border-radius:12px;padding:13px 16px;box-shadow:0 12px 30px #0003;font-weight:700;max-width:min(360px,calc(100vw - 28px))}
 .cart-line{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
 .qty{display:inline-flex;align-items:center;gap:6px}.qty button{padding:6px 9px}
 .checkout-box{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:12px}
@@ -170,6 +172,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 <nav>
 <button data-view="homePanel" class="on" onclick="showHome()">🏠 Início</button>
 <button data-view="marketplacePanel" onclick="showMarketplace()">🛍️ Comprar</button>
+<button id="cartNavBtn" class="cart-nav hide" onclick="openMarketCheckout()">🛒 Carrinho (<span id="cartNavCount">0</span>)</button>
 <button data-view="favoritesPanel" onclick="showFavorites()">❤️ Favoritos</button>
 <button data-view="addressesPanel" onclick="requireAuthView('addressesPanel',showAddresses)">📍 Endereços</button>
 <button data-view="customerOrders" onclick="requireAuthView('customerOrders',loadCustomerOrders)">📦 Meus pedidos</button>
@@ -350,6 +353,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 </div>
 </section>
 </div>
+<div id="marketToast" class="toast hide" role="status" aria-live="polite"></div>
 
 <script>
 const SUPABASE_URL='https://iwbxyhcmcxeaqkkqveni.supabase.co';
@@ -1315,6 +1319,7 @@ function addMarketCart(id){
  if(i){if(i.qty<p.stock)i.qty++;else return alert('Você atingiu o estoque disponível.')}
  else marketCart.push({...p,qty:1});
  renderMarketCart();
+ showMarketToast('Produto adicionado ao carrinho.');
 }
 function marketQty(id,d){
  const i=marketCart.find(x=>x.id===id);if(!i)return;
@@ -1324,9 +1329,20 @@ function marketQty(id,d){
 function marketSubtotal(){return marketCart.reduce((s,x)=>s+Number(x.price)*x.qty,0)}
 function renderMarketCart(){
  const el=document.getElementById('marketCart');if(!el)return;
+ const navBtn=document.getElementById('cartNavBtn'),navCount=document.getElementById('cartNavCount');
+ const qty=marketCart.reduce((s,x)=>s+x.qty,0);
+ if(navCount)navCount.textContent=qty;
+ if(navBtn)navBtn.classList.toggle('hide',qty===0);
  if(!marketCart.length){el.innerHTML='';return}
- const sub=marketSubtotal(),qty=marketCart.reduce((s,x)=>s+x.qty,0);
+ const sub=marketSubtotal();
  el.innerHTML=`<div class="cart-float"><div><b>${qty} item${qty===1?'':'s'} no carrinho</b><div style="font-size:12px;opacity:.8">${esc(marketCart[0].stores?.name||'Loja')} • R$ ${sub.toFixed(2).replace('.',',')}</div></div><button onclick="openMarketCheckout()">Ver carrinho</button></div>`;
+}
+let marketToastTimer=null;
+function showMarketToast(text){
+ const el=document.getElementById('marketToast');if(!el)return;
+ el.textContent=text;el.classList.remove('hide');
+ clearTimeout(marketToastTimer);
+ marketToastTimer=setTimeout(()=>el.classList.add('hide'),2600);
 }
 async function openMarketCheckout(){
  if(!currentUser){alert('Para finalizar a compra, entre na sua conta ou crie seu cadastro.');showAuthCard();return}

@@ -112,6 +112,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 .product-admin-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #eee}.product-admin-row:last-child{border-bottom:0}@media(max-width:640px){.product-admin-row{align-items:flex-start;flex-direction:column}}
 
 .product-admin-thumb{width:52px;height:52px;object-fit:cover;border-radius:10px;border:1px solid #eee}#mpImagePreview{min-height:4px}
+.variant-editor{display:grid;gap:8px;margin-top:7px}.variant-row{display:grid;grid-template-columns:1fr 1fr 120px auto;gap:8px;align-items:end;padding:10px;border:1px solid var(--line);border-radius:12px;background:#f8fafc}.variant-row label{margin:0}.variant-row button{height:39px}.variant-empty{padding:12px;border:1px dashed #cbd5e1;border-radius:12px;color:var(--mut);font-size:13px}@media(max-width:650px){.variant-row{grid-template-columns:1fr 1fr}.variant-row .variant-stock,.variant-row .variant-remove{grid-column:auto}}
 
 .approval-warning{margin-top:6px;font-size:12px;color:#8a5a00;max-width:260px}button:disabled{opacity:.48;cursor:not-allowed}
 
@@ -620,7 +621,7 @@ async function loadMerchantProducts(storeId){
  if(error){el.textContent=friendlyError(error);return}
  el.innerHTML=(data||[]).map(p=>`<div class="product-admin-row"><div class="row">${p.image_url?`<img src="${esc(p.image_url)}" class="product-admin-thumb">`:''}<div><b>${esc(p.name)}</b><div class="mut">${esc(p.category||'Sem categoria')} • ${money(p.price)} • Estoque ${Number(p.stock||0)} • ${p.active?'Ativo':'Pausado'}</div></div></div><div class="row"><button class="ghost" onclick='openMerchantProductForm("${storeId}",${JSON.stringify(p).replace(/'/g,"&#39;")})'>Editar</button><button class="ghost" onclick="toggleMerchantProduct('${p.id}',${!p.active},'${storeId}')">${p.active?'Pausar':'Ativar'}</button></div></div>`).join('')||'<p class="mut">Nenhum produto cadastrado.</p>';
 }
-let merchantProductImages=[];
+let merchantProductImages=[],merchantProductVariants=[];
 async function openMerchantProductForm(storeId,p=null){
  document.getElementById('mpStoreId').value=storeId;
  document.getElementById('mpProductId').value=p?.id||'';
@@ -633,17 +634,18 @@ async function openMerchantProductForm(storeId,p=null){
  document.getElementById('mpDescription').value=p?.description||'';
  document.getElementById('mpActive').checked=p?.active??true;
  document.getElementById('mpImageFile').value='';
- document.getElementById('mpVariants').value='';
  merchantProductImages=[];
+ merchantProductVariants=[];
  if(p?.id){
   const [{data:images},{data:variants}]=await Promise.all([
    sb.from('product_images').select('id,image_url,position,color_label').eq('product_id',p.id).order('position'),
    sb.from('product_variants').select('color,size,stock,sku').eq('product_id',p.id).order('created_at')
   ]);
   merchantProductImages=images||[];
-  document.getElementById('mpVariants').value=(variants||[]).map(v=>`${v.color||''} | ${v.size||''} | ${v.stock||0} | ${v.sku||''}`).join('\n');
+  merchantProductVariants=(variants||[]).map(v=>({color:v.color||'',size:v.size||'',stock:Number(v.stock||0),sku:v.sku||null}));
  }
  renderMerchantProductImages(p?.image_url||'');
+ renderMerchantProductVariants();
  document.getElementById('merchantProductTitle').textContent=p?'Editar produto':'Novo produto';
  document.getElementById('merchantProductModal').classList.remove('hide');
 }
@@ -652,6 +654,18 @@ function renderMerchantProductImages(fallback=''){
  const rows=merchantProductImages.length?merchantProductImages:(fallback?[{id:'',image_url:fallback,position:0}]:[]);
  el.innerHTML=rows.length?`<div class="product-gallery-admin">${rows.map((x,i)=>`<div><img src="${esc(x.image_url)}" alt="Foto ${i+1}"><small>${i===0?'Foto principal':'Foto '+(i+1)}</small>${x.id?`<button type="button" class="bad" onclick="removeMerchantGalleryImage('${x.id}','${encodeURIComponent(x.image_url)}')">Excluir</button>`:''}</div>`).join('')}</div>`:'';
 }
+function renderMerchantProductVariants(){
+ const el=document.getElementById('mpVariantRows');if(!el)return;
+ el.innerHTML=merchantProductVariants.length?merchantProductVariants.map((v,i)=>`<div class="variant-row">
+  <label>Cor<input value="${esc(v.color)}" oninput="updateMerchantVariant(${i},'color',this.value)" placeholder="Ex.: Preto"></label>
+  <label>Tamanho/numeração<input value="${esc(v.size)}" oninput="updateMerchantVariant(${i},'size',this.value)" placeholder="Ex.: M ou 36"></label>
+  <label class="variant-stock">Estoque<input type="number" min="0" step="1" value="${Number(v.stock||0)}" oninput="updateMerchantVariant(${i},'stock',this.value)"></label>
+  <button type="button" class="bad variant-remove" onclick="removeMerchantVariant(${i})">Excluir</button>
+ </div>`).join(''):'<div class="variant-empty">Nenhuma opção adicionada. O estoque geral será utilizado.</div>';
+}
+function addMerchantVariant(){merchantProductVariants.push({color:'',size:'',stock:0,sku:null});renderMerchantProductVariants()}
+function removeMerchantVariant(index){merchantProductVariants.splice(index,1);renderMerchantProductVariants()}
+function updateMerchantVariant(index,field,value){if(!merchantProductVariants[index])return;merchantProductVariants[index][field]=value}
 async function removeMerchantGalleryImage(id,encodedUrl){
  if(!confirm('Excluir esta foto do produto?'))return;
  const url=decodeURIComponent(encodedUrl),{error}=await sb.from('product_images').delete().eq('id',id);if(error)return alert(friendlyError(error));
@@ -711,8 +725,7 @@ async function submitMerchantProduct(ev){
    const ins=await sb.from('product_images').insert({product_id:productId,store_id:storeId,image_url:up.url,position:nextPosition++});
    if(ins.error)throw ins.error;
   }
-  const variantLines=document.getElementById('mpVariants').value.split('\n').map(x=>x.trim()).filter(Boolean);
-  const variants=variantLines.map((line,index)=>{const parts=line.split('|').map(x=>x.trim()),qty=Number(parts[2]);if(!parts[0]&&!parts[1])throw new Error(`Informe cor ou tamanho na linha ${index+1}.`);if(!Number.isInteger(qty)||qty<0)throw new Error(`Estoque inválido na linha ${index+1}.`);return {product_id:productId,store_id:storeId,color:parts[0]||null,size:parts[1]||null,stock:qty,sku:parts[3]||null,active:true}});
+  const variants=merchantProductVariants.map((v,index)=>{const color=String(v.color||'').trim(),size=String(v.size||'').trim(),qty=Number(v.stock);if(!color&&!size)throw new Error(`Informe a cor ou o tamanho da opção ${index+1}.`);if(!Number.isInteger(qty)||qty<0)throw new Error(`Informe um estoque válido na opção ${index+1}.`);return {product_id:productId,store_id:storeId,color:color||null,size:size||null,stock:qty,sku:v.sku||null,active:true}});
   const del=await sb.from('product_variants').delete().eq('product_id',productId).eq('store_id',storeId);if(del.error)throw del.error;
   if(variants.length){const ins=await sb.from('product_variants').insert(variants);if(ins.error)throw ins.error}
   else {const reset=await sb.from('products').update({stock}).eq('id',productId).eq('store_id',storeId);if(reset.error)throw reset.error}
@@ -1613,10 +1626,10 @@ function esc(v){return String(v??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&l
    <label class="wide">Descrição<textarea id="mpDescription" rows="3"></textarea></label>
    <label class="wide">Fotos do produto<input id="mpImageFile" type="file" multiple accept="image/jpeg,image/png,image/webp"><span class="mut">Até 8 fotos. JPG, PNG ou WEBP, no máximo 5 MB cada.</span></label>
    <div id="mpImagePreview" class="wide"></div>
-   <label class="wide">Tamanhos, cores ou numerações
-    <textarea id="mpVariants" rows="5" placeholder="Preto | P | 5 | CAM-PRE-P&#10;Preto | M | 8 | CAM-PRE-M&#10;Branco | 36 | 3 | TEN-BRA-36"></textarea>
-    <span class="mut">Uma opção por linha: Cor | Tamanho/numeração | Estoque | Código opcional. Deixe vazio se o produto não tiver opções.</span>
-   </label>
+   <div class="wide">
+    <div class="section-title" style="margin:8px 0"><div><b>Tamanhos, cores ou numerações</b><div class="mut">Adicione somente as opções disponíveis para venda.</div></div><button type="button" class="ghost" onclick="addMerchantVariant()">+ Adicionar opção</button></div>
+    <div id="mpVariantRows" class="variant-editor"></div>
+   </div>
    <label><input id="mpActive" type="checkbox" checked> Produto ativo</label>
    <button class="wide" id="mpSaveBtn">Salvar produto</button>
   </form>

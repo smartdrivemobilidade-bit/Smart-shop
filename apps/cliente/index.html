@@ -44,6 +44,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 .product-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 .product-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px;display:flex;flex-direction:column;min-height:320px}
 .product-card img{width:100%;height:155px;object-fit:contain;border-radius:12px;background:#f8fafc}
+.product-main-image{width:100%;height:280px;object-fit:contain;margin:10px 0;border-radius:14px;background:#f8fafc}.product-thumbs{display:flex;gap:8px;overflow:auto;margin-bottom:12px}.product-thumbs button{padding:3px;background:#fff;border:2px solid var(--line)}.product-thumbs button.on{border-color:var(--b)}.product-thumbs img{width:58px;height:58px;object-fit:cover;border-radius:7px}.variant-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:12px 0}.variant-option{background:#fff;color:var(--ink);border:1px solid var(--line);text-align:left}.variant-option.on{background:#eef5ff;color:var(--b);border-color:var(--b)}.variant-option:disabled{opacity:.45;cursor:not-allowed}
 .product-card .pname{font-weight:800;margin:9px 0 3px}.product-card .store{font-size:12px;color:var(--mut)}
 .price-old{text-decoration:line-through;color:var(--mut);font-size:12px}.price-now{font-size:18px;font-weight:900;color:var(--ink);margin:3px 0 8px}
 .product-card .actions{margin-top:auto;display:flex;gap:7px}.product-card .actions button{flex:1}
@@ -123,6 +124,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 
 
 .order-values{display:flex;gap:8px 14px;flex-wrap:wrap;padding:9px 0;border-top:1px solid #eee;border-bottom:1px solid #eee;font-size:13px}.order-values span{white-space:nowrap}
+.order-progress{display:flex;gap:7px;align-items:center;flex-wrap:wrap;padding:12px 0}.progress-step{display:inline-flex;align-items:center;gap:5px;color:#8a94a6;font-size:12px}.progress-step.done{color:#15803d;font-weight:700}.progress-step.current{color:#0967d8;font-weight:800;background:#eef5ff;padding:5px 8px;border-radius:999px}.progress-arrow{color:#b8c0cc}
 
 .product-admin-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #eee}.product-admin-row:last-child{border-bottom:0}@media(max-width:640px){.product-admin-row{align-items:flex-start;flex-direction:column}}
 
@@ -147,8 +149,14 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 .portal-note{font-size:12px;color:#607086;margin-left:auto;align-self:center}
 
 .smart-logo{display:flex;align-items:center;gap:10px;font-size:24px;font-weight:900;color:#0967d8}.smart-logo b{color:#ff7a00}.smart-logo-icon{width:42px;height:42px;display:grid;place-items:center;border-radius:13px;background:linear-gradient(135deg,#0967d8,#ff7a00);font-size:22px}.smart-logo small{display:block;font-size:10px;color:#607086;font-weight:700;letter-spacing:.2px;margin-top:-2px}
-.promo-carousel{position:relative;overflow:hidden;border-radius:20px;margin-bottom:18px}.promo-track{display:flex;transition:transform .45s ease}.promo-slide{min-width:100%;padding:24px;min-height:190px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:18px}.promo-slide h1{font-size:32px;margin:5px 0 8px}.promo-slide p{max-width:650px}.promo-slide.blue{background:linear-gradient(120deg,#0758b9,#1784ef)}.promo-slide.orange{background:linear-gradient(120deg,#f36f00,#ff9a24)}.promo-slide.green{background:linear-gradient(120deg,#148344,#39aa66)}.promo-dots{position:absolute;left:24px;bottom:13px;display:flex;gap:6px}.promo-dot{width:8px;height:8px;border-radius:99px;background:#ffffff88}.promo-dot.on{width:22px;background:#fff}.promo-action{background:#fff!important;color:#0758b9!important}.same-day-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 18px}.benefit{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px;display:flex;gap:10px;align-items:center}.benefit span{font-size:25px}.benefit b{display:block}.benefit small{color:#607086}.community-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}.community-card{border:1px solid var(--line);background:#fff;border-radius:16px;padding:16px}.community-card h3{margin:7px 0}.community-card .ico{font-size:30px}.elite-card{background:linear-gradient(135deg,#fff4d4,#fff);border-color:#f1cf6a}.delivery-badge{display:inline-flex;align-items:center;gap:5px;background:#e9f8ef;color:#137a3d;border-radius:999px;padding:5px 8px;font-size:11px;font-weight:800;margin-top:7px}
+.promo-carousel{position:relative;overflow:hidden;border-radius:20px;margin-bottom:18px;box-shadow:0 10px 28px #0b4a8c20}.promo-track{display:flex;transition:transform .45s ease}.promo-slide{min-width:100%;padding:24px 64px 38px 24px;min-height:190px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:18px;background:linear-gradient(120deg,#0758b9,#1784ef);background-size:cover;background-position:center;position:relative}.promo-slide.has-img:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#061c3be8,#061c3b70)}.promo-slide>*{position:relative;z-index:1}.promo-slide h1{font-size:32px;margin:5px 0 8px}.promo-slide p{max-width:650px}.promo-slide.blue{background:linear-gradient(120deg,#0758b9,#1784ef)}.promo-slide.orange{background:linear-gradient(120deg,#f36f00,#ff9a24)}.promo-slide.green{background:linear-gradient(120deg,#148344,#39aa66)}.promo-dots{position:absolute;left:24px;bottom:13px;display:flex;gap:6px;z-index:2}.promo-dot{width:9px;height:9px;border-radius:99px;background:#ffffff88;padding:0;transition:.2s}.promo-dot.on{width:24px;background:#fff}.promo-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:38px;height:38px;padding:0;border-radius:50%;background:#071b3f99;color:#fff;font-size:20px}.promo-arrow.prev{left:10px}.promo-arrow.next{right:10px}.promo-action{background:#fff!important;color:#0758b9!important}.same-day-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 18px}.benefit{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px;display:flex;gap:10px;align-items:center}.benefit span{font-size:25px}.benefit b{display:block}.benefit small{color:#607086}.community-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:18px}.community-card{border:1px solid var(--line);background:#fff;border-radius:16px;padding:16px}.community-card h3{margin:7px 0}.community-card .ico{font-size:30px}.delivery-badge{display:inline-flex;align-items:center;gap:5px;background:#e9f8ef;color:#137a3d;border-radius:999px;padding:5px 8px;font-size:11px;font-weight:800;margin-top:7px}
 @media(max-width:760px){.promo-slide{padding:19px;min-height:205px}.promo-slide h1{font-size:26px}.same-day-strip,.community-grid{grid-template-columns:1fr}.smart-logo small{display:none}}
+
+.delivery-location{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:11px 14px;margin-bottom:12px;cursor:pointer}.delivery-location b{display:block}.delivery-location .mut{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:720px}
+.search-history{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}.search-history button{background:#fff;color:var(--ink);border:1px solid var(--line);padding:7px 10px}.visual-categories{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px}.visual-category{background:#fff!important;color:var(--ink)!important;border:1px solid var(--line)!important;min-height:92px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px}.visual-category span{font-size:28px}.visual-category.on{border-color:var(--b)!important;background:#eef5ff!important;color:var(--b)!important}
+.merchant-steps{display:flex;gap:6px;margin:12px 0 18px}.merchant-step-dot{flex:1;height:7px;background:#dfe6ef;border-radius:99px}.merchant-step-dot.on,.merchant-step-dot.done{background:var(--b)}.merchant-step{display:none}.merchant-step.on{display:block}.merchant-step-actions{display:flex;justify-content:space-between;gap:10px;margin-top:18px}.merchant-review{background:#f7f9fc;border:1px solid var(--line);padding:14px;border-radius:12px;line-height:1.7}
+.mobile-bottom-nav{display:none}.mobile-cart-count{display:none;position:absolute;top:0;right:calc(50% - 22px);min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:#e53935;color:#fff;font:700 10px/17px Arial;text-align:center}
+@media(max-width:760px){body{padding-bottom:76px}.wrap{padding-bottom:18px}.mobile-bottom-nav{position:fixed;display:grid;grid-template-columns:repeat(5,1fr);left:0;right:0;bottom:0;z-index:70;background:#fff;border-top:1px solid var(--line);box-shadow:0 -6px 24px #0002;padding:7px 5px max(7px,env(safe-area-inset-bottom))}.mobile-bottom-nav button{background:transparent;color:#5b6678;padding:5px 2px;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:3px}.mobile-bottom-nav button span{font-size:20px}.mobile-bottom-nav button.on{color:var(--b)}.delivery-location{margin-top:2px}.visual-categories{grid-template-columns:repeat(3,1fr)}.promo-arrow{display:none!important}}
 
 </style>
 
@@ -192,32 +200,25 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 <div id="merchantApply" class="view hide">
 <form class="card" id="merchantForm">
 <h2>Cadastro de Lojista</h2><div id="merchantAppStatus" class="mut"></div>
-<div class="grid3">
-<div><label>Razão social *</label><input name="legal_name" required></div>
-<div><label>Nome fantasia *</label><input name="trade_name" required></div>
-<div><label>CPF/CNPJ *</label><input name="cpf_cnpj" required></div>
-<div><label>Inscrição estadual</label><input name="state_registration"></div>
-<div><label>Inscrição municipal</label><input name="municipal_registration"></div>
-<div><label>Categoria</label><input name="category"></div>
-<div><label>Responsável *</label><input name="responsible_name" required></div>
-<div><label>CPF responsável *</label><input name="responsible_cpf" required></div>
-<div><label>Telefone *</label><input name="phone" required></div>
-<div><label>WhatsApp</label><input name="whatsapp"></div>
-<div><label>E-mail da loja *</label><input type="email" name="shop_email" required></div>
-<div><label>Horário de funcionamento</label><input name="business_hours"></div>
-</div>
-<h3>Endereço</h3><div class="grid3">
-<div><label>CEP *</label><input name="cep" required></div><div><label>Rua *</label><input name="street" required></div><div><label>Número *</label><input name="number" required></div>
-<div><label>Bairro *</label><input name="district" required></div><div><label>Cidade *</label><input name="city" value="Mateus Leme" required></div><div><label>UF *</label><input name="state" value="MG" required></div>
-</div>
-<h3>Repasse</h3><div class="grid3"><div><label>Chave Pix</label><input name="pix_key"></div><div><label>Banco</label><input name="bank_name"></div><div><label>Agência</label><input name="bank_agency"></div><div><label>Conta</label><input name="bank_account"></div></div>
-<h3>Documentos</h3><p class="mut">Arquivos protegidos: PDF, JPG, PNG ou WEBP. Os documentos ficam em área privada e somente você e a equipe autorizada do Smart Shop podem acessá-los.</p><div class="grid3">
-<div><label>Comprovação da empresa *</label><input id="m_company" type="file" accept=".pdf,image/jpeg,image/png,image/webp" required></div>
-<div><label>Documento do responsável *</label><input id="m_responsible" type="file" accept=".pdf,image/jpeg,image/png,image/webp" required></div>
-<div><label>Comprovante de endereço *</label><input id="m_address" type="file" accept=".pdf,image/jpeg,image/png,image/webp" required></div>
-<div><label>Alvará/licença (se aplicável)</label><input id="m_license" type="file" accept=".pdf,image/jpeg,image/png,image/webp"></div>
-</div>
-<div class="row" style="margin-top:14px"><button type="submit">Enviar para análise</button></div><div id="merchantMsg"></div>
+<p class="mut">Preencha uma etapa de cada vez. Você poderá revisar tudo antes de enviar.</p>
+<div class="merchant-steps" aria-label="Etapas do cadastro"><span class="merchant-step-dot on"></span><span class="merchant-step-dot"></span><span class="merchant-step-dot"></span><span class="merchant-step-dot"></span></div>
+<section class="merchant-step on" data-step="0"><h3>1. Tipo e dados da loja</h3><div class="grid3">
+<div><label>Tipo de vendedor *</label><select name="business_type" required onchange="updateMerchantBusinessType()"><option value="">Selecione</option><option value="mei">MEI</option><option value="ltda">Empresa LTDA</option><option value="individual">Vendedor individual</option></select></div>
+<div><label>Nome da loja *</label><input name="trade_name" required></div><div><label>Categoria *</label><input name="category" required></div>
+<div><label id="merchantLegalLabel">Razão social / nome completo *</label><input name="legal_name" required></div><div><label id="merchantTaxLabel">CNPJ ou CPF *</label><input name="cpf_cnpj" required></div>
+<div id="merchantIndividualActivity" class="hide"><label>Atividade exercida *</label><input name="individual_activity_description" placeholder="Ex.: artesanato e produtos próprios"></div>
+<div><label>Inscrição estadual</label><input name="state_registration"></div><div><label>Inscrição municipal</label><input name="municipal_registration"></div>
+<div><label>Responsável *</label><input name="responsible_name" required></div><div><label>CPF responsável *</label><input name="responsible_cpf" required></div><div><label>Telefone *</label><input name="phone" required></div><div><label>WhatsApp</label><input name="whatsapp"></div><div><label>E-mail da loja *</label><input type="email" name="shop_email" required></div><div><label>Horário de funcionamento</label><input name="business_hours"></div>
+</div></section>
+<section class="merchant-step" data-step="1"><h3>2. Endereço e repasse</h3><div class="grid3">
+<div><label>CEP *</label><input name="cep" required></div><div><label>Rua *</label><input name="street" required></div><div><label>Número *</label><input name="number" required></div><div><label>Bairro *</label><input name="district" required></div><div><label>Cidade *</label><input name="city" value="Mateus Leme" required></div><div><label>UF *</label><input name="state" value="MG" required></div>
+<div><label>Chave Pix</label><input name="pix_key"></div><div><label>Banco</label><input name="bank_name"></div><div><label>Agência</label><input name="bank_agency"></div><div><label>Conta</label><input name="bank_account"></div>
+</div></section>
+<section class="merchant-step" data-step="2"><h3>3. Documentos</h3><p class="mut">PDF, JPG, PNG ou WEBP. Os documentos ficam protegidos e acessíveis somente à equipe autorizada.</p><div class="grid3">
+<div id="merchantCompanyProof"><label>Comprovação da empresa *</label><input id="m_company" type="file" accept=".pdf,image/jpeg,image/png,image/webp"></div><div><label>Documento do responsável *</label><input id="m_responsible" type="file" accept=".pdf,image/jpeg,image/png,image/webp" required></div><div><label>Comprovante de endereço *</label><input id="m_address" type="file" accept=".pdf,image/jpeg,image/png,image/webp" required></div><div><label>Alvará/licença (se aplicável)</label><input id="m_license" type="file" accept=".pdf,image/jpeg,image/png,image/webp"></div>
+</div></section>
+<section class="merchant-step" data-step="3"><h3>4. Revisão e envio</h3><div id="merchantReview" class="merchant-review"></div><label><input name="terms_accepted" type="checkbox" required> Confirmo que os dados são verdadeiros e aceito os Termos de Uso e a Política de Privacidade.</label></section>
+<div class="merchant-step-actions"><button type="button" class="ghost" id="merchantPrev" onclick="changeMerchantStep(-1)" disabled>Voltar</button><button type="button" id="merchantNext" onclick="changeMerchantStep(1)">Próximo</button><button type="submit" id="merchantSubmit" class="hide">Enviar para análise</button></div><div id="merchantMsg"></div>
 </form>
 </div>
 
@@ -261,12 +262,9 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 
 <div id="courierPanel" class="view hide card"><h2>Entregas disponíveis</h2><div id="courierPanelBody" class="mut">Carregando...</div></div>
 
-<div id="homePanel" class="view hide market-shell"><div id="dynamicBanners" class="dynamic-banners"></div>
- <div class="promo-carousel" id="promoCarousel"><div class="promo-track" id="promoTrack">
-  <div class="promo-slide blue"><div><div style="opacity:.85;font-size:12px">SMART SHOP • MARKETPLACE REGIONAL</div><h1>Compre perto. Receba hoje.</h1><p>Produtos das lojas da sua região com entrega no mesmo dia quando o horário e a disponibilidade da loja permitirem.</p><button class="promo-action" onclick="openView('marketplacePanel');showMarketplace()">Ver produtos</button></div><div style="font-size:68px">📦</div></div>
-  <div class="promo-slide orange"><div><div style="opacity:.85;font-size:12px">GÁS E ÁGUA</div><h1>Precisou? Peça pelo Smart Shop.</h1><p>Encontre distribuidoras da região e veja as opções de entrega disponíveis para hoje.</p><button class="promo-action" onclick="openHomeCategory('Gás e Água')">Ver categoria</button></div><div style="font-size:68px">🔥💧</div></div>
-  <div class="promo-slide green"><div><div style="opacity:.85;font-size:12px">FORTALEÇA O COMÉRCIO LOCAL</div><h1>Sua loja também pode estar aqui.</h1><p>Cadastre sua loja, envie os documentos e, após aprovação, administre produtos e pedidos pelo Painel do Lojista.</p><button class="promo-action" onclick="openMerchantApplicationFromCustomer()">Quero vender</button></div><div style="font-size:68px">🏪</div></div>
- </div><div class="promo-dots" id="promoDots"><span class="promo-dot on"></span><span class="promo-dot"></span><span class="promo-dot"></span></div></div>
+<div id="homePanel" class="view hide market-shell">
+ <div id="homeDeliveryLocation" class="delivery-location" onclick="openDeliveryAddress()"><div>📍 <b>Entregar em</b><div class="mut">Escolha seu endereço de entrega</div></div><span>Alterar ›</span></div>
+ <div class="promo-carousel" id="promoCarousel" aria-label="Destaques do Smart Shop"><div class="promo-track" id="promoTrack"></div><button class="promo-arrow prev" id="promoPrev" aria-label="Banner anterior" onclick="setSmartPromo(smartPromoIndex-1)">‹</button><button class="promo-arrow next" id="promoNext" aria-label="Próximo banner" onclick="setSmartPromo(smartPromoIndex+1)">›</button><div class="promo-dots" id="promoDots"></div></div>
  <div class="same-day-strip"><div class="benefit"><span>⚡</span><div><b>Entrega no mesmo dia</b><small>Conforme horário e disponibilidade da loja</small></div></div><div class="benefit"><span>📍</span><div><b>Comércio da região</b><small>Compre perto e fortaleça negócios locais</small></div></div><div class="benefit"><span>🕒</span><div><b>Horário da loja</b><small>Prazo exibido de acordo com o atendimento</small></div></div></div>
  <div class="section-title"><h3>Categorias</h3><button class="ghost" onclick="openView('marketplacePanel');showMarketplace()">Ver tudo</button></div>
  <div id="homeCategories" class="home-cat"></div>
@@ -278,7 +276,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
  <div class="section-title"><h3>Novidades</h3><span class="mut">Produtos adicionados recentemente</span></div><div id="homeNewest" class="product-grid"></div>
  <div class="section-title"><h3>Explore por segmento</h3><span class="mut">Encontre o que precisa</span></div><div id="demoStores" class="demo-store-grid"></div>
  <div class="section-title"><h3>Smart Shop para a comunidade</h3><span class="mut">Benefícios que fazem sentido para um marketplace local</span></div>
- <div class="community-grid"><div class="community-card"><div class="ico">🎁</div><h3>Indique um amigo</h3><p class="mut">Compartilhe o Smart Shop. Benefícios podem ser liberados após a primeira compra válida do indicado.</p><button class="ghost" onclick="requireAuthView('referralPanel',showReferrals)">Quero indicar</button></div><div class="community-card"><div class="ico">🏪</div><h3>Indique uma loja</h3><p class="mut">Ajude a trazer seus comércios favoritos para o marketplace da região.</p><button class="ghost" onclick="requireAuthView('referralPanel',showReferrals)">Indicar comércio</button></div><div class="community-card elite-card"><div class="ico">🏅</div><h3>Lojas Destaque</h3><p class="mut">Reconhecimento por boas avaliações, poucos cancelamentos e agilidade no atendimento.</p><button class="ghost" onclick="openView('marketplacePanel');showMarketplace()">Ver lojas</button></div></div>
+ <div class="community-grid"><div class="community-card"><div class="ico">🎁</div><h3>Indique um amigo</h3><p class="mut">Compartilhe o Smart Shop. Benefícios podem ser liberados após a primeira compra válida do indicado.</p><button class="ghost" onclick="requireAuthView('referralPanel',showReferrals)">Quero indicar</button></div><div class="community-card"><div class="ico">🏪</div><h3>Indique uma loja</h3><p class="mut">Ajude a trazer seus comércios favoritos para o marketplace da região.</p><button class="ghost" onclick="requireAuthView('referralPanel',showReferrals)">Indicar comércio</button></div></div>
  <div class="seller-cta"><div><h3>Tem uma loja na região?</h3><p>Cadastre-se para vender no Smart Shop. Após a aprovação, você recebe acesso ao Painel do Lojista para administrar a loja pelo computador.</p><div class="flow-note">Cadastro → análise do Smart Shop → aprovação → acesso ao painel do lojista</div></div><button onclick="openMerchantApplicationFromCustomer()">Quero vender no Smart Shop</button></div>
  <div class="section-title"><h3>Você também pode gostar</h3><span class="mut">Mais opções no Smart Shop</span></div><div id="homeNew" class="product-grid"></div>
 </div>
@@ -333,14 +331,19 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
  <div class="section-title"><h2>Meus Favoritos</h2><span class="mut">Produtos que você salvou</span></div>
  <div id="favoritesBody" class="product-grid"></div>
 </div>
+<div id="myReviewsPanel" class="view hide market-shell">
+ <div class="section-title"><h2>Minhas avaliações</h2><span class="mut">Opiniões que você publicou</span></div>
+ <div id="myReviewsBody"></div>
+</div>
 <div id="marketplacePanel" class="view hide market-shell">
   <div class="market-top">
     <div style="font-size:12px;opacity:.85">COMPRE PERTO, RECEBA RÁPIDO</div>
     <h2 style="margin:4px 0 12px;font-size:28px">Smart Shop</h2>
-    <input id="marketSearch" class="market-search" placeholder="Buscar produtos ou lojas" oninput="renderMarketProducts()">
+    <input id="marketSearch" class="market-search" placeholder="Buscar produtos, lojas ou categorias" oninput="renderMarketProducts()" onkeydown="handleMarketSearchKey(event)">
+    <div id="marketSearchHistory" class="search-history"></div>
   </div>
   <div class="section-title"><h3>Categorias</h3><span class="mut">Mateus Leme e região</span></div>
-  <div id="marketCategories" class="market-chips"></div>
+  <div id="marketCategories" class="visual-categories"></div>
   <div class="section-title"><h3>Lojas</h3><span class="mut">Parceiros locais</span></div>
   <div id="marketStores" class="store-strip"></div>
   <div class="section-title"><h3>Produtos</h3><span id="marketCount" class="mut"></span></div>
@@ -353,6 +356,13 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 </div>
 </section>
 </div>
+<nav class="mobile-bottom-nav" id="mobileBottomNav" aria-label="Navegação principal">
+ <button data-mobile-view="homePanel" class="on" onclick="showHome();openView('homePanel')"><span>🏠</span>Início</button>
+ <button data-mobile-view="marketplacePanel" onclick="openMarketplaceSearch()"><span>🔎</span>Buscar</button>
+ <button data-mobile-view="customerOrders" onclick="requireAuthView('customerOrders',loadCustomerOrders)"><span>📦</span>Pedidos</button>
+ <button data-mobile-view="cart" style="position:relative" onclick="openMarketCheckout()"><span>🛒</span>Carrinho<small id="mobileCartCount" class="mobile-cart-count">0</small></button>
+ <button data-mobile-view="accountPanel" onclick="currentUser?requireAuthView('accountPanel',showAccount):showAuthCard()"><span>☰</span>Menu</button>
+</nav>
 <div id="marketToast" class="toast hide" role="status" aria-live="polite"></div>
 
 <script>
@@ -412,12 +422,34 @@ async function setSession(user){
 }
 function openView(view){
  document.querySelectorAll('nav [data-view]').forEach(x=>x.classList.toggle('on',x.dataset.view===view));
+ document.querySelectorAll('[data-mobile-view]').forEach(x=>x.classList.toggle('on',x.dataset.mobileView===view));
  document.querySelectorAll('.view').forEach(v=>v.classList.add('hide'));
  const target=document.getElementById(view); if(target)target.classList.remove('hide');
  const note=document.getElementById('guestBrowseNote');
  if(note)note.classList.toggle('hide',!['homePanel','marketplacePanel','storePagePanel'].includes(view));
 }
 document.querySelectorAll('nav [data-view]').forEach(b=>b.addEventListener('click',()=>openView(b.dataset.view)));
+
+let merchantFormStep=0;
+function updateMerchantBusinessType(){
+ const type=merchantForm.elements.business_type.value,isIndividual=type==='individual';
+ document.getElementById('merchantIndividualActivity').classList.toggle('hide',!isIndividual);
+ merchantForm.elements.individual_activity_description.required=isIndividual;
+ document.getElementById('merchantCompanyProof').classList.toggle('hide',isIndividual);
+ m_company.required=!isIndividual;
+ document.getElementById('merchantLegalLabel').textContent=isIndividual?'Nome completo *':'Razão social *';
+ document.getElementById('merchantTaxLabel').textContent=isIndividual?'CPF *':'CNPJ *';
+}
+function renderMerchantStep(){
+ document.querySelectorAll('.merchant-step').forEach((x,i)=>x.classList.toggle('on',i===merchantFormStep));
+ document.querySelectorAll('.merchant-step-dot').forEach((x,i)=>{x.classList.toggle('on',i===merchantFormStep);x.classList.toggle('done',i<merchantFormStep)});
+ merchantPrev.disabled=merchantFormStep===0;merchantNext.classList.toggle('hide',merchantFormStep===3);merchantSubmit.classList.toggle('hide',merchantFormStep!==3);
+ if(merchantFormStep===3){const fd=new FormData(merchantForm),type={mei:'MEI',ltda:'Empresa LTDA',individual:'Vendedor individual'}[val(fd,'business_type')]||'Não informado';merchantReview.innerHTML=`<b>${esc(val(fd,'trade_name'))}</b><br>${esc(type)} • ${esc(val(fd,'cpf_cnpj'))}<br>${esc(val(fd,'category'))}<br>${esc(val(fd,'street'))}, ${esc(val(fd,'number'))} — ${esc(val(fd,'city'))}/${esc(val(fd,'state'))}<br>Contato: ${esc(val(fd,'phone'))} • ${esc(val(fd,'shop_email'))}`}
+}
+function changeMerchantStep(direction){
+ if(direction>0){const current=document.querySelector(`.merchant-step[data-step="${merchantFormStep}"]`),fields=[...current.querySelectorAll('input,select')];for(const field of fields){if(!field.checkValidity()){field.reportValidity();return}}}
+ merchantFormStep=Math.max(0,Math.min(3,merchantFormStep+direction));renderMerchantStep();merchantForm.scrollIntoView({behavior:'smooth',block:'start'});
+}
 
 async function uploadDoc(file,ownerType,appId,docType){
  if(!file)return null;
@@ -433,15 +465,15 @@ async function uploadDoc(file,ownerType,appId,docType){
 merchantForm.addEventListener('submit',async e=>{
  e.preventDefault();merchantMsg.innerHTML='';const fd=new FormData(e.target);
  try{
-  const payload={user_id:currentUser.id,status:'submitted',legal_name:val(fd,'legal_name'),trade_name:val(fd,'trade_name'),cpf_cnpj:val(fd,'cpf_cnpj'),state_registration:val(fd,'state_registration')||null,municipal_registration:val(fd,'municipal_registration')||null,responsible_name:val(fd,'responsible_name'),responsible_cpf:val(fd,'responsible_cpf'),phone:val(fd,'phone'),whatsapp:val(fd,'whatsapp')||null,email:val(fd,'shop_email'),cep:val(fd,'cep'),street:val(fd,'street'),number:val(fd,'number'),district:val(fd,'district'),city:val(fd,'city'),state:val(fd,'state'),category:val(fd,'category')||null,business_hours:val(fd,'business_hours')||null,pix_key:val(fd,'pix_key')||null,bank_name:val(fd,'bank_name')||null,bank_agency:val(fd,'bank_agency')||null,bank_account:val(fd,'bank_account')||null,submitted_at:new Date().toISOString()};
+  const payload={user_id:currentUser.id,status:'submitted',business_type:val(fd,'business_type'),individual_activity_description:val(fd,'business_type')==='individual'?val(fd,'individual_activity_description'):null,terms_accepted_at:new Date().toISOString(),terms_version:'2026-09',legal_name:val(fd,'legal_name'),trade_name:val(fd,'trade_name'),cpf_cnpj:val(fd,'cpf_cnpj'),state_registration:val(fd,'state_registration')||null,municipal_registration:val(fd,'municipal_registration')||null,responsible_name:val(fd,'responsible_name'),responsible_cpf:val(fd,'responsible_cpf'),phone:val(fd,'phone'),whatsapp:val(fd,'whatsapp')||null,email:val(fd,'shop_email'),cep:val(fd,'cep'),street:val(fd,'street'),number:val(fd,'number'),district:val(fd,'district'),city:val(fd,'city'),state:val(fd,'state'),category:val(fd,'category')||null,business_hours:val(fd,'business_hours')||null,pix_key:val(fd,'pix_key')||null,bank_name:val(fd,'bank_name')||null,bank_agency:val(fd,'bank_agency')||null,bank_account:val(fd,'bank_account')||null,submitted_at:new Date().toISOString()};
   const {data:existingApp}=await sb.from('merchant_applications').select('id,status').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(1).maybeSingle();
    if(existingApp?.status==='approved')throw new Error('Seu cadastro de lojista já está aprovado.');
    let data,error;
    if(existingApp?.id)({data,error}=await sb.from('merchant_applications').update(payload).eq('id',existingApp.id).eq('user_id',currentUser.id).select('id').single());
    else ({data,error}=await sb.from('merchant_applications').insert(payload).select('id').single());
    if(error)throw error;
-  await uploadDoc(m_company.files[0],'merchant',data.id,'company_proof');await uploadDoc(m_responsible.files[0],'merchant',data.id,'responsible_id');await uploadDoc(m_address.files[0],'merchant',data.id,'address_proof');if(m_license.files[0])await uploadDoc(m_license.files[0],'merchant',data.id,'business_license');
-  msg('merchantMsg','Cadastro enviado com sucesso. Status: enviado para análise.');e.target.reset();await loadMaster();
+  if(m_company.files[0])await uploadDoc(m_company.files[0],'merchant',data.id,'company_proof');await uploadDoc(m_responsible.files[0],'merchant',data.id,'responsible_id');await uploadDoc(m_address.files[0],'merchant',data.id,'address_proof');if(m_license.files[0])await uploadDoc(m_license.files[0],'merchant',data.id,'business_license');
+  msg('merchantMsg','Cadastro enviado com sucesso. Status: enviado para análise.');e.target.reset();merchantFormStep=0;updateMerchantBusinessType();renderMerchantStep();await loadMaster();
  }catch(x){msg('merchantMsg',friendlyError(x),true)}
 });
 
@@ -820,7 +852,7 @@ function applyPlatformVisibility(){
 }
 function openMerchantApplicationFromCustomer(){
  if(!currentUser){showAuthCard();alert('Entre ou crie sua conta para iniciar o cadastro da sua loja.');return}
- openView('merchantApply');
+ merchantFormStep=0;renderMerchantStep();openView('merchantApply');
 }
 const HOME_CATEGORY_SHOWCASE=[
  {icon:'👗',name:'Moda',category:'Moda'},
@@ -842,6 +874,7 @@ const HOME_CATEGORY_SHOWCASE=[
  {icon:'🔥',name:'Gás e Água',category:'Gás e Água'}
 ];
 function openHomeCategory(category){
+ rememberCategoryInterest(category);
  marketCategory=category;marketStore='';openView('marketplacePanel');showMarketplace();
 }
 const DEMO_STORE_SHOWCASE=[
@@ -924,8 +957,9 @@ async function showAccount(){
  <button onclick="openView('customerOrders');loadCustomerOrders()">📦<br><b>Meus pedidos</b><br><span class="mut">Acompanhar compras</span></button>
  <button onclick="openView('favoritesPanel');showFavorites()">❤️<br><b>Favoritos</b><br><span class="mut">Produtos salvos</span></button>
  <button onclick="openView('addressesPanel');showAddresses()">📍<br><b>Endereços</b><br><span class="mut">Entrega e retirada</span></button>
+ <button onclick="openView('myReviewsPanel');showMyReviews()">⭐<br><b>Minhas avaliações</b><br><span class="mut">Ver opiniões publicadas</span></button>
  <button onclick="showNotifications()">🔔<br><b>Notificações</b><br><span class="mut">Atualizações</span></button><button onclick="openView('supportPanel');showSupportCenter()">💬<br><b>Central de Ajuda</b><br><span class="mut">Atendimento Smart Shop</span></button>
- <button onclick="openView('merchantApply')">🏪<br><b>Quero vender no Smart Shop</b><br><span class="mut">Envie seu cadastro para análise</span></button>
+ <button onclick="openMerchantApplicationFromCustomer()">🏪<br><b>Quero vender no Smart Shop</b><br><span class="mut">Envie seu cadastro para análise</span></button>
  <button onclick="openView('courierApply')">🚗<br><b>Quero entregar</b><br><span class="mut">Cadastro de entregador</span></button>
  </div>`;
 }
@@ -938,6 +972,13 @@ async function saveCustomerProfile(ev){
  await showAccount();
 }
 let addressCache=[];
+async function loadHomeDeliveryLocation(){
+ const el=document.getElementById('homeDeliveryLocation');if(!el)return;
+ if(!currentUser){el.innerHTML='<div>📍 <b>Onde você quer receber?</b><div class="mut">Entre na conta e escolha um endereço</div></div><span>Informar ›</span>';return}
+ const {data}=await sb.from('addresses').select('street,number,district,city').eq('user_id',currentUser.id).order('is_default',{ascending:false}).order('created_at',{ascending:false}).limit(1).maybeSingle();
+ el.innerHTML=data?`<div>📍 <b>Entregar em</b><div class="mut">${esc(data.street)}, ${esc(data.number)} • ${esc(data.district)}, ${esc(data.city)}</div></div><span>Alterar ›</span>`:'<div>📍 <b>Escolha seu endereço</b><div class="mut">Cadastre onde deseja receber os pedidos</div></div><span>Cadastrar ›</span>';
+}
+function openDeliveryAddress(){if(!currentUser){showAuthCard();return}openView('addressesPanel');showAddresses()}
 async function showAddresses(){
  if(!currentUser)return alert('Entre na sua conta para gerenciar endereços.');
  const {data,error}=await sb.from('addresses').select('*').order('is_default',{ascending:false}).order('created_at',{ascending:false});
@@ -975,18 +1016,18 @@ async function saveAddress(ev){
  if(makeDefault&&savedId){
    const {error}=await sb.rpc('set_default_address',{p_address_id:savedId});if(error){alert(friendlyError(error));return}
  }
- closeAddressForm();await showAddresses();
+ closeAddressForm();await showAddresses();await loadHomeDeliveryLocation();
 }
 async function setDefaultAddress(id){
  const {error}=await sb.rpc('set_default_address',{p_address_id:id});
  if(error){alert('Não foi possível definir o endereço principal: '+error.message);return}
- await showAddresses();
+ await showAddresses();await loadHomeDeliveryLocation();
 }
 async function deleteAddress(id){
  if(!confirm('Excluir este endereço?'))return;
  const {error}=await sb.rpc('delete_address_safe',{p_address_id:id});
  if(error){alert('Não foi possível excluir o endereço: '+error.message);return}
- await showAddresses();
+ await showAddresses();await loadHomeDeliveryLocation();
 }
 const FAV_KEY='smartshop_favorites_v4';
 let syncedFavoriteIds=[];
@@ -1040,6 +1081,13 @@ async function openReviews(productId){
  document.getElementById('reviewModal').classList.remove('hide');
 }
 function closeReviewModal(){document.getElementById('reviewModal').classList.add('hide')}
+async function showMyReviews(){
+ if(!currentUser)return showAuthCard();
+ const el=document.getElementById('myReviewsBody');el.innerHTML='<div class="card">Carregando suas avaliações...</div>';
+ const {data,error}=await sb.from('reviews').select('id,product_id,order_id,rating,comment,created_at,products(name,image_url)').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+ if(error){el.innerHTML=`<div class="msg err">${esc(friendlyError(error))}</div>`;return}
+ el.innerHTML=(data||[]).map(r=>`<div class="review-card"><div class="row" style="align-items:center"><img src="${esc(r.products?.image_url||'')}" alt="" style="width:58px;height:58px;object-fit:cover;border-radius:10px;background:#f3f5f8" onerror="this.style.display='none'"><div><b>${esc(r.products?.name||'Produto')}</b><div class="rating-stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div></div></div>${r.comment?`<p>${esc(r.comment)}</p>`:'<p class="mut">Avaliação sem comentário.</p>'}<div class="row" style="justify-content:space-between"><span class="mut">${new Date(r.created_at).toLocaleDateString('pt-BR')}</span><button class="ghost" onclick="openReviewForm('${r.order_id}','${r.product_id}')">Editar avaliação</button></div></div>`).join('')||'<div class="card fav-empty"><div style="font-size:42px">⭐</div><h3>Você ainda não avaliou produtos</h3><p class="mut">Depois que um pedido for entregue, a opção de avaliar aparecerá em Meus pedidos.</p></div>';
+}
 
 async function openOrderReviewOptions(orderId){
  if(!currentUser)return;
@@ -1063,7 +1111,7 @@ async function submitReview(){
  if(!currentUser||!currentReviewOrder||!currentReviewProduct)return;
  const p=marketProducts.find(x=>x.id===currentReviewProduct); if(!p)return alert('Produto não encontrado.');
  const {error}=await sb.rpc('submit_product_review',{p_order_id:currentReviewOrder,p_product_id:p.id,p_rating:currentReviewRating,p_comment:document.getElementById('reviewComment').value.trim()||null}); if(error){alert(friendlyError(error));return}
- alert('Avaliação enviada. Obrigada!');closeReviewModal();await loadReviewSummary([p.id]);renderMarketProducts();renderHome();
+ alert('Avaliação enviada. Obrigada!');closeReviewModal();await loadReviewSummary([p.id]);renderMarketProducts();renderHome();if(!document.getElementById('myReviewsPanel').classList.contains('hide'))await showMyReviews();
 }
 
 function ptDayIndex(){
@@ -1114,7 +1162,7 @@ function productCard(x){
  ${x.image_url?`<img src="${esc(x.image_url)}" alt="${esc(x.name)}">`:`<div style="height:155px;border-radius:12px;background:#f8fafc;display:grid;place-items:center;font-size:38px">🛍️</div>`}
  <div class="pname">${esc(x.name)}</div><div class="row" style="justify-content:space-between;align-items:center"><div class="store" style="cursor:pointer" onclick="openStorePage('${x.store_id}')">🏪 ${esc(x.stores?.name||'Loja')}</div><span onclick="openReviews('${x.id}')" style="cursor:pointer">${reviewBadge(x.id)}</span></div>
  ${x.old_price?`<div class="price-old">R$ ${Number(x.old_price).toFixed(2).replace('.',',')}</div>`:''}<div class="price-now">R$ ${Number(x.price).toFixed(2).replace('.',',')}</div>
- <div class="mut">${x.stock} em estoque</div>${deliveryBadge(x.stores)}<div class="actions"><button class="ghost" onclick="openProductModal('${x.id}')">Ver</button><button onclick="addMarketCart('${x.id}')">Adicionar</button></div></div>`;
+ <div class="mut">${x.stock} em estoque</div>${deliveryBadge(x.stores)}<div class="actions"><button class="ghost" onclick="openProductModal('${x.id}')">Ver</button><button onclick="openProductModal('${x.id}')">Escolher</button></div></div>`;
 }
 
 async function openStorePage(storeId){
@@ -1192,13 +1240,21 @@ async function handleBannerAction(encodedType,encodedValue){
 }
 async function loadHomeBanners(){
  const {data,error}=await sb.from('home_banners').select('*').order('position',{ascending:true});
- const el=document.getElementById('dynamicBanners'); if(!el)return;
- if(error||!data?.length){el.innerHTML='';return}
- el.innerHTML=data.map(b=>{
+ const track=document.getElementById('promoTrack'),dots=document.getElementById('promoDots');if(!track||!dots)return;
+ const now=Date.now(),active=error?[]:(data||[]).filter(b=>b.active!==false&&(!b.starts_at||new Date(b.starts_at).getTime()<=now)&&(!b.ends_at||new Date(b.ends_at).getTime()>=now));
+ const banners=active.length?active:[
+  {title:'Compre perto. Receba hoje.',subtitle:'Produtos das lojas da sua região com opções de entrega para hoje.',button_text:'Ver produtos',target_type:'marketplace',target_value:'',theme:'blue',icon:'📦'},
+  {title:'Precisou? Peça pelo Smart Shop.',subtitle:'Encontre produtos e lojas da região em um só lugar.',button_text:'Ver categorias',target_type:'marketplace',target_value:'',theme:'orange',icon:'🛍️'}
+ ];
+ track.innerHTML=banners.map((b,i)=>{
   const style=b.image_url?` style="background-image:url('${esc(b.image_url)}')"`:'';
   const action=`handleBannerAction('${encodeURIComponent(b.target_type||'marketplace')}','${encodeURIComponent(b.target_value||'')}')`;
-  return `<div class="dynamic-banner ${b.image_url?'has-img':''}"${style}><h2>${esc(b.title)}</h2>${b.subtitle?`<p>${esc(b.subtitle)}</p>`:''}${b.button_text&&b.target_type!=='none'?`<div><button onclick="${action}">${esc(b.button_text)}</button></div>`:''}</div>`;
+  return `<div class="promo-slide ${b.image_url?'has-img':(b.theme||['blue','orange','green'][i%3])}"${style} role="group" aria-label="${i+1} de ${banners.length}"><div><div style="opacity:.85;font-size:12px">SMART SHOP • DESTAQUE</div><h1>${esc(b.title)}</h1>${b.subtitle?`<p>${esc(b.subtitle)}</p>`:''}${b.button_text&&b.target_type!=='none'?`<button class="promo-action" onclick="${action}">${esc(b.button_text)}</button>`:''}</div>${b.icon?`<div style="font-size:68px">${b.icon}</div>`:''}</div>`;
  }).join('');
+ smartPromoCount=banners.length;smartPromoIndex=0;
+ dots.innerHTML=banners.map((_,i)=>`<button class="promo-dot ${i===0?'on':''}" aria-label="Mostrar banner ${i+1}" onclick="setSmartPromo(${i})"></button>`).join('');
+ const showControls=banners.length>1;document.getElementById('promoPrev').style.display=showControls?'':'none';document.getElementById('promoNext').style.display=showControls?'':'none';dots.style.display=showControls?'':'none';
+ let touchStart=0;track.ontouchstart=e=>{touchStart=e.changedTouches[0].clientX};track.ontouchend=e=>{const delta=e.changedTouches[0].clientX-touchStart;if(Math.abs(delta)>45)setSmartPromo(smartPromoIndex+(delta<0?1:-1))};
 }
 async function loadBannerAdmin(){
  if(!hasAnyPlatformRole(['master','admin','operations']))return alert('Você não tem permissão para gerenciar banners.');
@@ -1206,7 +1262,7 @@ async function loadBannerAdmin(){
  const {data,error}=await sb.from('home_banners').select('*').order('position',{ascending:true});
  const el=document.getElementById('bannerAdminBody');
  if(error){el.innerHTML='<div class="card">Área restrita ao administrador Master.</div>';return}
- el.innerHTML=`<div class="card"><h3>Novo banner</h3><form onsubmit="createBanner(event)" class="form-grid"><input id="bnTitle" class="wide" placeholder="Título" required><input id="bnSubtitle" class="wide" placeholder="Texto menor"><input id="bnButton" placeholder="Texto do botão" value="Comprar agora"><input id="bnImage" placeholder="URL da imagem (opcional)"><select id="bnType"><option value="marketplace">Abrir marketplace</option><option value="store">Abrir loja</option><option value="category">Abrir categoria</option><option value="none">Sem ação</option></select><input id="bnTarget" placeholder="ID da loja ou categoria"><input id="bnPos" type="number" value="1" min="0" placeholder="Posição"><div><label>Exibir a partir de</label><input id="bnStart" type="datetime-local"></div><div><label>Exibir até</label><input id="bnEnd" type="datetime-local"></div><button class="wide">Criar banner</button></form></div><div class="card"><h3>Banners cadastrados</h3>${(data||[]).map(b=>`<div class="banner-admin-row"><div class="row" style="justify-content:space-between"><b>${esc(b.title)}</b><span class="tag">${b.active?'Ativo':'Inativo'}</span></div><div class="mut">${esc(b.subtitle||'')} • posição ${b.position} • ${b.starts_at?'de '+new Date(b.starts_at).toLocaleString('pt-BR'):'início imediato'}${b.ends_at?' até '+new Date(b.ends_at).toLocaleString('pt-BR'):' • sem data final'}</div><div class="addr-actions"><button class="ghost" onclick="toggleBanner('${b.id}',${!b.active})">${b.active?'Desativar':'Ativar'}</button><button class="ghost" onclick="deleteBanner('${b.id}')">Excluir</button></div></div>`).join('')||'<p class="mut">Nenhum banner cadastrado.</p>'}</div>`;
+ el.innerHTML=`<div class="card"><h3>Novo banner</h3><p class="mut">Os banners ativos aparecem um de cada vez no carrossel da página inicial.</p><form onsubmit="createBanner(event)" class="form-grid"><input id="bnTitle" class="wide" placeholder="Título" required><input id="bnSubtitle" class="wide" placeholder="Texto menor"><input id="bnButton" placeholder="Texto do botão" value="Comprar agora"><input id="bnImage" placeholder="URL da imagem (opcional)"><select id="bnType"><option value="marketplace">Abrir marketplace</option><option value="store">Abrir loja</option><option value="category">Abrir categoria</option><option value="product">Abrir produto</option><option value="coupon">Aplicar cupom</option><option value="campaign">Abrir campanha</option><option value="none">Sem ação</option></select><input id="bnTarget" placeholder="ID, categoria, cupom ou campanha"><input id="bnPos" type="number" value="1" min="0" placeholder="Posição"><div><label>Exibir a partir de</label><input id="bnStart" type="datetime-local"></div><div><label>Exibir até</label><input id="bnEnd" type="datetime-local"></div><button class="wide">Criar banner</button></form></div><div class="card"><h3>Banners cadastrados</h3>${(data||[]).map(b=>`<div class="banner-admin-row"><div class="row" style="justify-content:space-between"><b>${esc(b.title)}</b><span class="tag">${b.active?'Ativo':'Inativo'}</span></div><div class="mut">${esc(b.subtitle||'')} • posição ${b.position} • ${b.starts_at?'de '+new Date(b.starts_at).toLocaleString('pt-BR'):'início imediato'}${b.ends_at?' até '+new Date(b.ends_at).toLocaleString('pt-BR'):' • sem data final'}</div><div class="addr-actions"><button class="ghost" onclick="toggleBanner('${b.id}',${!b.active})">${b.active?'Desativar':'Ativar'}</button><button class="ghost" onclick="deleteBanner('${b.id}')">Excluir</button></div></div>`).join('')||'<p class="mut">Nenhum banner cadastrado.</p>'}</div>`;
 }
 async function createBanner(ev){
  ev.preventDefault(); if(!hasAnyPlatformRole(['master','admin','operations']))return alert('Você não tem permissão para criar banners.');
@@ -1219,7 +1275,7 @@ async function toggleBanner(id,active){ if(!hasAnyPlatformRole(['master','admin'
 async function deleteBanner(id){ if(!hasAnyPlatformRole(['master','admin','operations']))return alert('Você não tem permissão para excluir banners.');if(!confirm('Excluir este banner?'))return;const {error}=await sb.from('home_banners').delete().eq('id',id);if(error){alert(friendlyError(error));return}await loadBannerAdmin()}
 async function showHome(){
  const hb=document.getElementById('heroLoginBtn');if(hb)hb.style.display=currentUser?'none':'';
- await loadHomeBanners();
+ await Promise.all([loadHomeBanners(),loadHomeDeliveryLocation()]);
  const ok=await ensureMarketData();
  if(ok&&marketProducts.length){await loadReviewSummary(marketProducts.map(x=>x.id));await loadGrowthDiscovery();}
  if(currentUser)await loadSyncedFavorites();
@@ -1238,7 +1294,7 @@ function renderHome(){
  const top=marketProducts.slice().sort((a,b)=>Number(productDiscovery[b.id]?.rating_average||0)-Number(productDiscovery[a.id]?.rating_average||0)).filter(x=>Number(productDiscovery[x.id]?.review_count||0)>0).slice(0,8);
  const ht=document.getElementById('homeTopRated');if(ht)ht.innerHTML=(top.length?top:marketProducts.slice(0,4)).map(productCard).join('');
  const newest=marketProducts.slice().sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).slice(0,8),hnew=document.getElementById('homeNewest');if(hnew)hnew.innerHTML=newest.map(productCard).join('');
- const featuredIds=new Set((offers.length?offers:marketProducts.slice(0,4)).map(x=>x.id)),more=marketProducts.filter(x=>!featuredIds.has(x.id)).slice(0,8),hn=document.getElementById('homeNew');if(hn)hn.innerHTML=(more.length?more:marketProducts.slice().reverse().slice(0,4)).map(productCard).join('');
+ const featuredIds=new Set((offers.length?offers:marketProducts.slice(0,4)).map(x=>x.id)),recommended=personalizedProducts().filter(x=>!featuredIds.has(x.id)).slice(0,8),hn=document.getElementById('homeNew');if(hn)hn.innerHTML=(recommended.length?recommended:marketProducts.slice().reverse().slice(0,4)).map(productCard).join('');
  renderDemoStoreShowcase();
 }
 async function showFavorites(){
@@ -1250,6 +1306,17 @@ function renderFavorites(){
 let marketProducts=[],marketCart=[],marketCoupon='',marketCategory='Todos',marketStore='';
 let productDiscovery={},storeQuality={},storeHours={},storeDelivery={};
 let checkoutMethod='smart_partner',checkoutAddressId='';
+const SEARCH_HISTORY_KEY='smartshop_search_history_v1',INTEREST_KEY='smartshop_interests_v1';
+function recentSearches(){try{return JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY)||'[]')}catch{return []}}
+function saveRecentSearch(term){term=String(term||'').trim();if(term.length<2)return;localStorage.setItem(SEARCH_HISTORY_KEY,JSON.stringify([term,...recentSearches().filter(x=>x.toLowerCase()!==term.toLowerCase())].slice(0,6)));renderSearchHistory()}
+function renderSearchHistory(){const el=document.getElementById('marketSearchHistory');if(!el)return;const list=recentSearches();el.innerHTML=list.length?'<span style="color:#fff;font-size:12px;align-self:center">Buscas recentes:</span>'+list.map(x=>`<button onclick="applyRecentSearch(decodeURIComponent('${encodeURIComponent(x)}'))">${esc(x)}</button>`).join(''):''}
+function applyRecentSearch(term){const input=document.getElementById('marketSearch');if(input)input.value=term;renderMarketProducts()}
+function handleMarketSearchKey(event){if(event.key==='Enter'){event.preventDefault();saveRecentSearch(event.currentTarget.value);renderMarketProducts()}}
+async function openMarketplaceSearch(){openView('marketplacePanel');await showMarketplace();setTimeout(()=>document.getElementById('marketSearch')?.focus(),100)}
+function interestData(){try{return JSON.parse(localStorage.getItem(INTEREST_KEY)||'{"products":[],"categories":[]}')}catch{return {products:[],categories:[]}}}
+function rememberInterest(product){if(!product)return;const d=interestData();d.products=[product.id,...(d.products||[]).filter(x=>x!==product.id)].slice(0,20);if(product.category)d.categories=[product.category,...(d.categories||[]).filter(x=>x!==product.category)].slice(0,8);localStorage.setItem(INTEREST_KEY,JSON.stringify(d))}
+function rememberCategoryInterest(category){if(!category||category==='Todos')return;const d=interestData();d.categories=[category,...(d.categories||[]).filter(x=>x!==category)].slice(0,8);localStorage.setItem(INTEREST_KEY,JSON.stringify(d))}
+function personalizedProducts(){const d=interestData(),ids=d.products||[],cats=d.categories||[];return marketProducts.slice().sort((a,b)=>((ids.includes(b.id)?50-ids.indexOf(b.id):0)+(cats.includes(b.category)?20-cats.indexOf(b.category):0))-((ids.includes(a.id)?50-ids.indexOf(a.id):0)+(cats.includes(a.category)?20-cats.indexOf(a.category):0)))}
 
 async function loadGrowthDiscovery(){
  const ids=[...new Set(marketProducts.map(x=>x.store_id))],pids=marketProducts.map(x=>x.id);
@@ -1273,12 +1340,13 @@ async function showMarketplace(){
  const {data,error}=await sb.from('products').select('id,store_id,name,category,description,price,old_price,image_url,stock,created_at,stores(name,delivery_modes,business_hours)').eq('active',true).gt('stock',0).order('created_at',{ascending:false});
  if(error){alert(friendlyError(error));return}
  marketProducts=data||[];
- renderMarketFilters();renderMarketProducts();renderMarketCart();renderHome();
+ renderMarketFilters();renderSearchHistory();renderMarketProducts();renderMarketCart();renderHome();
 }
 function renderMarketFilters(){
  const cats=['Todos',...new Set(marketProducts.map(x=>x.category).filter(Boolean))];
  const c=document.getElementById('marketCategories');
- if(c)c.innerHTML=cats.map(x=>`<button class="market-chip ${marketCategory===x?'on':''}" onclick="marketCategory=decodeURIComponent('${encodeURIComponent(x)}');renderMarketFilters();renderMarketProducts()">${esc(x)}</button>`).join('');
+ const icons=Object.fromEntries(HOME_CATEGORY_SHOWCASE.map(x=>[x.category,x.icon]));
+ if(c)c.innerHTML=cats.map(x=>`<button class="visual-category ${marketCategory===x?'on':''}" onclick="marketCategory=decodeURIComponent('${encodeURIComponent(x)}');if(marketCategory!=='Todos')rememberCategoryInterest(marketCategory);renderMarketFilters();renderMarketProducts()"><span>${x==='Todos'?'🛍️':(icons[x]||'🏷️')}</span><b>${esc(x)}</b></button>`).join('');
  const stores=[...new Map(marketProducts.map(x=>[x.store_id,{id:x.store_id,name:x.stores?.name||'Loja'}])).values()];
  const s=document.getElementById('marketStores');
  if(s)s.innerHTML=`<div class="store-pill" onclick="marketStore='';renderMarketFilters();renderMarketProducts()" style="${!marketStore?'border-color:#0967d8':''}"><b>Todas as lojas</b><span class="mut">Ver tudo</span></div>`+stores.map(x=>`<div class="store-pill" onclick="marketStore='${x.id}';renderMarketFilters();renderMarketProducts()" style="${marketStore===x.id?'border-color:#0967d8;background:#eef5ff':''}"><b>${esc(x.name)}</b><span class="mut">${marketProducts.filter(p=>p.store_id===x.id).length} produtos</span></div>`).join('');
@@ -1293,18 +1361,38 @@ function renderMarketProducts(){
  const el=document.getElementById('marketProducts');if(!el)return;
  el.innerHTML=list.map(productCard).join('')||`<div class="card"><b>${marketCategory!=='Todos'?'Ainda não há produtos em '+esc(marketCategory)+'.':'Nenhum produto encontrado.'}</b><p class="mut">${marketCategory!=='Todos'?'Essa categoria já faz parte do Smart Shop e receberá produtos quando novos lojistas forem aprovados.':'Tente outra busca, categoria ou loja.'}</p><button class="ghost" onclick="marketCategory='Todos';renderMarketFilters();renderMarketProducts()">Ver todos os produtos</button></div>`;
 }
-function openProductModal(id){
+let modalProductId=null,modalVariantId=null,modalImageUrl='';
+async function openProductModal(id){
  const x=marketProducts.find(p=>p.id===id);if(!x)return;
+ const typedSearch=document.getElementById('marketSearch')?.value?.trim();
+ if(typedSearch)saveRecentSearch(typedSearch);
+ rememberInterest(x);
+ const [{data:images},{data:variants}]=await Promise.all([
+  sb.from('product_images').select('id,image_url,position,color_label').eq('product_id',id).order('position'),
+  sb.from('product_variants').select('id,color,size,sku,stock').eq('product_id',id).eq('active',true).order('created_at')
+ ]);
+ const gallery=(images||[]).length?(images||[]):x.image_url?[{image_url:x.image_url,position:0}]:[];
+ modalProductId=id;modalVariantId=null;modalImageUrl=gallery[0]?.image_url||x.image_url||'';
  const b=document.getElementById('productModalBody');
  b.innerHTML=`<div class="row" style="justify-content:space-between"><span class="tag">${esc(x.category||'Produto')}</span><button class="ghost" onclick="closeProductModal()">Fechar</button></div>
- ${x.image_url?`<img src="${esc(x.image_url)}" style="width:100%;height:260px;object-fit:contain;margin:10px 0">`:''}
+ ${modalImageUrl?`<img id="productMainImage" src="${esc(modalImageUrl)}" class="product-main-image">`:''}
+ ${gallery.length>1?`<div class="product-thumbs">${gallery.map((img,i)=>`<button class="${i===0?'on':''}" onclick="selectProductImage('${encodeURIComponent(img.image_url)}',this)"><img src="${esc(img.image_url)}" alt="Foto ${i+1}"></button>`).join('')}</div>`:''}
  <h2>${esc(x.name)}</h2><p class="mut">${esc(x.stores?.name||'Loja')}</p><p>${esc(x.description||'Produto disponível no Smart Shop.')}</p>
  ${x.old_price?`<div class="price-old">R$ ${Number(x.old_price).toFixed(2).replace('.',',')}</div>`:''}<div class="price-now">R$ ${Number(x.price).toFixed(2).replace('.',',')}</div>
- <button style="width:100%" onclick="addMarketCart('${x.id}');closeProductModal()">Adicionar ao carrinho</button>`;
+ ${(variants||[]).length?`<div style="margin-top:14px"><b>Escolha uma opção</b><div class="variant-grid">${variants.map(v=>`<button class="variant-option" ${Number(v.stock)<=0?'disabled':''} onclick="selectProductVariant('${v.id}',this)"><b>${esc([v.color,v.size].filter(Boolean).join(' • '))}</b><br><small>${v.stock>0?v.stock+' disponível(is)':'Esgotado'}</small></button>`).join('')}</div></div>`:''}
+ <button style="width:100%" onclick="addModalProductToCart()">Adicionar ao carrinho</button>`;
  document.getElementById('productModal').classList.remove('hide');
 }
+function selectProductImage(encoded,button){modalImageUrl=decodeURIComponent(encoded);const img=document.getElementById('productMainImage');if(img)img.src=modalImageUrl;document.querySelectorAll('.product-thumbs button').forEach(x=>x.classList.remove('on'));button.classList.add('on')}
+function selectProductVariant(id,button){modalVariantId=id;document.querySelectorAll('.variant-option').forEach(x=>x.classList.remove('on'));button.classList.add('on')}
+async function addModalProductToCart(){
+ const {data:variants}=await sb.from('product_variants').select('id,color,size,sku,stock').eq('product_id',modalProductId).eq('active',true);
+ if(variants?.length&&!modalVariantId)return alert('Escolha a cor, o tamanho ou a numeração antes de continuar.');
+ const variant=(variants||[]).find(v=>v.id===modalVariantId)||null;
+ addMarketCart(modalProductId,variant);closeProductModal();
+}
 function closeProductModal(){document.getElementById('productModal').classList.add('hide')}
-function addMarketCart(id){
+function addMarketCart(id,variant=null){
  if(!currentUser){
    alert('Para adicionar produtos ao carrinho, entre na sua conta ou crie seu cadastro.');
    showAuthCard();
@@ -1315,23 +1403,25 @@ function addMarketCart(id){
    if(!confirm('Cada pedido reúne produtos de uma única loja. Esvaziar o carrinho atual e adicionar este item?'))return;
    marketCart=[];
  }
- const i=marketCart.find(x=>x.id===id);
- if(i){if(i.qty<p.stock)i.qty++;else return alert('Você atingiu o estoque disponível.')}
- else marketCart.push({...p,qty:1});
+ const cartKey=id+':'+(variant?.id||'default'),available=Number(variant?.stock??p.stock);
+ const i=marketCart.find(x=>x.cartKey===cartKey);
+ if(i){if(i.qty<available)i.qty++;else return alert('Você atingiu o estoque disponível.')}
+ else marketCart.push({...p,cartKey,variant_id:variant?.id||null,variant_label:variant?[variant.color,variant.size].filter(Boolean).join(' • '):'',stock:available,qty:1});
  renderMarketCart();
  showMarketToast('Produto adicionado ao carrinho.');
 }
 function marketQty(id,d){
- const i=marketCart.find(x=>x.id===id);if(!i)return;
+ const i=marketCart.find(x=>x.cartKey===id);if(!i)return;
  i.qty=Math.max(0,Math.min(i.stock,i.qty+d));
  marketCart=marketCart.filter(x=>x.qty>0);renderMarketCart();
 }
 function marketSubtotal(){return marketCart.reduce((s,x)=>s+Number(x.price)*x.qty,0)}
 function renderMarketCart(){
  const el=document.getElementById('marketCart');if(!el)return;
- const navBtn=document.getElementById('cartNavBtn'),navCount=document.getElementById('cartNavCount');
+ const navBtn=document.getElementById('cartNavBtn'),navCount=document.getElementById('cartNavCount'),mobileCount=document.getElementById('mobileCartCount');
  const qty=marketCart.reduce((s,x)=>s+x.qty,0);
  if(navCount)navCount.textContent=qty;
+ if(mobileCount){mobileCount.textContent=qty;mobileCount.style.display=qty?'block':'none'}
  if(navBtn)navBtn.classList.toggle('hide',qty===0);
  if(!marketCart.length){el.innerHTML='';return}
  const sub=marketSubtotal();
@@ -1346,23 +1436,23 @@ function showMarketToast(text){
 }
 async function openMarketCheckout(){
  if(!currentUser){alert('Para finalizar a compra, entre na sua conta ou crie seu cadastro.');showAuthCard();return}
- if(!marketCart.length)return;
+ if(!marketCart.length){showMarketToast('Seu carrinho está vazio.');return}
  const {data:addrs,error}=await sb.from('addresses').select('*').order('is_default',{ascending:false});
  if(error){alert(friendlyError(error));return}
  if(!addrs?.length){alert('Cadastre um endereço antes de finalizar o pedido.');return}
  if(!checkoutAddressId||!addrs.some(a=>a.id===checkoutAddressId))checkoutAddressId=addrs[0].id;
  const cartStore=marketCart[0]?.stores||{},enabledModes=Array.isArray(cartStore.delivery_modes)&&cartStore.delivery_modes.length?cartStore.delivery_modes:['pickup','smart_partner'];
  if(!enabledModes.includes(checkoutMethod))checkoutMethod=enabledModes[0]||'pickup';
- const items=marketCart.map(x=>({product_id:x.id,quantity:x.qty}));
- const {data:q,error:qe}=await sb.rpc('quote_checkout',{p_store_id:marketCart[0].store_id,p_items:items,p_delivery_method:checkoutMethod,p_coupon_code:marketCoupon||null});
+ const items=marketCart.map(x=>({product_id:x.id,variant_id:x.variant_id,quantity:x.qty}));
+ const {data:q,error:qe}=await sb.rpc('quote_checkout_v2',{p_store_id:marketCart[0].store_id,p_items:items,p_delivery_method:checkoutMethod,p_coupon_code:marketCoupon||null});
  const quote=Array.isArray(q)?q[0]:q;
  let quoteError=qe?friendlyError(qe):null;
  if(qe&&marketCoupon){marketCoupon='';}
  const sub=Number(quote?.product_subtotal??marketSubtotal()),discount=Number(quote?.discount_amount||0),freight=Number(quote?.freight_amount||0),total=Number(quote?.total_amount??(sub+freight));
  document.getElementById('checkoutBody').innerHTML=`
- <div class="checkout-box"><b>Itens</b>${marketCart.map(x=>`<div class="cart-line"><div>${esc(x.name)}<div class="mut">${money(x.price)} cada</div></div><div class="qty"><button class="ghost" onclick="marketQty('${x.id}',-1);openMarketCheckout()">−</button><b>${x.qty}</b><button class="ghost" onclick="marketQty('${x.id}',1);openMarketCheckout()">+</button></div></div>`).join('')}</div>
+ <div class="checkout-box"><b>Itens</b>${marketCart.map(x=>`<div class="cart-line"><div>${esc(x.name)}${x.variant_label?`<div class="tag">${esc(x.variant_label)}</div>`:''}<div class="mut">${money(x.price)} cada</div></div><div class="qty"><button class="ghost" onclick="marketQty('${x.cartKey}',-1);openMarketCheckout()">−</button><b>${x.qty}</b><button class="ghost" onclick="marketQty('${x.cartKey}',1);openMarketCheckout()">+</button></div></div>`).join('')}</div>
  <div class="checkout-box"><b>Endereço</b>${addrs.map(a=>`<label class="option-card ${checkoutAddressId===a.id?'on':''}"><input type="radio" name="marketAddr" value="${a.id}" ${checkoutAddressId===a.id?'checked':''} onchange="checkoutAddressId=this.value;openMarketCheckout()"> ${esc(a.street)}, ${esc(a.number)} - ${esc(a.district)}<div class="mut">${esc(a.city)} / ${esc(a.state)}</div></label>`).join('')}</div>
- <div class="checkout-box"><b>Recebimento</b>${enabledModes.length===1?`<div class="mut" style="margin:6px 0">Esta loja oferece uma única forma de recebimento.</div>`:''}${[['pickup','Retirar na loja'],['store_delivery','Entrega da loja'],['smart_partner','Parceiro Smart Shop']].filter(x=>enabledModes.includes(x[0])).map(x=>`<div class="option-card ${checkoutMethod===x[0]?'on':''}" onclick="checkoutMethod='${x[0]}';openMarketCheckout()"><b>${x[1]}</b></div>`).join('')}</div>
+ <div class="checkout-box"><b>Recebimento</b>${enabledModes.length===1?`<div class="mut" style="margin:6px 0">Esta loja oferece uma única forma de recebimento.</div>`:''}${[['pickup','Retirar na loja','Você busca o pedido no estabelecimento.'],['store_delivery','Entrega feita pela loja','A própria loja utiliza seu entregador.'],['smart_partner','Parceiro Smart Shop','Entrega realizada por um entregador parceiro Smart Shop.']].filter(x=>enabledModes.includes(x[0])).map(x=>`<div class="option-card ${checkoutMethod===x[0]?'on':''}" onclick="checkoutMethod='${x[0]}';openMarketCheckout()"><b>${x[1]}</b><div class="mut" style="margin-top:4px">${x[2]}</div></div>`).join('')}</div>
  <div class="checkout-box"><b>Cupom</b><div class="row"><input id="marketCoupon" placeholder="Ex.: SMART10" value="${esc(marketCoupon)}" style="flex:1"><button class="ghost" onclick="marketCoupon=document.getElementById('marketCoupon').value.trim();openMarketCheckout()">Aplicar</button></div>${quoteError?`<div class="msg err">${esc(quoteError)}</div>`:marketCoupon&&quote?.coupon_code?`<div class="msg">Cupom ${esc(quote.coupon_code)} aplicado.</div>`:''}</div>
  <div class="checkout-box"><div class="row" style="justify-content:space-between"><span>Produtos</span><b>${money(sub)}</b></div>${discount>0?`<div class="row" style="justify-content:space-between;margin-top:8px"><span>Desconto</span><b>− ${money(discount)}</b></div>`:''}<div class="row" style="justify-content:space-between;margin-top:8px"><span>Frete</span><b>${freight>0?money(freight):'Grátis'}</b></div><hr><div class="row" style="justify-content:space-between;font-size:18px"><b>Total</b><b>${money(total)}</b></div><button id="checkoutConfirmBtn" style="width:100%;margin-top:14px" onclick="finishMarketCheckout()" ${qe?'disabled':''}>Confirmar pedido</button><p class="mut" style="margin-bottom:0">Pagamento permanece simulado nesta fase de testes.</p></div>`;
  document.getElementById('checkoutModal').classList.remove('hide');
@@ -1380,10 +1470,13 @@ async function finishMarketCheckout(){
  if(addrErr||!addr)return alert('O endereço selecionado não está mais disponível. Escolha um endereço novamente.');
 
  marketCoupon=(document.getElementById('marketCoupon')?.value||marketCoupon||'').trim();
- const {data,error:e}=await sb.rpc('create_checkout_order',{p_store_id:marketCart[0].store_id,p_items:marketCart.map(x=>({product_id:x.id,quantity:x.qty})),p_address_id:checkoutAddressId,p_delivery_method:checkoutMethod,p_coupon_code:marketCoupon||null,p_checkout_token:(activeCheckoutToken||(activeCheckoutToken=(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random())))});
+ const {data,error:e}=await sb.rpc('create_checkout_order_v2',{p_store_id:marketCart[0].store_id,p_items:marketCart.map(x=>({product_id:x.id,variant_id:x.variant_id,quantity:x.qty})),p_address_id:checkoutAddressId,p_delivery_method:checkoutMethod,p_coupon_code:marketCoupon||null,p_checkout_token:(activeCheckoutToken||(activeCheckoutToken=(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random())))});
  if(e){
    let m=e.message||'Não foi possível criar o pedido.';
    if(m.includes('insufficient stock'))m='Um produto ficou sem estoque suficiente.';
+   if(m.includes('insufficient variant stock'))m='O tamanho ou a cor escolhida ficou sem estoque suficiente.';
+   if(m.includes('variant unavailable'))m='O tamanho ou a cor escolhida não está mais disponível.';
+   if(m.includes('variant required'))m='Escolha o tamanho, a numeração ou a cor do produto.';
    if(m.includes('invalid coupon'))m='Cupom inválido ou vencido.';
    if(m.includes('coupon already used'))m='Este cupom já foi utilizado nesta conta.';
    if(m.includes('delivery method unavailable for this store'))m='Esta forma de entrega não está disponível para esta loja.';
@@ -1456,7 +1549,7 @@ async function loadCustomerOrders(){
  const b=document.getElementById('customerOrdersBody');
  const {data:o,error}=await sb.from('orders').select('id,order_number,status_code,total_amount,product_subtotal,discount_amount,freight_amount,delivery_method,created_at').eq('user_id',currentUser.id).order('created_at',{ascending:false});
  if(error){b.textContent=error.message;return}
- b.innerHTML=(o||[]).map(x=>`<div class="card"><b>${esc(x.order_number)}</b><p><span class="tag">${esc(STATUS_LABEL[x.status_code]||x.status_code)}</span> <span class="mut">• ${esc({pickup:'Retirada na loja',store_delivery:'Entrega da loja',smart_partner:'Entregador Smart Shop'}[x.delivery_method]||x.delivery_method||'')}</span></p><div class="order-values"><span>Produtos: <b>${money(x.product_subtotal||0)}</b></span>${Number(x.discount_amount||0)>0?`<span>Desconto: <b>− ${money(x.discount_amount)}</b></span>`:''}<span>Frete: <b>${Number(x.freight_amount||0)>0?money(x.freight_amount):'Grátis'}</b></span><span>Total: <b>${money(x.total_amount||0)}</b></span></div><p class="mut" style="line-height:1.8">${esc(statusProgress(x.status_code))}</p>
+ b.innerHTML=(o||[]).map(x=>`<div class="card"><b>${esc(x.order_number)}</b><p><span class="tag">${esc(STATUS_LABEL[x.status_code]||x.status_code)}</span> <span class="mut">• ${esc({pickup:'Retirada na loja',store_delivery:'Entrega da loja',smart_partner:'Entregador Smart Shop'}[x.delivery_method]||x.delivery_method||'')}</span></p><div class="order-values"><span>Produtos: <b>${money(x.product_subtotal||0)}</b></span>${Number(x.discount_amount||0)>0?`<span>Desconto: <b>− ${money(x.discount_amount)}</b></span>`:''}<span>Frete: <b>${Number(x.freight_amount||0)>0?money(x.freight_amount):'Grátis'}</b></span><span>Total: <b>${money(x.total_amount||0)}</b></span></div>${statusProgress(x.status_code)}
  ${x.status_code==='out_for_delivery'&&x.delivery_method==='smart_partner'?`<button onclick="showVerificationCode('${x.id}','delivery')">Ver código de entrega</button><div class="mut" style="margin-top:6px">Só informe o código depois de receber o pedido em mãos.</div>`:''}
  ${['awaiting_payment','paid','preparing','ready','awaiting_courier'].includes(x.status_code)?`<button class="bad" onclick="createOrderIssue('${x.id}','cancel_request')">Solicitar cancelamento</button>`:''}
  <button onclick="buyAgain('${x.id}')">🛒 Comprar novamente</button> ${x.status_code==='delivered'?`<button onclick="openOrderReviewOptions('${x.id}')">⭐ Avaliar produtos</button><button onclick="createOrderIssue('${x.id}','return_request')">Solicitar devolução</button>`:''}
@@ -1531,7 +1624,8 @@ function statusProgress(status){
  const steps=['paid','preparing','ready','courier_assigned','picked_up','out_for_delivery','delivered'];
  const labels=['Confirmado','Preparando','Pronto','Entregador','Coletado','A caminho','Entregue'];
  let idx=steps.indexOf(status);if(status==='awaiting_courier')idx=2;
- return labels.map((l,i)=>`${i<=idx?'✓':'○'} ${l}`).join('  ›  ');
+ if(idx<0)idx=0;
+ return `<div class="order-progress">${labels.map((l,i)=>`${i?'<span class="progress-arrow">›</span>':''}<span class="progress-step ${i<idx?'done':i===idx?'current':''}">${i<idx?'✓':i===idx?'●':'○'} ${l}</span>`).join('')}</div>`;
 }
 async function loadMaster(){
  const body=document.getElementById('masterBody');
@@ -1702,9 +1796,9 @@ function esc(v){return String(v??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&l
  await showHome(); openView('homePanel');
 })();
 
-let smartPromoIndex=0;
-function setSmartPromo(i){const t=document.getElementById('promoTrack');const dots=document.querySelectorAll('#promoDots .promo-dot');if(!t)return;smartPromoIndex=(i+3)%3;t.style.transform=`translateX(-${smartPromoIndex*100}%)`;dots.forEach((d,n)=>d.classList.toggle('on',n===smartPromoIndex));}
-setInterval(()=>{if(document.getElementById('homePanel')&&!document.getElementById('homePanel').classList.contains('hide'))setSmartPromo(smartPromoIndex+1)},5500);
+let smartPromoIndex=0,smartPromoCount=0;
+function setSmartPromo(i){const t=document.getElementById('promoTrack'),dots=document.querySelectorAll('#promoDots .promo-dot');if(!t||!smartPromoCount)return;smartPromoIndex=(i+smartPromoCount)%smartPromoCount;t.style.transform=`translateX(-${smartPromoIndex*100}%)`;dots.forEach((d,n)=>d.classList.toggle('on',n===smartPromoIndex));}
+setInterval(()=>{if(smartPromoCount>1&&document.getElementById('homePanel')&&!document.getElementById('homePanel').classList.contains('hide'))setSmartPromo(smartPromoIndex+1)},5500);
 </script>
 
 

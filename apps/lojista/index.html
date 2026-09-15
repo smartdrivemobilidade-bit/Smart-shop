@@ -12,10 +12,14 @@
 <label>Categoria<input id="mpCategory"></label>
 <label>Preço (R$) *<input id="mpPrice" type="number" min="0" step="0.01" required></label>
 <label>Preço anterior (R$)<input id="mpOldPrice" type="number" min="0" step="0.01"></label>
-<label>Estoque *<input id="mpStock" type="number" min="0" step="1" required></label>
+<label>Estoque geral *<input id="mpStock" type="number" min="0" step="1" required><span class="mut">Usado quando o produto não possui variações.</span></label>
 <label class="wide">Descrição<textarea id="mpDescription" rows="3"></textarea></label>
-<label class="wide">Foto do produto<input id="mpImageFile" type="file" accept="image/jpeg,image/png,image/webp"><span class="mut">JPG, PNG ou WEBP, até 5 MB.</span></label>
+<label class="wide">Fotos do produto<input id="mpImageFile" type="file" multiple accept="image/jpeg,image/png,image/webp"><span class="mut">Até 8 fotos. JPG, PNG ou WEBP, no máximo 5 MB cada.</span></label>
 <div id="mpImagePreview" class="wide"></div>
+<label class="wide">Tamanhos, cores ou numerações
+ <textarea id="mpVariants" rows="5" placeholder="Preto | P | 5 | CAM-PRE-P&#10;Preto | M | 8 | CAM-PRE-M&#10;Branco | 36 | 3 | TEN-BRA-36"></textarea>
+ <span class="mut">Uma opção por linha: Cor | Tamanho/numeração | Estoque | Código opcional. Deixe vazio se o produto não tiver opções.</span>
+</label>
 <label><input id="mpActive" type="checkbox" checked> Produto ativo</label>
 <button class="wide" id="mpSaveBtn">Salvar produto</button>
 </form></div></div>
@@ -30,6 +34,7 @@ label{display:block;font-size:12px;font-weight:700;margin:9px 0 5px}input,select
 button{border:0;border-radius:9px;padding:10px 14px;background:var(--b);color:#fff;font-weight:700;cursor:pointer}.alt{background:var(--o)}.ghost{background:#eef3f8;color:var(--ink)}.bad{background:#fee4e2;color:var(--bad)}
 .row{display:flex;gap:8px;flex-wrap:wrap}.mut{color:var(--mut);font-size:13px}.tag{display:inline-block;background:#eef5ff;color:var(--b);padding:5px 9px;border-radius:14px;font-size:12px;font-weight:700}
 .hide{display:none}.msg{padding:11px;border-radius:9px;margin:10px 0;background:#eef8f1;color:#166534}.err{background:#fff0f0;color:#991b1b}
+.product-gallery-admin{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px}.product-gallery-admin div{border:1px solid var(--line);border-radius:12px;padding:7px}.product-gallery-admin img{width:100%;height:90px;object-fit:contain;border-radius:8px}.product-gallery-admin button{width:100%;padding:7px;margin-top:5px}
 nav{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px}nav button{background:#fff;color:var(--ink);border:1px solid var(--line)}nav button.on{background:var(--b);color:#fff}
 table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}
 @media(max-width:760px){.grid,.grid3{grid-template-columns:1fr}.wrap{padding:12px}}
@@ -633,7 +638,8 @@ async function loadMerchantProducts(storeId){
  if(error){el.textContent=friendlyError(error);return}
  el.innerHTML=(data||[]).map(p=>`<div class="product-admin-row"><div class="row">${p.image_url?`<img src="${esc(p.image_url)}" class="product-admin-thumb">`:''}<div><b>${esc(p.name)}</b><div class="mut">${esc(p.category||'Sem categoria')} • ${money(p.price)} • Estoque ${Number(p.stock||0)} • ${p.active?'Ativo':'Pausado'}</div></div></div><div class="row"><button class="ghost" onclick='openMerchantProductForm("${storeId}",${JSON.stringify(p).replace(/'/g,"&#39;")})'>Editar</button><button class="ghost" onclick="toggleMerchantProduct('${p.id}',${!p.active},'${storeId}')">${p.active?'Pausar':'Ativar'}</button></div></div>`).join('')||'<p class="mut">Nenhum produto cadastrado.</p>';
 }
-function openMerchantProductForm(storeId,p=null){
+let merchantProductImages=[];
+async function openMerchantProductForm(storeId,p=null){
  document.getElementById('mpStoreId').value=storeId;
  document.getElementById('mpProductId').value=p?.id||'';
  document.getElementById('mpCurrentImage').value=p?.image_url||'';
@@ -645,9 +651,31 @@ function openMerchantProductForm(storeId,p=null){
  document.getElementById('mpDescription').value=p?.description||'';
  document.getElementById('mpActive').checked=p?.active??true;
  document.getElementById('mpImageFile').value='';
- document.getElementById('mpImagePreview').innerHTML=p?.image_url?`<img src="${esc(p.image_url)}" style="max-width:150px;max-height:150px;border-radius:12px;object-fit:cover">`:'';
+ document.getElementById('mpVariants').value='';
+ merchantProductImages=[];
+ if(p?.id){
+  const [{data:images},{data:variants}]=await Promise.all([
+   sb.from('product_images').select('id,image_url,position,color_label').eq('product_id',p.id).order('position'),
+   sb.from('product_variants').select('color,size,stock,sku').eq('product_id',p.id).order('created_at')
+  ]);
+  merchantProductImages=images||[];
+  document.getElementById('mpVariants').value=(variants||[]).map(v=>`${v.color||''} | ${v.size||''} | ${v.stock||0} | ${v.sku||''}`).join('\n');
+ }
+ renderMerchantProductImages(p?.image_url||'');
  document.getElementById('merchantProductTitle').textContent=p?'Editar produto':'Novo produto';
  document.getElementById('merchantProductModal').classList.remove('hide');
+}
+function renderMerchantProductImages(fallback=''){
+ const el=document.getElementById('mpImagePreview');if(!el)return;
+ const rows=merchantProductImages.length?merchantProductImages:(fallback?[{id:'',image_url:fallback,position:0}]:[]);
+ el.innerHTML=rows.length?`<div class="product-gallery-admin">${rows.map((x,i)=>`<div><img src="${esc(x.image_url)}" alt="Foto ${i+1}"><small>${i===0?'Foto principal':'Foto '+(i+1)}</small>${x.id?`<button type="button" class="bad" onclick="removeMerchantGalleryImage('${x.id}','${encodeURIComponent(x.image_url)}')">Excluir</button>`:''}</div>`).join('')}</div>`:'';
+}
+async function removeMerchantGalleryImage(id,encodedUrl){
+ if(!confirm('Excluir esta foto do produto?'))return;
+ const url=decodeURIComponent(encodedUrl),{error}=await sb.from('product_images').delete().eq('id',id);if(error)return alert(friendlyError(error));
+ await removeProductImageByUrl(url);merchantProductImages=merchantProductImages.filter(x=>x.id!==id);
+ for(let i=0;i<merchantProductImages.length;i++)await sb.from('product_images').update({position:i}).eq('id',merchantProductImages[i].id);
+ renderMerchantProductImages();
 }
 function closeMerchantProductModal(){document.getElementById('merchantProductModal').classList.add('hide')}
 function productImagePathFromUrl(url){
@@ -687,13 +715,26 @@ async function submitMerchantProduct(ev){
   if(!Number.isFinite(price)||price<=0)throw new Error('Informe um preço maior que zero.');
   if(oldPrice!==null&&(!Number.isFinite(oldPrice)||oldPrice<=price))throw new Error('O preço anterior deve ser maior que o preço atual.');
   if(!Number.isInteger(stock)||stock<0)throw new Error('Informe um estoque válido.');
-  const file=document.getElementById('mpImageFile').files[0];
-  if(file){uploaded=await uploadProductImage(storeId,file);row.image_url=uploaded.url}
+  const files=[...document.getElementById('mpImageFile').files];
+  if(merchantProductImages.length+files.length>8)throw new Error('O produto pode ter no máximo 8 fotos.');
+  if(files[0]){uploaded=await uploadProductImage(storeId,files[0]);row.image_url=merchantProductImages[0]?.image_url||uploaded.url}
   let error;
+  let productId=id;
   if(id)({error}=await sb.from('products').update(row).eq('id',id).eq('store_id',storeId));
-  else ({error}=await sb.from('products').insert({...row,store_id:storeId}));
+  else {const result=await sb.from('products').insert({...row,store_id:storeId}).select('id').single();error=result.error;productId=result.data?.id}
   if(error)throw error;
-  if(file&&previousImage&&previousImage!==row.image_url)await removeProductImageByUrl(previousImage);
+  let nextPosition=merchantProductImages.length;
+  for(let i=0;i<files.length;i++){
+   const up=i===0&&uploaded?uploaded:await uploadProductImage(storeId,files[i]);
+   const ins=await sb.from('product_images').insert({product_id:productId,store_id:storeId,image_url:up.url,position:nextPosition++});
+   if(ins.error)throw ins.error;
+  }
+  const variantLines=document.getElementById('mpVariants').value.split('\n').map(x=>x.trim()).filter(Boolean);
+  const variants=variantLines.map((line,index)=>{const parts=line.split('|').map(x=>x.trim()),qty=Number(parts[2]);if(!parts[0]&&!parts[1])throw new Error(`Informe cor ou tamanho na linha ${index+1}.`);if(!Number.isInteger(qty)||qty<0)throw new Error(`Estoque inválido na linha ${index+1}.`);return {product_id:productId,store_id:storeId,color:parts[0]||null,size:parts[1]||null,stock:qty,sku:parts[3]||null,active:true}});
+  const del=await sb.from('product_variants').delete().eq('product_id',productId).eq('store_id',storeId);if(del.error)throw del.error;
+  if(variants.length){const ins=await sb.from('product_variants').insert(variants);if(ins.error)throw ins.error}
+  else {const reset=await sb.from('products').update({stock}).eq('id',productId).eq('store_id',storeId);if(reset.error)throw reset.error}
+  if(!merchantProductImages.length&&files.length&&row.image_url!==previousImage&&previousImage)await removeProductImageByUrl(previousImage);
   closeMerchantProductModal();alert(id?'Produto atualizado.':'Produto cadastrado.');
   await loadMerchantProducts(storeId);await showHome();
  }catch(e){
@@ -1244,7 +1285,7 @@ async function openMarketCheckout(){
  document.getElementById('checkoutBody').innerHTML=`
  <div class="checkout-box"><b>Itens</b>${marketCart.map(x=>`<div class="cart-line"><div>${esc(x.name)}<div class="mut">${money(x.price)} cada</div></div><div class="qty"><button class="ghost" onclick="marketQty('${x.id}',-1);openMarketCheckout()">−</button><b>${x.qty}</b><button class="ghost" onclick="marketQty('${x.id}',1);openMarketCheckout()">+</button></div></div>`).join('')}</div>
  <div class="checkout-box"><b>Endereço</b>${addrs.map(a=>`<label class="option-card ${checkoutAddressId===a.id?'on':''}"><input type="radio" name="marketAddr" value="${a.id}" ${checkoutAddressId===a.id?'checked':''} onchange="checkoutAddressId=this.value;openMarketCheckout()"> ${esc(a.street)}, ${esc(a.number)} - ${esc(a.district)}<div class="mut">${esc(a.city)} / ${esc(a.state)}</div></label>`).join('')}</div>
- <div class="checkout-box"><b>Recebimento</b>${enabledModes.length===1?`<div class="mut" style="margin:6px 0">Esta loja oferece uma única forma de recebimento.</div>`:''}${[['pickup','Retirar na loja'],['store_delivery','Entrega da loja'],['smart_partner','Parceiro Smart Shop']].filter(x=>enabledModes.includes(x[0])).map(x=>`<div class="option-card ${checkoutMethod===x[0]?'on':''}" onclick="checkoutMethod='${x[0]}';openMarketCheckout()"><b>${x[1]}</b></div>`).join('')}</div>
+ <div class="checkout-box"><b>Recebimento</b>${enabledModes.length===1?`<div class="mut" style="margin:6px 0">Esta loja oferece uma única forma de recebimento.</div>`:''}${[['pickup','Retirar na loja','Você busca o pedido no estabelecimento.'],['store_delivery','Entrega feita pela loja','A própria loja utiliza seu entregador.'],['smart_partner','Parceiro Smart Shop','Entrega realizada por um entregador parceiro Smart Shop.']].filter(x=>enabledModes.includes(x[0])).map(x=>`<div class="option-card ${checkoutMethod===x[0]?'on':''}" onclick="checkoutMethod='${x[0]}';openMarketCheckout()"><b>${x[1]}</b><div class="mut" style="margin-top:4px">${x[2]}</div></div>`).join('')}</div>
  <div class="checkout-box"><b>Cupom</b><div class="row"><input id="marketCoupon" placeholder="Ex.: SMART10" value="${esc(marketCoupon)}" style="flex:1"><button class="ghost" onclick="marketCoupon=document.getElementById('marketCoupon').value.trim();openMarketCheckout()">Aplicar</button></div>${quoteError?`<div class="msg err">${esc(quoteError)}</div>`:marketCoupon&&quote?.coupon_code?`<div class="msg">Cupom ${esc(quote.coupon_code)} aplicado.</div>`:''}</div>
  <div class="checkout-box"><div class="row" style="justify-content:space-between"><span>Produtos</span><b>${money(sub)}</b></div>${discount>0?`<div class="row" style="justify-content:space-between;margin-top:8px"><span>Desconto</span><b>− ${money(discount)}</b></div>`:''}<div class="row" style="justify-content:space-between;margin-top:8px"><span>Frete</span><b>${freight>0?money(freight):'Grátis'}</b></div><hr><div class="row" style="justify-content:space-between;font-size:18px"><b>Total</b><b>${money(total)}</b></div><button id="checkoutConfirmBtn" style="width:100%;margin-top:14px" onclick="finishMarketCheckout()" ${qe?'disabled':''}>Confirmar pedido</button><p class="mut" style="margin-bottom:0">Pagamento permanece simulado nesta fase de testes.</p></div>`;
  document.getElementById('checkoutModal').classList.remove('hide');

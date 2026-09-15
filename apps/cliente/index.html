@@ -1336,7 +1336,9 @@ function storeOpenNow(storeId){
 function storePublicCard(x){
  const q=storeQuality[x.id]||{},open=storeOpenNow(x.id);return '<div class="store-pill" onclick="openStorePage(\''+x.id+'\')"><b>'+esc(x.name)+'</b><span class="mut">'+(open?'🟢 Aberta agora':'⚪ Fechada agora')+(Number(q.review_count)?' • ★ '+Number(q.rating_average).toFixed(1):'')+'</span>'+(q.highlight_eligible?'<span class="tag">🏅 Loja Destaque</span>':'')+deliveryBadge(x)+'</div>';
 }
-async function showMarketplace(){
+async function showMarketplace(category=null){
+ if(typeof category==='string'&&category){marketCategory=category;marketStore='';rememberCategoryInterest(category)}
+ openView('marketplacePanel');
  const {data,error}=await sb.from('products').select('id,store_id,name,category,description,price,old_price,image_url,stock,created_at,stores(name,delivery_modes,business_hours)').eq('active',true).gt('stock',0).order('created_at',{ascending:false});
  if(error){alert(friendlyError(error));return}
  marketProducts=data||[];

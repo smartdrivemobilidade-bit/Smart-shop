@@ -5,24 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Smart Shop V4 • Marketplace</title>
 
-<div id="merchantProductModal" class="modal hide"><div class="modal-card"><div class="section-title"><h2 id="merchantProductTitle">Produto</h2><button class="ghost" onclick="closeMerchantProductModal()">Fechar</button></div>
-<form id="merchantProductForm" class="form-grid" onsubmit="submitMerchantProduct(event)">
-<input type="hidden" id="mpStoreId"><input type="hidden" id="mpProductId"><input type="hidden" id="mpCurrentImage">
-<label class="wide">Nome *<input id="mpName" required></label>
-<label>Categoria<input id="mpCategory"></label>
-<label>Preço (R$) *<input id="mpPrice" type="number" min="0" step="0.01" required></label>
-<label>Preço anterior (R$)<input id="mpOldPrice" type="number" min="0" step="0.01"></label>
-<label>Estoque geral *<input id="mpStock" type="number" min="0" step="1" required><span class="mut">Usado quando o produto não possui variações.</span></label>
-<label class="wide">Descrição<textarea id="mpDescription" rows="3"></textarea></label>
-<label class="wide">Fotos do produto<input id="mpImageFile" type="file" multiple accept="image/jpeg,image/png,image/webp"><span class="mut">Até 8 fotos. JPG, PNG ou WEBP, no máximo 5 MB cada.</span></label>
-<div id="mpImagePreview" class="wide"></div>
-<label class="wide">Tamanhos, cores ou numerações
- <textarea id="mpVariants" rows="5" placeholder="Preto | P | 5 | CAM-PRE-P&#10;Preto | M | 8 | CAM-PRE-M&#10;Branco | 36 | 3 | TEN-BRA-36"></textarea>
- <span class="mut">Uma opção por linha: Cor | Tamanho/numeração | Estoque | Código opcional. Deixe vazio se o produto não tiver opções.</span>
-</label>
-<label><input id="mpActive" type="checkbox" checked> Produto ativo</label>
-<button class="wide" id="mpSaveBtn">Salvar produto</button>
-</form></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--b:#0967d8;--o:#ff7a00;--bg:#f4f7fb;--ink:#172033;--mut:#687386;--line:#dfe6ef;--ok:#15803d;--bad:#b42318}
@@ -1617,6 +1599,28 @@ function esc(v){return String(v??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&l
 
 <div id="reviewModal" class="modal-bg hide">
  <div class="modal-card"><button class="ghost" style="float:right" onclick="closeReviewModal()">✕</button><div id="reviewModalBody"></div></div>
+</div>
+<div id="merchantProductModal" class="modal-bg hide" onclick="if(event.target===this)closeMerchantProductModal()">
+ <div class="modal-card">
+  <div class="section-title"><h2 id="merchantProductTitle">Produto</h2><button class="ghost" onclick="closeMerchantProductModal()">Fechar</button></div>
+  <form id="merchantProductForm" class="form-grid" onsubmit="submitMerchantProduct(event)">
+   <input type="hidden" id="mpStoreId"><input type="hidden" id="mpProductId"><input type="hidden" id="mpCurrentImage">
+   <label class="wide">Nome *<input id="mpName" required></label>
+   <label>Categoria<input id="mpCategory"></label>
+   <label>Preço (R$) *<input id="mpPrice" type="number" min="0" step="0.01" required></label>
+   <label>Preço anterior (R$)<input id="mpOldPrice" type="number" min="0" step="0.01"></label>
+   <label>Estoque geral *<input id="mpStock" type="number" min="0" step="1" required><span class="mut">Usado quando o produto não possui variações.</span></label>
+   <label class="wide">Descrição<textarea id="mpDescription" rows="3"></textarea></label>
+   <label class="wide">Fotos do produto<input id="mpImageFile" type="file" multiple accept="image/jpeg,image/png,image/webp"><span class="mut">Até 8 fotos. JPG, PNG ou WEBP, no máximo 5 MB cada.</span></label>
+   <div id="mpImagePreview" class="wide"></div>
+   <label class="wide">Tamanhos, cores ou numerações
+    <textarea id="mpVariants" rows="5" placeholder="Preto | P | 5 | CAM-PRE-P&#10;Preto | M | 8 | CAM-PRE-M&#10;Branco | 36 | 3 | TEN-BRA-36"></textarea>
+    <span class="mut">Uma opção por linha: Cor | Tamanho/numeração | Estoque | Código opcional. Deixe vazio se o produto não tiver opções.</span>
+   </label>
+   <label><input id="mpActive" type="checkbox" checked> Produto ativo</label>
+   <button class="wide" id="mpSaveBtn">Salvar produto</button>
+  </form>
+ </div>
 </div>
 <div id="orderSuccessModal" class="modal-bg hide">
  <div class="modal-card"><div id="orderSuccessBody"></div></div>

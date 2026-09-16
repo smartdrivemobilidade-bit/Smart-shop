@@ -86,6 +86,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 .account-hero{background:linear-gradient(135deg,#0967d8,#0755b5);color:#fff;border-radius:20px;padding:20px;margin-bottom:14px}
 .account-menu{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.account-menu button{background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:left}
 .profile-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px}
+.menu-section{background:#fff;border:1px solid var(--line);border-radius:18px;margin-bottom:14px;overflow:hidden}.menu-row{width:100%;display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;background:#fff!important;color:var(--ink)!important;border:0!important;border-bottom:1px solid #e7edf5!important;border-radius:0!important;padding:15px 16px!important;text-align:left;font-size:15px}.menu-row:last-child{border-bottom:0!important}.menu-row .menu-icon{font-size:21px;color:var(--o);text-align:center}.menu-row .menu-arrow{font-size:24px;color:#8a96a6;font-weight:400}.menu-row:hover{background:#f7faff!important}.menu-profile{margin-bottom:14px}.menu-profile summary{cursor:pointer;font-weight:800;color:var(--b)}
 @media(max-width:700px){.account-menu{grid-template-columns:1fr 1fr}}
 
 
@@ -156,7 +157,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 .search-history{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}.search-history button{background:#fff;color:var(--ink);border:1px solid var(--line);padding:7px 10px}.visual-categories{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px}.visual-category{background:#fff!important;color:var(--ink)!important;border:1px solid var(--line)!important;min-height:92px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px}.visual-category span{font-size:28px}.visual-category.on{border-color:var(--b)!important;background:#eef5ff!important;color:var(--b)!important}
 .merchant-steps{display:flex;gap:6px;margin:12px 0 18px}.merchant-step-dot{flex:1;height:7px;background:#dfe6ef;border-radius:99px}.merchant-step-dot.on,.merchant-step-dot.done{background:var(--b)}.merchant-step{display:none}.merchant-step.on{display:block}.merchant-step-actions{display:flex;justify-content:space-between;gap:10px;margin-top:18px}.merchant-review{background:#f7f9fc;border:1px solid var(--line);padding:14px;border-radius:12px;line-height:1.7}
 .mobile-bottom-nav{display:none}.mobile-cart-count{display:none;position:absolute;top:0;right:calc(50% - 22px);min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:#e53935;color:#fff;font:700 10px/17px Arial;text-align:center}
-@media(max-width:760px){body{padding-bottom:76px}.wrap{padding-bottom:18px}.mobile-bottom-nav{position:fixed;display:grid;grid-template-columns:repeat(5,1fr);left:0;right:0;bottom:0;z-index:70;background:#fff;border-top:1px solid var(--line);box-shadow:0 -6px 24px #0002;padding:7px 5px max(7px,env(safe-area-inset-bottom))}.mobile-bottom-nav button{background:transparent;color:#5b6678;padding:5px 2px;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:3px}.mobile-bottom-nav button span{font-size:20px}.mobile-bottom-nav button.on{color:var(--b)}.delivery-location{margin-top:2px}.visual-categories{grid-template-columns:repeat(3,1fr)}.promo-arrow{display:none!important}}
+@media(max-width:760px){body{padding-bottom:76px}.wrap{padding:14px 12px 18px}#app>nav{display:none}.mobile-bottom-nav{position:fixed;display:grid;grid-template-columns:repeat(4,1fr);left:0;right:0;bottom:0;z-index:70;background:#fff;border-top:1px solid var(--line);box-shadow:0 -6px 24px #0002;padding:7px 5px max(7px,env(safe-area-inset-bottom))}.mobile-bottom-nav button{background:transparent;color:#5b6678;padding:5px 2px;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:3px}.mobile-bottom-nav button span{font-size:20px}.mobile-bottom-nav button.on{color:var(--b)}.delivery-location{margin-top:2px}.visual-categories{grid-template-columns:repeat(3,1fr)}.promo-arrow{display:none!important}.account-menu{display:block}.account-hero{border-radius:18px}.profile-card{padding:14px}}
 
 </style>
 
@@ -360,8 +361,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
  <button data-mobile-view="homePanel" class="on" onclick="showHome();openView('homePanel')"><span>🏠</span>Início</button>
  <button data-mobile-view="marketplacePanel" onclick="openMarketplaceSearch()"><span>🔎</span>Buscar</button>
  <button data-mobile-view="customerOrders" onclick="requireAuthView('customerOrders',loadCustomerOrders)"><span>📦</span>Pedidos</button>
- <button data-mobile-view="cart" style="position:relative" onclick="openMarketCheckout()"><span>🛒</span>Carrinho<small id="mobileCartCount" class="mobile-cart-count">0</small></button>
- <button data-mobile-view="accountPanel" onclick="currentUser?requireAuthView('accountPanel',showAccount):showAuthCard()"><span>☰</span>Menu</button>
+ <button data-mobile-view="accountPanel" style="position:relative" onclick="currentUser?requireAuthView('accountPanel',showAccount):showAuthCard()"><span>☰</span>Menu<small id="mobileCartCount" class="mobile-cart-count">0</small></button>
 </nav>
 <div id="marketToast" class="toast hide" role="status" aria-live="polite"></div>
 
@@ -947,20 +947,33 @@ async function submitStoreReferral(event){
 
 async function showAccount(){
  if(!currentUser)return alert('Entre na sua conta para acessar sua conta.');
- const {data:p}=await sb.from('profiles').select('*').eq('id',currentUser.id).maybeSingle();
+ const [{data:p},{data:membership}]=await Promise.all([
+   sb.from('profiles').select('*').eq('id',currentUser.id).maybeSingle(),
+   sb.from('store_members').select('store_id').eq('user_id',currentUser.id).limit(1).maybeSingle()
+ ]);
  const name=p?.full_name||currentUser.user_metadata?.full_name||'Cliente Smart Shop';
  const phone=p?.phone||currentUser.user_metadata?.phone||'';
  const el=document.getElementById('accountBody');
- el.innerHTML=`<div class="account-hero"><div style="font-size:12px;opacity:.8">MINHA CONTA</div><h2 style="margin:5px 0">${esc(name)}</h2><div>${esc(currentUser.email||'')}</div><div style="margin-top:8px"><span style="background:#ffffff22;padding:5px 9px;border-radius:999px;font-size:12px">● Conta conectada</span></div></div>
- <div class="profile-card"><h3>Meus dados</h3><form onsubmit="saveCustomerProfile(event)" class="form-grid"><input id="profileName" class="wide" placeholder="Nome completo" value="${esc(name)}" required><input id="profilePhone" placeholder="Telefone / WhatsApp" value="${esc(phone)}"><input value="${esc(currentUser.email||'')}" disabled><button class="wide" type="submit">Salvar meus dados</button></form></div>
- <div class="section-title"><h3>Acessos rápidos</h3></div><div class="account-menu">
- <button onclick="openView('customerOrders');loadCustomerOrders()">📦<br><b>Meus pedidos</b><br><span class="mut">Acompanhar compras</span></button>
- <button onclick="openView('favoritesPanel');showFavorites()">❤️<br><b>Favoritos</b><br><span class="mut">Produtos salvos</span></button>
- <button onclick="openView('addressesPanel');showAddresses()">📍<br><b>Endereços</b><br><span class="mut">Entrega e retirada</span></button>
- <button onclick="openView('myReviewsPanel');showMyReviews()">⭐<br><b>Minhas avaliações</b><br><span class="mut">Ver opiniões publicadas</span></button>
- <button onclick="showNotifications()">🔔<br><b>Notificações</b><br><span class="mut">Atualizações</span></button><button onclick="openView('supportPanel');showSupportCenter()">💬<br><b>Central de Ajuda</b><br><span class="mut">Atendimento Smart Shop</span></button>
- <button onclick="openMerchantApplicationFromCustomer()">🏪<br><b>Quero vender no Smart Shop</b><br><span class="mut">Envie seu cadastro para análise</span></button>
- <button onclick="openView('courierApply')">🚗<br><b>Quero entregar</b><br><span class="mut">Cadastro de entregador</span></button>
+ el.innerHTML=`<div class="account-hero"><div style="font-size:12px;opacity:.8">MINHA CONTA</div><h2 style="margin:5px 0">Olá, ${esc(name.split(' ')[0])}</h2><div>${esc(currentUser.email||'')}</div><div style="margin-top:8px"><span style="background:#ffffff22;padding:5px 9px;border-radius:999px;font-size:12px">● Conta conectada</span></div></div>
+ <div class="menu-section">
+  <button class="menu-row" onclick="openView('customerOrders');loadCustomerOrders()"><span class="menu-icon">📦</span><b>Meus pedidos</b><span class="menu-arrow">›</span></button>
+  <button class="menu-row" onclick="openMarketCheckout()"><span class="menu-icon">🛒</span><b>Carrinho${marketCart.length?` (${marketCart.reduce((s,x)=>s+x.qty,0)})`:''}</b><span class="menu-arrow">›</span></button>
+  <button class="menu-row" onclick="openView('favoritesPanel');showFavorites()"><span class="menu-icon">♡</span><b>Lista de desejos</b><span class="menu-arrow">›</span></button>
+  <button class="menu-row" onclick="openView('marketplacePanel');showMarketplace()"><span class="menu-icon">🏪</span><b>Lojas</b><span class="menu-arrow">›</span></button>
+  <button class="menu-row" onclick="openView('myReviewsPanel');showMyReviews()"><span class="menu-icon">☆</span><b>Minhas avaliações</b><span class="menu-arrow">›</span></button>
+ </div>
+ <div class="menu-section">
+  <details class="profile-card menu-profile"><summary>👤 Meu perfil</summary><form onsubmit="saveCustomerProfile(event)" class="form-grid" style="margin-top:14px"><input id="profileName" class="wide" placeholder="Nome completo" value="${esc(name)}" required><input id="profilePhone" placeholder="Telefone / WhatsApp" value="${esc(phone)}"><input value="${esc(currentUser.email||'')}" disabled><button class="wide" type="submit">Salvar meus dados</button></form></details>
+  <button class="menu-row" onclick="openView('addressesPanel');showAddresses()"><span class="menu-icon">📍</span><b>Endereços</b><span class="menu-arrow">›</span></button>
+  <button class="menu-row" onclick="showNotifications()"><span class="menu-icon">🔔</span><b>Notificações</b><span class="menu-arrow">›</span></button>
+  <button class="menu-row" onclick="openView('referralPanel');showReferrals()"><span class="menu-icon">🎁</span><b>Indicar amigos e lojas</b><span class="menu-arrow">›</span></button>
+ </div>
+ ${membership?`<div class="menu-section"><button class="menu-row" onclick="openView('merchantPanel');loadMerchantPanel()"><span class="menu-icon">🏬</span><b>Painel do lojista</b><span class="menu-arrow">›</span></button></div>`:`<div class="menu-section"><button class="menu-row" onclick="openMerchantApplicationFromCustomer()"><span class="menu-icon">🏬</span><b>Quero vender no Smart Shop</b><span class="menu-arrow">›</span></button><button class="menu-row" onclick="openView('courierApply')"><span class="menu-icon">🚗</span><b>Quero ser entregador</b><span class="menu-arrow">›</span></button></div>`}
+ <div class="menu-section">
+  <button class="menu-row" onclick="openView('supportPanel');showSupportCenter()"><span class="menu-icon">❔</span><b>Suporte ao consumidor</b><span class="menu-arrow">›</span></button>
+  <button class="menu-row" onclick="openView('supportPanel');showSupportCenter()"><span class="menu-icon">ⓘ</span><b>Política de privacidade e termos</b><span class="menu-arrow">›</span></button>
+  <button class="menu-row" onclick="openView('supportPanel');showSupportCenter()"><span class="menu-icon">✉</span><b>Contato</b><span class="menu-arrow">›</span></button>
+  <button class="menu-row" onclick="signOut()"><span class="menu-icon">↪</span><b>Sair</b><span class="menu-arrow">›</span></button>
  </div>`;
 }
 async function saveCustomerProfile(ev){

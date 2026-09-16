@@ -610,7 +610,7 @@ async function loadMerchantPanel(){
  const gross=delivered.reduce((s,o)=>s+Number(o.merchant_net_amount||0)+Number(o.commission_amount||0),0);
  const commissions=delivered.reduce((s,o)=>s+Number(o.commission_amount||0),0);
  const merchantNet=delivered.reduce((s,o)=>s+Number(o.merchant_net_amount||0),0);
- html+=`<div class="card"><b>${esc(st?.name||'Loja')}</b> <span class="tag">${esc(m.role)}</span>
+ html+=`<div class="card"><b>${esc(st?.name||'Loja')}</b> <span class="tag">${esc({owner:'Proprietário',manager:'Gerente',staff:'Funcionário'}[m.role]||m.role)}</span>
  <div class="grid3" style="margin:12px 0"><div class="mini"><b>Vendas em produtos</b><br>R$ ${gross.toFixed(2).replace('.',',')}</div><div class="mini"><b>Comissão Smart Shop</b><br>R$ ${commissions.toFixed(2).replace('.',',')}</div><div class="mini"><b>Repasse da loja</b><br>R$ ${merchantNet.toFixed(2).replace('.',',')}</div></div>
  <div class="card" style="margin:12px 0"><div class="section-title"><h3>📦 Produtos</h3><button class="ghost" onclick="openMerchantProductForm('${m.store_id}')">Novo produto</button></div><div id="merchantProducts_${m.store_id}"><span class="mut">Carregando produtos...</span></div></div>
  <div class="card" style="margin:12px 0"><div class="section-title"><h3>💰 Minha carteira</h3><span class="mut">Repasses</span></div><div class="grid3"><div class="mini"><b>${money(walletAvailable)}</b><br><span class="mut">Disponível</span></div><div class="mini"><b>${money(walletPending)}</b><br><span class="mut">Pendente</span></div><div class="mini"><b>${money(walletPaid)}</b><br><span class="mut">Já pago</span></div></div><details style="margin-top:10px"><summary>Ver extrato</summary>${ledgerRows.slice(0,30).map(x=>`<div class="ledger-row"><b>${money(x.amount)}</b> <span class="tag">${x.status==='available'?'Disponível':x.status==='paid'?'Pago':'Pendente'}</span><div class="mut">${new Date(x.created_at).toLocaleString('pt-BR')}${x.paid_at?` • pago em ${new Date(x.paid_at).toLocaleString('pt-BR')}`:''}</div></div>`).join('')||'<p class="mut">Nenhum lançamento financeiro.</p>'}</details></div>
@@ -763,8 +763,10 @@ async function confirmMerchantPickup(id){
  await advanceOrder(id,'delivered');
 }
 async function confirmMerchantDelivery(id){
- if(!confirm('Confirma que o pedido foi entregue ao cliente pela própria loja?'))return;
- await advanceOrder(id,'delivered');
+ const code=prompt('Digite o código de entrega informado pelo cliente:');if(code===null)return;
+ const {error}=await sb.rpc('confirm_store_delivery',{p_order_id:id,p_code:code.trim()});
+ if(error)return alert(error.message?.includes('invalid delivery code')?'Código de entrega inválido. Confira com o cliente.':friendlyError(error));
+ alert('Entrega confirmada com segurança.');await loadMerchantPanel();
 }
 async function loadCourierPanel(){
  const b=document.getElementById('courierPanelBody');

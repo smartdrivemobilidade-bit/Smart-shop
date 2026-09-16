@@ -448,7 +448,8 @@ async function loadMerchantRegistration(){
  if(terms)terms.checked=!!app?.terms_accepted_at;
  updateMerchantBusinessType();
  if(st.id){
-  status.innerHTML=`<b>Loja vinculada:</b> ${esc(st.name||data.trade_name)} • <b>Status:</b> ${esc(st.approval_status||'aprovada')}${demo?' • <span style="color:#9a6700">dados fictícios de demonstração</span>':''}`;
+  status.innerHTML=`<b>Loja vinculada:</b> ${esc(st.name||data.trade_name)} • <b>Status:</b> ${esc(st.approval_status||'aprovada')}${demo?' • <span style="color:#9a6700">dados fictícios de demonstração</span>':''}<div class="msg" style="margin-top:10px">🔒 Cadastro aprovado. CNPJ/CPF, responsável, contato, endereço e dados de repasse ficam bloqueados. Para corrigir algum dado, solicite a alteração pela Central de Ajuda.</div>`;
+  form.querySelectorAll('input:not([type=file]),select,textarea').forEach(x=>x.disabled=true);
   const docs=form.querySelectorAll('input[type=file]'); docs.forEach(x=>{x.required=false;x.disabled=true});
   const docsTitle=[...form.querySelectorAll('h3')].find(x=>x.textContent.trim()==='Documentos');
   if(docsTitle){const p=docsTitle.nextElementSibling;docsTitle.style.display='none';if(p)p.style.display='none'; const grid=p?.nextElementSibling;if(grid)grid.style.display='none';}
@@ -536,20 +537,16 @@ async function loadMerchantSettings(){
  const el=document.getElementById('merchantSettingsBody');
  if(error||!mem?.stores){el.innerHTML='<div class="card">Você ainda não possui uma loja vinculada e aprovada.</div>';return}
  const s=mem.stores,m=s.delivery_modes||[];
- el.innerHTML=`<div class="card"><h3>${esc(s.name)}</h3><p class="mut">Status: ${esc(s.approval_status||'')}</p><form onsubmit="saveMerchantSettings(event,'${s.id}')" class="form-grid"><label class="wide">Nome da loja<input id="msName" value="${esc(s.name||'')}" required></label><label class="wide">Descrição<textarea id="msDesc" rows="3">${esc(s.description||'')}</textarea></label><label>Categoria<input id="msCategory" value="${esc(s.category||'')}"></label><label>Telefone<input id="msPhone" value="${esc(s.phone||'')}"></label><label>WhatsApp<input id="msWhatsapp" value="${esc(s.whatsapp||'')}"></label><label>E-mail<input id="msEmail" type="email" value="${esc(s.email||'')}"></label><div class="wide card" style="padding:14px">
+ const {data:hoursRows}=await sb.from('store_business_hours').select('weekday,is_closed,opens_at,closes_at').eq('store_id',s.id).order('weekday');
+ const hmap=new Map((hoursRows||[]).map(x=>[Number(x.weekday),x]));
+ const weekday=hmap.get(1)||{is_closed:false,opens_at:'08:00',closes_at:'18:00'},sat=hmap.get(6)||{is_closed:true,opens_at:'08:00',closes_at:'12:00'},sun=hmap.get(0)||{is_closed:true,opens_at:'08:00',closes_at:'12:00'};
+ const timeValue=(v,fallback)=>String(v||fallback).slice(0,5);
+ el.innerHTML=`<div class="card"><h3>${esc(s.name)}</h3><p class="mut">Status: ${esc(s.approval_status||'')}</p><form onsubmit="saveMerchantSettings(event,'${s.id}')" class="form-grid"><div class="wide card" style="padding:14px"><b>🔒 Dados cadastrais</b><p style="margin-bottom:5px"><b>${esc(s.name||'')}</b> • ${esc(s.category||'Sem categoria')}</p><p class="mut" style="margin:0">${esc(s.phone||s.whatsapp||'Contato não informado')} • ${esc(s.email||'E-mail não informado')}</p><p class="mut" style="margin:8px 0 0">Nome, categoria, contato, CNPJ/CPF e endereço só podem ser alterados mediante solicitação à equipe Smart Shop.</p></div><input type="hidden" id="msName" value="${esc(s.name||'')}"><input type="hidden" id="msCategory" value="${esc(s.category||'')}"><input type="hidden" id="msPhone" value="${esc(s.phone||'')}"><input type="hidden" id="msWhatsapp" value="${esc(s.whatsapp||'')}"><input type="hidden" id="msEmail" value="${esc(s.email||'')}"><label class="wide">Descrição pública da loja<textarea id="msDesc" rows="3">${esc(s.description||'')}</textarea></label><div class="wide card" style="padding:14px">
 <b>Horário de funcionamento</b>
-<p class="mut" style="margin:6px 0 12px">Esse horário será usado para informar ao cliente se a loja está aberta e se pode haver entrega no mesmo dia.</p>
-<div class="grid3">
-<label>Dias de atendimento
-<select id="msDays">
-<option value="Seg a Sex">Segunda a sexta</option>
-<option value="Seg a Sáb">Segunda a sábado</option>
-<option value="Todos os dias">Todos os dias</option>
-</select>
-</label>
-<label>Abre às<input id="msOpen" type="time" value="08:00"></label>
-<label>Fecha às<input id="msClose" type="time" value="18:00"></label>
-</div>
+<p class="mut" style="margin:6px 0 12px">Esses horários serão salvos e exibidos ao cliente na página da loja.</p>
+<div class="card" style="padding:10px"><label style="margin-top:0"><input id="msWeekdayEnabled" type="checkbox" style="width:auto" ${weekday.is_closed?'':'checked'}> Segunda a sexta</label><div class="grid"><label>Abre às<input id="msWeekdayOpen" type="time" value="${timeValue(weekday.opens_at,'08:00')}"></label><label>Fecha às<input id="msWeekdayClose" type="time" value="${timeValue(weekday.closes_at,'18:00')}"></label></div></div>
+<div class="card" style="padding:10px"><label style="margin-top:0"><input id="msSaturdayEnabled" type="checkbox" style="width:auto" ${sat.is_closed?'':'checked'}> Sábado</label><div class="grid"><label>Abre às<input id="msSaturdayOpen" type="time" value="${timeValue(sat.opens_at,'08:00')}"></label><label>Fecha às<input id="msSaturdayClose" type="time" value="${timeValue(sat.closes_at,'12:00')}"></label></div></div>
+<div class="card" style="padding:10px"><label style="margin-top:0"><input id="msSundayEnabled" type="checkbox" style="width:auto" ${sun.is_closed?'':'checked'}> Domingo</label><div class="grid"><label>Abre às<input id="msSundayOpen" type="time" value="${timeValue(sun.opens_at,'08:00')}"></label><label>Fecha às<input id="msSundayClose" type="time" value="${timeValue(sun.closes_at,'12:00')}"></label></div></div>
 <div class="mini" style="margin-top:10px">
 <b>Como ficará para o cliente:</b>
 <div id="msHoursPreview" class="mut" style="margin-top:4px"></div>
@@ -560,29 +557,20 @@ async function loadMerchantSettings(){
  initStoreDeliveryFee();
 }
 
-function parseMerchantHours(v){
- const t=String(v||'').trim();
- const m=t.match(/^(Seg a Sex|Seg a Sáb|Todos os dias)\s+(\d{2}:\d{2})\s+às\s+(\d{2}:\d{2})$/i);
- if(!m)return {days:'Seg a Sex',open:'08:00',close:'18:00'};
- let days=m[1];
- if(/seg a sex/i.test(days))days='Seg a Sex';
- else if(/seg a s/i.test(days))days='Seg a Sáb';
- else days='Todos os dias';
- return {days,open:m[2],close:m[3]};
-}
 function refreshMerchantHoursPreview(){
- const d=document.getElementById('msDays'),o=document.getElementById('msOpen'),c=document.getElementById('msClose'),p=document.getElementById('msHoursPreview'),h=document.getElementById('msHours');
- if(!d||!o||!c||!p||!h)return;
- const txt=`${d.value} ${o.value||'08:00'} às ${c.value||'18:00'}`;
+ const p=document.getElementById('msHoursPreview'),h=document.getElementById('msHours');if(!p||!h)return;
+ const groups=[['Seg a Sex','msWeekdayEnabled','msWeekdayOpen','msWeekdayClose'],['Sáb','msSaturdayEnabled','msSaturdayOpen','msSaturdayClose'],['Dom','msSundayEnabled','msSundayOpen','msSundayClose']];
+ const txt=groups.map(([label,en,op,cl])=>document.getElementById(en)?.checked?`${label} ${document.getElementById(op).value} às ${document.getElementById(cl).value}`:`${label} fechado`).join(' • ');
  h.value=txt;
  p.textContent=txt;
 }
-function initMerchantHours(existing){
- const cfg=parseMerchantHours(existing);
- const d=document.getElementById('msDays'),o=document.getElementById('msOpen'),c=document.getElementById('msClose');
- if(d)d.value=cfg.days;if(o)o.value=cfg.open;if(c)c.value=cfg.close;
- [d,o,c].forEach(el=>el&&el.addEventListener('change',refreshMerchantHoursPreview));
+function initMerchantHours(){
+ ['msWeekdayEnabled','msWeekdayOpen','msWeekdayClose','msSaturdayEnabled','msSaturdayOpen','msSaturdayClose','msSundayEnabled','msSundayOpen','msSundayClose'].forEach(id=>document.getElementById(id)?.addEventListener('change',refreshMerchantHoursPreview));
  refreshMerchantHoursPreview();
+}
+function merchantHoursRows(storeId){
+ const groups=[[[1,2,3,4,5],'msWeekdayEnabled','msWeekdayOpen','msWeekdayClose'],[[6],'msSaturdayEnabled','msSaturdayOpen','msSaturdayClose'],[[0],'msSundayEnabled','msSundayOpen','msSundayClose']];
+ return groups.flatMap(([days,en,op,cl])=>{const enabled=document.getElementById(en).checked,opens=document.getElementById(op).value,closes=document.getElementById(cl).value;if(enabled&&(!opens||!closes||closes<=opens))throw new Error('Confira os horários: o fechamento precisa ser depois da abertura.');return days.map(weekday=>({store_id:storeId,weekday,is_closed:!enabled,opens_at:enabled?opens:null,closes_at:enabled?closes:null}));});
 }
 function refreshStoreDeliveryFee(){
  const enabled=document.getElementById('msStoreDelivery')?.checked;
@@ -601,14 +589,13 @@ async function saveMerchantSettings(ev,id){
  const modes=[];if(document.getElementById('msPickup').checked)modes.push('pickup');if(document.getElementById('msStoreDelivery').checked)modes.push('store_delivery');if(document.getElementById('msSmart').checked)modes.push('smart_partner');
  if(!modes.length)return alert('Escolha pelo menos uma forma de entrega.');
  refreshMerchantHoursPreview();
- const open=document.getElementById('msOpen').value,close=document.getElementById('msClose').value;
- if(!open||!close)return alert('Informe o horário de abertura e fechamento.');
- if(close<=open)return alert('O horário de fechamento precisa ser depois do horário de abertura.');
+ let hoursRows;try{hoursRows=merchantHoursRows(id)}catch(x){return alert(x.message)}
  const feeInput=document.getElementById('msStoreDeliveryFee');
  const storeDeliveryFee=Number(String(feeInput?.value||'').replace(',','.'));
  if(modes.includes('store_delivery')&&(!Number.isFinite(storeDeliveryFee)||storeDeliveryFee<0))return alert('Informe um valor válido para a entrega feita pela loja. Use 0 para entrega grátis.');
  const row={name:document.getElementById('msName').value.trim(),description:document.getElementById('msDesc').value.trim()||null,category:document.getElementById('msCategory').value.trim()||null,phone:document.getElementById('msPhone').value.trim()||null,whatsapp:document.getElementById('msWhatsapp').value.trim()||null,email:document.getElementById('msEmail').value.trim()||null,business_hours:document.getElementById('msHours').value.trim()||null,logo_url:document.getElementById('msLogo').value.trim()||null,delivery_modes:modes,store_delivery_fee:Number.isFinite(storeDeliveryFee)?storeDeliveryFee:0,updated_at:new Date().toISOString()};
- const {error}=await sb.rpc('update_my_store_settings',{p_store_id:id,p_name:row.name,p_description:row.description,p_category:row.category,p_phone:row.phone,p_whatsapp:row.whatsapp,p_email:row.email,p_business_hours:row.business_hours,p_logo_url:row.logo_url,p_delivery_modes:row.delivery_modes,p_store_delivery_fee:row.store_delivery_fee});if(error){alert(friendlyError(error));return}alert('Configurações da loja salvas.');await loadMerchantSettings();
+ const {error}=await sb.rpc('update_my_store_settings',{p_store_id:id,p_name:row.name,p_description:row.description,p_category:row.category,p_phone:row.phone,p_whatsapp:row.whatsapp,p_email:row.email,p_business_hours:row.business_hours,p_logo_url:row.logo_url,p_delivery_modes:row.delivery_modes,p_store_delivery_fee:row.store_delivery_fee});if(error){alert(friendlyError(error));return}
+ const {error:hoursError}=await sb.from('store_business_hours').upsert(hoursRows,{onConflict:'store_id,weekday'});if(hoursError){alert('As configurações foram salvas, mas não foi possível salvar os horários: '+friendlyError(hoursError));return}alert('Configurações e horários da loja salvos.');await loadMerchantSettings();
 }
 async function loadMerchantPanel(){
  const body=document.getElementById('merchantPanelBody');const {data:members,error}=await sb.from('store_members').select('store_id,role,stores(id,name,approval_status)').eq('user_id',currentUser.id);

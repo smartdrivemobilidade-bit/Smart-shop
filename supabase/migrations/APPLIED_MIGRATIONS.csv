@@ -116,3 +116,6 @@ version,name,status
 20260915201000,smart_shop_v4_variant_checkout,APPLIED
 20260915213854,fix_variant_checkout_idempotency,APPLIED
 20260915214300,index_variant_gallery_store_foreign_keys,APPLIED
+20260916180000,smart_shop_v4_distance_freight,APPLIED
+20260916180100,fix_distance_freight_rounding,APPLIED
+20260916180200,refine_delivery_city_rls,APPLIED

@@ -555,8 +555,9 @@ async function loadMerchantSettings(){
 <div id="msHoursPreview" class="mut" style="margin-top:4px"></div>
 </div>
 <input type="hidden" id="msHours" value="${esc(s.business_hours||'')}">
-</div><label class="wide">Logo da loja (URL)<input id="msLogo" value="${esc(s.logo_url||'')}"></label><div class="wide card"><b>Formas de entrega</b><label><input type="checkbox" id="msPickup" ${m.includes('pickup')?'checked':''}> Retirada na loja</label><label><input type="checkbox" id="msStoreDelivery" ${m.includes('store_delivery')?'checked':''}> Entrega própria da loja</label><label><input type="checkbox" id="msSmart" ${m.includes('smart_partner')?'checked':''}> Entrega por parceiro Smart Shop</label></div><button class="wide">Salvar configurações</button></form></div>`;
+</div><label class="wide">Logo da loja (URL)<input id="msLogo" value="${esc(s.logo_url||'')}"></label><div class="wide card"><b>Formas de entrega</b><label><input type="checkbox" id="msPickup" ${m.includes('pickup')?'checked':''}> Retirada na loja</label><label><input type="checkbox" id="msStoreDelivery" ${m.includes('store_delivery')?'checked':''}> Entrega própria da loja</label><div id="msStoreDeliveryFeeWrap" style="margin:8px 0 10px 26px;max-width:320px"><label>Valor da entrega feita pela loja (R$)<input id="msStoreDeliveryFee" type="number" min="0" step="0.01" inputmode="decimal" value="${Number(s.store_delivery_fee??8).toFixed(2)}"></label><p class="mut" style="margin:5px 0 0">Digite 0 para oferecer entrega grátis.</p></div><label><input type="checkbox" id="msSmart" ${m.includes('smart_partner')?'checked':''}> Entrega por parceiro Smart Shop</label></div><button class="wide">Salvar configurações</button></form></div>`;
  initMerchantHours(s.business_hours||'');
+ initStoreDeliveryFee();
 }
 
 function parseMerchantHours(v){
@@ -583,6 +584,17 @@ function initMerchantHours(existing){
  [d,o,c].forEach(el=>el&&el.addEventListener('change',refreshMerchantHoursPreview));
  refreshMerchantHoursPreview();
 }
+function refreshStoreDeliveryFee(){
+ const enabled=document.getElementById('msStoreDelivery')?.checked;
+ const wrap=document.getElementById('msStoreDeliveryFeeWrap'),input=document.getElementById('msStoreDeliveryFee');
+ if(wrap)wrap.style.display=enabled?'block':'none';
+ if(input)input.required=!!enabled;
+}
+function initStoreDeliveryFee(){
+ const checkbox=document.getElementById('msStoreDelivery');
+ if(checkbox)checkbox.addEventListener('change',refreshStoreDeliveryFee);
+ refreshStoreDeliveryFee();
+}
 
 async function saveMerchantSettings(ev,id){
  ev.preventDefault();
@@ -592,8 +604,11 @@ async function saveMerchantSettings(ev,id){
  const open=document.getElementById('msOpen').value,close=document.getElementById('msClose').value;
  if(!open||!close)return alert('Informe o horário de abertura e fechamento.');
  if(close<=open)return alert('O horário de fechamento precisa ser depois do horário de abertura.');
- const row={name:document.getElementById('msName').value.trim(),description:document.getElementById('msDesc').value.trim()||null,category:document.getElementById('msCategory').value.trim()||null,phone:document.getElementById('msPhone').value.trim()||null,whatsapp:document.getElementById('msWhatsapp').value.trim()||null,email:document.getElementById('msEmail').value.trim()||null,business_hours:document.getElementById('msHours').value.trim()||null,logo_url:document.getElementById('msLogo').value.trim()||null,delivery_modes:modes,updated_at:new Date().toISOString()};
- const {error}=await sb.rpc('update_my_store_settings',{p_store_id:id,p_name:row.name,p_description:row.description,p_category:row.category,p_phone:row.phone,p_whatsapp:row.whatsapp,p_email:row.email,p_business_hours:row.business_hours,p_logo_url:row.logo_url,p_delivery_modes:row.delivery_modes});if(error){alert(friendlyError(error));return}alert('Configurações da loja salvas.');await loadMerchantSettings();
+ const feeInput=document.getElementById('msStoreDeliveryFee');
+ const storeDeliveryFee=Number(String(feeInput?.value||'').replace(',','.'));
+ if(modes.includes('store_delivery')&&(!Number.isFinite(storeDeliveryFee)||storeDeliveryFee<0))return alert('Informe um valor válido para a entrega feita pela loja. Use 0 para entrega grátis.');
+ const row={name:document.getElementById('msName').value.trim(),description:document.getElementById('msDesc').value.trim()||null,category:document.getElementById('msCategory').value.trim()||null,phone:document.getElementById('msPhone').value.trim()||null,whatsapp:document.getElementById('msWhatsapp').value.trim()||null,email:document.getElementById('msEmail').value.trim()||null,business_hours:document.getElementById('msHours').value.trim()||null,logo_url:document.getElementById('msLogo').value.trim()||null,delivery_modes:modes,store_delivery_fee:Number.isFinite(storeDeliveryFee)?storeDeliveryFee:0,updated_at:new Date().toISOString()};
+ const {error}=await sb.rpc('update_my_store_settings',{p_store_id:id,p_name:row.name,p_description:row.description,p_category:row.category,p_phone:row.phone,p_whatsapp:row.whatsapp,p_email:row.email,p_business_hours:row.business_hours,p_logo_url:row.logo_url,p_delivery_modes:row.delivery_modes,p_store_delivery_fee:row.store_delivery_fee});if(error){alert(friendlyError(error));return}alert('Configurações da loja salvas.');await loadMerchantSettings();
 }
 async function loadMerchantPanel(){
  const body=document.getElementById('merchantPanelBody');const {data:members,error}=await sb.from('store_members').select('store_id,role,stores(id,name,approval_status)').eq('user_id',currentUser.id);
@@ -1613,6 +1628,7 @@ function esc(v){return String(v??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&l
 <div id="reviewModal" class="modal-bg hide">
  <div class="modal-card"><button class="ghost" style="float:right" onclick="closeReviewModal()">✕</button><div id="reviewModalBody"></div></div>
 </div>
+
 <div id="merchantProductModal" class="modal-bg hide" onclick="if(event.target===this)closeMerchantProductModal()">
  <div class="modal-card">
   <div class="section-title"><h2 id="merchantProductTitle">Produto</h2><button class="ghost" onclick="closeMerchantProductModal()">Fechar</button></div>

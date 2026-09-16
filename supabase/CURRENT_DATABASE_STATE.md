@@ -108,3 +108,4 @@ Toda alteração de banco deve ser aplicada por migration versionada e registrad
 - Retirada na loja permanece gratuita; a entrega própria mantém o valor definido pela loja.
 - Quando a coordenada exata não está disponível, a cotação usa a tabela de cidades cadastradas e sinaliza que a distância é estimada.
 - Migrations aplicadas: `20260916180000_smart_shop_v4_distance_freight.sql`, `20260916180100_fix_distance_freight_rounding.sql` e `20260916180200_refine_delivery_city_rls.sql`.
+- Tarifa padrão do parceiro alinhada para base R$ 6,00, R$ 2,90 por km e mínimo R$ 12,00 em `20260916190000_align_smart_partner_tariff.sql`.

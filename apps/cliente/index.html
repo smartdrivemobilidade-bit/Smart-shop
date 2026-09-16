@@ -972,6 +972,7 @@ async function saveCustomerProfile(ev){
  await showAccount();
 }
 let addressCache=[];
+let addressReturnToCheckout=false;
 async function loadHomeDeliveryLocation(){
  const el=document.getElementById('homeDeliveryLocation');if(!el)return;
  if(!currentUser){el.innerHTML='<div>📍 <b>Onde você quer receber?</b><div class="mut">Entre na conta e escolha um endereço</div></div><span>Informar ›</span>';return}
@@ -1001,7 +1002,14 @@ function openAddressForm(id=''){
  document.getElementById('addrDefault').checked=a?.is_default??!addressCache.length;
  document.getElementById('addressModal').classList.remove('hide');
 }
-function closeAddressForm(){document.getElementById('addressModal').classList.add('hide')}
+function openCheckoutAddressForm(){
+ addressReturnToCheckout=true;
+ openAddressForm();
+}
+function closeAddressForm(){
+ addressReturnToCheckout=false;
+ document.getElementById('addressModal').classList.add('hide');
+}
 async function saveAddress(ev){
  ev.preventDefault();
  const id=document.getElementById('addrId').value, makeDefault=document.getElementById('addrDefault').checked;
@@ -1016,7 +1024,15 @@ async function saveAddress(ev){
  if(makeDefault&&savedId){
    const {error}=await sb.rpc('set_default_address',{p_address_id:savedId});if(error){alert(friendlyError(error));return}
  }
- closeAddressForm();await showAddresses();await loadHomeDeliveryLocation();
+ const returnToCheckout=addressReturnToCheckout;
+ closeAddressForm();
+ await loadHomeDeliveryLocation();
+ if(returnToCheckout){
+   checkoutAddressId=savedId;
+   await openMarketCheckout();
+ }else{
+   await showAddresses();
+ }
 }
 async function setDefaultAddress(id){
  const {error}=await sb.rpc('set_default_address',{p_address_id:id});
@@ -1448,6 +1464,7 @@ async function openMarketCheckout(){
  const {data:addrs,error}=await sb.from('addresses').select('*').order('is_default',{ascending:false});
  if(error){alert(friendlyError(error));return}
  if(!addrs?.length){alert('Cadastre um endereço antes de finalizar o pedido.');return}
+ addressCache=addrs;
  if(!checkoutAddressId||!addrs.some(a=>a.id===checkoutAddressId))checkoutAddressId=addrs[0].id;
  const cartStore=marketCart[0]?.stores||{},enabledModes=Array.isArray(cartStore.delivery_modes)&&cartStore.delivery_modes.length?cartStore.delivery_modes:['pickup','smart_partner'];
  if(!enabledModes.includes(checkoutMethod))checkoutMethod=enabledModes[0]||'pickup';
@@ -1459,7 +1476,7 @@ async function openMarketCheckout(){
  const sub=Number(quote?.product_subtotal??marketSubtotal()),discount=Number(quote?.discount_amount||0),freight=Number(quote?.freight_amount||0),total=Number(quote?.total_amount??(sub+freight));
  document.getElementById('checkoutBody').innerHTML=`
  <div class="checkout-box"><b>Itens</b>${marketCart.map(x=>`<div class="cart-line"><div>${esc(x.name)}${x.variant_label?`<div class="tag">${esc(x.variant_label)}</div>`:''}<div class="mut">${money(x.price)} cada</div></div><div class="qty"><button class="ghost" onclick="marketQty('${x.cartKey}',-1);openMarketCheckout()">−</button><b>${x.qty}</b><button class="ghost" onclick="marketQty('${x.cartKey}',1);openMarketCheckout()">+</button></div></div>`).join('')}</div>
- <div class="checkout-box"><b>Endereço</b>${addrs.map(a=>`<label class="option-card ${checkoutAddressId===a.id?'on':''}"><input type="radio" name="marketAddr" value="${a.id}" ${checkoutAddressId===a.id?'checked':''} onchange="checkoutAddressId=this.value;openMarketCheckout()"> ${esc(a.street)}, ${esc(a.number)} - ${esc(a.district)}<div class="mut">${esc(a.city)} / ${esc(a.state)}</div></label>`).join('')}</div>
+ <div class="checkout-box"><b>Endereço</b>${addrs.map(a=>`<label class="option-card ${checkoutAddressId===a.id?'on':''}"><input type="radio" name="marketAddr" value="${a.id}" ${checkoutAddressId===a.id?'checked':''} onchange="checkoutAddressId=this.value;openMarketCheckout()"> ${esc(a.street)}, ${esc(a.number)} - ${esc(a.district)}<div class="mut">${esc(a.city)} / ${esc(a.state)}</div></label>`).join('')}<button type="button" class="ghost" style="width:100%;margin-top:10px" onclick="openCheckoutAddressForm()">+ Entregar em outro endereço</button></div>
  <div class="checkout-box"><b>Recebimento</b>${enabledModes.length===1?`<div class="mut" style="margin:6px 0">Esta loja oferece uma única forma de recebimento.</div>`:''}${[['pickup','Retirar na loja','Você busca o pedido no estabelecimento.'],['store_delivery','Entrega feita pela loja','A própria loja utiliza seu entregador.'],['smart_partner','Parceiro Smart Shop','Entrega realizada por um entregador parceiro Smart Shop.']].filter(x=>enabledModes.includes(x[0])).map(x=>`<div class="option-card ${checkoutMethod===x[0]?'on':''}" onclick="checkoutMethod='${x[0]}';openMarketCheckout()"><b>${x[1]}</b><div class="mut" style="margin-top:4px">${x[2]}</div></div>`).join('')}</div>
  <div class="checkout-box"><b>Cupom</b><div class="row"><input id="marketCoupon" placeholder="Ex.: SMART10" value="${esc(marketCoupon)}" style="flex:1"><button class="ghost" onclick="marketCoupon=document.getElementById('marketCoupon').value.trim();openMarketCheckout()">Aplicar</button></div>${quoteError?`<div class="msg err">${esc(quoteError)}</div>`:marketCoupon&&quote?.coupon_code?`<div class="msg">Cupom ${esc(quote.coupon_code)} aplicado.</div>`:''}</div>
  <div class="checkout-box"><div class="row" style="justify-content:space-between"><span>Produtos</span><b>${money(sub)}</b></div>${discount>0?`<div class="row" style="justify-content:space-between;margin-top:8px"><span>Desconto</span><b>− ${money(discount)}</b></div>`:''}<div class="row" style="justify-content:space-between;margin-top:8px"><span>Frete</span><b>${freight>0?money(freight):'Grátis'}</b></div><hr><div class="row" style="justify-content:space-between;font-size:18px"><b>Total</b><b>${money(total)}</b></div><button id="checkoutConfirmBtn" style="width:100%;margin-top:14px" onclick="finishMarketCheckout()" ${qe?'disabled':''}>Confirmar pedido</button><p class="mut" style="margin-bottom:0">Pagamento permanece simulado nesta fase de testes.</p></div>`;

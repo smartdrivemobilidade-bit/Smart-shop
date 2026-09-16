@@ -1021,6 +1021,7 @@ async function saveCustomerProfile(ev){
 }
 let addressCache=[];
 let addressReturnToCheckout=false;
+const addressGeocodeCache=new Map();
 async function loadHomeWelcome(){
  const el=document.getElementById('homeWelcome');if(!el)return;
  if(!currentUser){
@@ -1112,6 +1113,24 @@ async function lookupCepCoordinates(digits){
   if(lngEl)lngEl.value=String(lng);
  }catch(error){/* A tabela de cidades serve como fallback para a cotação. */}
 }
+function genericCep(cep){return String(cep||'').replace(/\D/g,'').endsWith('000')}
+async function geocodeAddressCoordinates(address){
+ const street=[address?.street,address?.number].filter(Boolean).join(', ').trim();
+ const parts=[street,address?.district,address?.city,address?.state,'Brasil'].map(x=>String(x||'').trim()).filter(Boolean);
+ if(!street||!address?.city||!address?.state)return null;
+ const key=parts.join('|').toLowerCase();
+ if(addressGeocodeCache.has(key))return addressGeocodeCache.get(key);
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),4500);
+ try{
+  const url='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=br&q='+encodeURIComponent(parts.join(', '));
+  const response=await fetch(url,{signal:controller.signal});
+  if(!response.ok)return null;
+  const row=(await response.json())?.[0],latitude=Number(row?.lat),longitude=Number(row?.lon);
+  if(!Number.isFinite(latitude)||!Number.isFinite(longitude))return null;
+  const result={latitude,longitude};addressGeocodeCache.set(key,result);return result;
+ }catch(error){return null}
+ finally{clearTimeout(timer)}
+}
 function openCheckoutAddressForm(){
  addressReturnToCheckout=true;
  document.getElementById('checkoutModal')?.classList.add('hide');
@@ -1126,8 +1145,11 @@ function closeAddressForm(){
 async function saveAddress(ev){
  ev.preventDefault();
  const id=document.getElementById('addrId').value, makeDefault=document.getElementById('addrDefault').checked;
- const latText=document.getElementById('addrLatitude').value.trim(),lngText=document.getElementById('addrLongitude').value.trim(),latNumber=Number(latText),lngNumber=Number(lngText);
- const row={user_id:currentUser.id,cep:document.getElementById('addrCep').value.trim()||null,street:document.getElementById('addrStreet').value.trim(),number:document.getElementById('addrNumber').value.trim(),district:document.getElementById('addrDistrict').value.trim(),complement:document.getElementById('addrComplement').value.trim()||null,city:document.getElementById('addrCity').value.trim(),state:document.getElementById('addrState').value.trim().toUpperCase(),latitude:Number.isFinite(latNumber)?latNumber:null,longitude:Number.isFinite(lngNumber)?lngNumber:null};
+ const cep=document.getElementById('addrCep').value.trim()||null,street=document.getElementById('addrStreet').value.trim(),number=document.getElementById('addrNumber').value.trim(),district=document.getElementById('addrDistrict').value.trim(),complement=document.getElementById('addrComplement').value.trim()||null,city=document.getElementById('addrCity').value.trim(),state=document.getElementById('addrState').value.trim().toUpperCase();
+ let latNumber=Number(document.getElementById('addrLatitude').value.trim()),lngNumber=Number(document.getElementById('addrLongitude').value.trim());
+ const precise=await geocodeAddressCoordinates({street,number,district,city,state});
+ if(precise){latNumber=precise.latitude;lngNumber=precise.longitude}
+ const row={user_id:currentUser.id,cep,street,number,district,complement,city,state,latitude:Number.isFinite(latNumber)?latNumber:null,longitude:Number.isFinite(lngNumber)?lngNumber:null};
  let savedId=id;
  if(id){
    const {error}=await sb.from('addresses').update(row).eq('id',id);if(error){alert(friendlyError(error));return}
@@ -1619,6 +1641,14 @@ async function openMarketCheckout(){
  if(!addrs?.length){alert('Cadastre um endereço antes de finalizar o pedido.');return}
  addressCache=addrs;
  if(!checkoutAddressId||!addrs.some(a=>a.id===checkoutAddressId))checkoutAddressId=addrs[0].id;
+ const selectedAddress=addrs.find(a=>a.id===checkoutAddressId);
+ if(selectedAddress&&(genericCep(selectedAddress.cep)||!Number.isFinite(Number(selectedAddress.latitude))||!Number.isFinite(Number(selectedAddress.longitude)))){
+   const precise=await geocodeAddressCoordinates(selectedAddress);
+   if(precise){
+     const {error:coordinateError}=await sb.from('addresses').update(precise).eq('id',selectedAddress.id).eq('user_id',currentUser.id);
+     if(!coordinateError)Object.assign(selectedAddress,precise);
+   }
+ }
  const cartStore=marketCart[0]?.stores||{},enabledModes=Array.isArray(cartStore.delivery_modes)&&cartStore.delivery_modes.length?cartStore.delivery_modes:['pickup','smart_partner'];
  if(!enabledModes.includes(checkoutMethod))checkoutMethod=enabledModes[0]||'pickup';
  const items=marketCart.map(x=>({product_id:x.id,variant_id:x.variant_id,quantity:x.qty}));

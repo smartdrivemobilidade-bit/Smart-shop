@@ -1622,7 +1622,7 @@ async function openMarketCheckout(){
  const cartStore=marketCart[0]?.stores||{},enabledModes=Array.isArray(cartStore.delivery_modes)&&cartStore.delivery_modes.length?cartStore.delivery_modes:['pickup','smart_partner'];
  if(!enabledModes.includes(checkoutMethod))checkoutMethod=enabledModes[0]||'pickup';
  const items=marketCart.map(x=>({product_id:x.id,variant_id:x.variant_id,quantity:x.qty}));
- const {data:q,error:qe}=await sb.rpc('quote_checkout_distance',{p_store_id:marketCart[0].store_id,p_items:items,p_delivery_method:checkoutMethod,p_coupon_code:marketCoupon||null});
+ const {data:q,error:qe}=await sb.rpc('quote_checkout_distance',{p_store_id:marketCart[0].store_id,p_items:items,p_address_id:checkoutAddressId,p_delivery_method:checkoutMethod,p_coupon_code:marketCoupon||null});
  const quote=Array.isArray(q)?q[0]:q;
  let quoteError=qe?friendlyError(qe):null;
  if(quoteError?.includes('delivery distance exceeds coverage'))quoteError='Este endereço está fora da área de entrega do parceiro Smart Shop.';

@@ -1129,6 +1129,12 @@ function parseTimePair(s){
 function hoursApplyToday(raw){
  const t=normalizeHoursText(raw),day=ptDayIndex();
  if(!t)return null;
+ const parts=t.split(/[•;|]+/).map(x=>x.trim()).filter(Boolean);
+ const todayPart=day===0?parts.find(x=>/^(dom|domingo)/.test(x)):day===6?parts.find(x=>/^(sab|sabado)/.test(x)):parts.find(x=>/^(seg a sex|segunda a sexta)/.test(x));
+ if(todayPart){
+  if(/fechado/.test(todayPart))return {allowed:false,start:0,end:0};
+  const todayPair=parseTimePair(todayPart);if(todayPair)return {allowed:true,...todayPair};
+ }
  const pair=parseTimePair(t); if(!pair)return null;
  let allowed=null;
  if(/segunda|seg/.test(t)&&/sexta|sex/.test(t)) allowed=[1,2,3,4,5];

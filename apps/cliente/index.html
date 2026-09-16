@@ -1065,11 +1065,14 @@ function openAddressForm(id=''){
 }
 function openCheckoutAddressForm(){
  addressReturnToCheckout=true;
+ document.getElementById('checkoutModal')?.classList.add('hide');
  openAddressForm();
 }
 function closeAddressForm(){
+ const returnToCheckout=addressReturnToCheckout;
  addressReturnToCheckout=false;
  document.getElementById('addressModal').classList.add('hide');
+ if(returnToCheckout)document.getElementById('checkoutModal')?.classList.remove('hide');
 }
 async function saveAddress(ev){
  ev.preventDefault();

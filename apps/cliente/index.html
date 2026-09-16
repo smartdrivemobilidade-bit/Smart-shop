@@ -1,5 +1,5 @@
-Warning: truncated output (original token count: 51966)
-Total output lines: 1959
+Warning: truncated output (original token count: 53244)
+Total output lines: 1974
 
 <!doctype html>
 <html lang="pt-BR">
@@ -130,6 +130,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 .order-values{display:flex;gap:8px 14px;flex-wrap:wrap;padding:9px 0;border-top:1px solid #eee;border-bottom:1px solid #eee;font-size:13px}.order-values span{white-space:nowrap}
 .order-progress{display:flex;gap:7px;align-items:center;flex-wrap:wrap;padding:12px 0}.progress-step{display:inline-flex;align-items:center;gap:5px;color:#8a94a6;font-size:12px}.progress-step.done{color:#15803d;font-weight:700}.progress-step.current{color:#0967d8;font-weight:800;background:#eef5ff;padding:5px 8px;border-radius:999px}.progress-arrow{color:#b8c0cc}
 .customer-order-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px}.customer-order-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.customer-order-head h3{margin:0 0 4px}.customer-order-items{background:#f7f9fc;border-radius:12px;padding:10px 12px;margin:11px 0}.customer-order-items div+div{margin-top:5px}.customer-order-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.customer-order-actions button{font-size:12px}.order-date{font-size:12px;color:var(--mut)}
+.info-document{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px;line-height:1.6}.info-document h2{margin-top:0}.info-document h3{margin:22px 0 6px}.info-document ul{padding-left:20px}.info-note{background:#fff7e8;border:1px solid #ffd89c;border-radius:12px;padding:11px 13px;margin-bottom:14px;color:#754600}
 
 .product-admin-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #eee}.product-admin-row:last-child{border-bottom:0}@media(max-width:640px){.product-admin-row{align-items:flex-start;flex-direction:column}}
 
@@ -325,6 +326,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
  <div class="section-title"><h2>Central de Ajuda</h2><span class="mut">Smart Shop</span></div>
  <div id="supportBody"></div>
 </div>
+<div id="infoPanel" class="view hide market-shell"><div id="infoBody"></div></div>
 <div id="referralPanel" class="view hide market-shell">
  <div class="section-title"><h2>Indicações</h2><span class="mut">Convide pessoas e comércios da região</span></div>
  <div id="referralBody"></div>
@@ -442,7 +444,7 @@ async function setSession(user){
 }
 function openView(view){
  document.querySelectorAll('nav [data-view]').forEach(x=>x.classList.toggle('on',x.dataset.view===view));
- const menuViews=['accountPanel','storesPanel','favoritesPanel','addressesPanel','myReviewsPanel','referralPanel','supportPanel'];
+ const menuViews=['accountPanel','storesPanel','favoritesPanel','addressesPanel','myReviewsPanel','referralPanel','supportPanel','infoPanel'];
  const mobileView=menuViews.includes(view)?'accountPanel':view;
  document.querySelectorAll('[data-mobile-view]').forEach(x=>x.classList.toggle('on',x.dataset.mobileView===mobileView));
  document.querySelectorAll('.view').forEach(v=>v.classList.add('hide'));
@@ -753,6 +755,18 @@ async function saveCommission(ev){
 const supportCategoryLabel={order:'Pedido',payment:'Pagamento',delivery:'Entrega',return:'Troca / devolução',account:'Minha conta',merchant:'Lojista',courier:'Entregador',other:'Outro'};
 const supportStatusLabel={open:'Aberto',in_progress:'Em atendimento',waiting_user:'Aguardando você',resolved:'Resolvido',closed:'Fechado'};
 
+function openCustomerSupport(){
+ if(!currentUser){showAuthCard();return}
+ openView('supportPanel');showSupportCenter();
+}
+function showInfoPage(type){
+ const el=document.getElementById('infoBody');openView('infoPanel');
+ const demo='<div class="info-note"><b>Versão de demonstração:</b> os dados jurídicos da empresa, CNPJ e canais oficiais serão incluídos antes do lançamento público.</div>';
+ if(type==='privacy')el.innerHTML=`${demo}<article class="info-document"><h2>Política de Privacidade</h2><p class="mut">Última atualização: setembro de 2026</p><p>O Smart Shop utiliza dados pessoais para permitir o cadastro, a compra de produtos, a entrega dos pedidos, o atendimento e a segurança da plataforma.</p><h3>Dados utilizados</h3><ul><li>Nome, e-mail, telefone e informações da conta;</li><li>Endereços cadastrados para entrega;</li><li>Pedidos, pagamentos, cupons, avaliações e atendimentos;</li><li>Dados técnicos necessários para segurança e funcionamento do aplicativo;</li><li>Documentos enviados por lojistas e entregadores durante a análise cadastral.</li></ul><h3>Como utilizamos</h3><p>Os dados são utilizados para executar compras e entregas, prevenir fraudes, prestar suporte, cumprir obrigações legais e melhorar os serviços do Smart Shop.</p><h3>Compartilhamento necessário</h3><p>As informações indispensáveis ao pedido podem ser compartilhadas com a loja responsável, o entregador escolhido e os prestadores envolvidos em pagamento, hospedagem e comunicação. Cada participante recebe somente o necessário para sua função.</p><h3>Direitos do titular</h3><p>O cliente pode solicitar acesso, correção, informação sobre o uso dos dados e exclusão da conta, observadas as hipóteses legais de conservação.</p><h3>Segurança e conservação</h3><p>Adotamos controles de acesso e proteção compatíveis com a operação. Os dados são mantidos pelo período necessário para cumprir as finalidades informadas e obrigações legais.</p><h3>Fale sobre seus dados</h3><p>Use a Central de Ajuda para enviar uma solicitação relacionada à privacidade ou à exclusão da conta.</p><button onclick="openCustomerSupport()">Abrir Central de Ajuda</button></article>`;
+ else if(type==='terms')el.innerHTML=`${demo}<article class="info-document"><h2>Termos de Uso</h2><p class="mut">Última atualização: setembro de 2026</p><h3>1. Funcionamento do Smart Shop</h3><p>O Smart Shop é um marketplace regional que aproxima clientes, lojas e entregadores. A loja é responsável pelas informações, disponibilidade, qualidade e regularidade dos produtos que anuncia.</p><h3>2. Cadastro e segurança</h3><p>O usuário deve informar dados verdadeiros, manter sua conta protegida e comunicar qualquer uso não autorizado. Contas e anúncios podem ser suspensos em caso de fraude, abuso ou descumprimento das regras.</p><h3>3. Pedidos, preços e pagamento</h3><p>Antes de confirmar, o cliente visualiza produtos, descontos, frete e total. O pedido depende da confirmação do pagamento e da disponibilidade dos itens.</p><h3>4. Entrega e retirada</h3><p>A forma de recebimento escolhida pode ser retirada na loja, entrega própria da loja ou entrega por parceiro Smart Shop. Prazos são estimativas e podem variar conforme horário, distância e disponibilidade.</p><h3>5. Cancelamentos, trocas e devoluções</h3><p>As solicitações serão analisadas conforme a etapa do pedido, a natureza do produto e a legislação aplicável. O cliente deve registrar o problema pela Central de Ajuda e conservar o produto quando necessário.</p><h3>6. Uso responsável</h3><p>É proibido usar a plataforma para fraude, informações falsas, conteúdo ilegal, ofensas ou tentativa de prejudicar clientes, lojas, entregadores ou o Smart Shop.</p><h3>7. Atendimento</h3><p>Dúvidas, ocorrências e solicitações devem ser registradas na Central de Ajuda para acompanhamento.</p><button onclick="openCustomerSupport()">Abrir Central de Ajuda</button></article>`;
+ else el.innerHTML=`${demo}<article class="info-document"><h2>Contato</h2><p>O atendimento do Smart Shop é realizado pela Central de Ajuda dentro do aplicativo. Assim, cada solicitação recebe um registro e pode ser acompanhada pelo cliente.</p><h3>Assuntos atendidos</h3><ul><li>Pedidos e pagamentos;</li><li>Entrega, retirada e código de confirmação;</li><li>Cancelamento, troca ou devolução;</li><li>Conta, cadastro e privacidade;</li><li>Cadastro de lojista ou entregador.</li></ul><button onclick="openCustomerSupport()">Falar com o Smart Shop</button></article>`;
+}
+
 async function replySupportTicket(id,admin=false){
  const field=document.getElementById(admin?'adminTicketReply':'ticketReply'); const body=field?.value.trim();
  if(!body)return alert('Escreva uma mensagem.');
@@ -818,29 +832,7 @@ async function markAllVisiblePaid(){
 }
 async function loadMasterSupport(){
  if(!hasAnyPlatformRole(['master','admin','support']))return alert('Você não tem permissão para acessar o Suporte administrativo.');
- if(!currentUser)return alert('Entre na conta administrativa.');
- const {data,error}=await sb.from('support_tickets').select('id,user_id,subject,category,status,priority,created_at,order_id').order('created_at',{ascending:false}).limit(100);
- const el=document.getElementById('masterSupportBody');
- if(error){el.innerHTML='<div class="card">Área restrita ao Master/Admin/Suporte.</div>';return}
- const open=(data||[]).filter(t=>!['resolved','closed'].includes(t.status)).length;
- el.innerHTML=`<div class="metric-grid"><div class="card"><b>${open}</b><div class="mut">Em aberto</div></div><div class="card"><b>${(data||[]).length}</b><div class="mut">Chamados recentes</div></div></div><div class="card">${(data||[]).map(t=>`<div class="ticket" onclick="openMasterTicket('${t.id}')" style="cursor:pointer"><div class="row" style="justify-content:space-between"><b>${esc(t.subject)}</b><span class="ticket-status">${supportStatusLabel[t.status]||t.status}</span></div><div class="mut">${supportCategoryLabel[t.category]||t.category} • prioridade ${t.priority} • ${new Date(t.created_at).toLocaleString('pt-BR')}</div></div>`).join('')||'<p class="mut">Nenhum chamado.</p>'}</div>`;
-}
-async function openMasterTicket(id){
- const [{data:t,error},{data:msgs}]=await Promise.all([sb.from('support_tickets').select('*').eq('id',id).single(),sb.from('support_messages').select('*').eq('ticket_id',id).order('created_at',{ascending:true})]);
- if(error)return alert(friendlyError(error));
- document.getElementById('masterSupportBody').innerHTML=`<button class="ghost" data-platform-roles="master,admin,support" onclick="loadMasterSupport()">← Voltar</button><div class="card"><h2>${esc(t.subject)}</h2><div class="form-grid"><label>Status<select id="adminTicketStatus"><option value="open">Aberto</option><option value="in_progress">Em atendimento</option><option value="waiting_user">Aguardando cliente</option><option value="resolved">Resolvido</option><option value="closed">Fechado</option></select></label><label>Prioridade<select id="adminTicketPriority"><option value="low">Baixa</option><option value="normal">Normal</option><option value="high">Alta</option><option value="urgent">Urgente</option></select></label><button class="wide" onclick="updateMasterTicket('${id}')">Salvar atendimento</button></div><hr>${(msgs||[]).map(m=>`<div class="review-card"><b>${m.sender_type==='customer'?'Cliente':'Smart Shop'}</b><p>${esc(m.body)}</p><span class="mut">${new Date(m.created_at).toLocaleString('pt-BR')}</span></div>`).join('')}<div class="support-compose"><textarea id="adminTicketReply" placeholder="Responder ao cliente..."></textarea><button style="width:100%" onclick="replySupportTicket('${id}',true)">Enviar resposta</button></div></div>`;
- document.getElementById('adminTicketStatus').value=t.status;document.getElementById('adminTicketPriority').value=t.priority;
-}
-async function updateMasterTicket(id){
- const {error}=await sb.rpc('admin_update_support_ticket',{p_ticket_id:id,p_status:document.getElementById('adminTicketStatus').value,p_priority:document.getElementById('adminTicketPriority').value});
- if(error){alert(friendlyError(error));return}alert('Atendimento atualizado.');await openMasterTicket(id);
-}
-async function showSupportCenter(){
- if(!currentUser)return alert('Entre na sua conta para acessar a Central de Ajuda.');
- const {data:tickets,error}=await sb.from('support_tickets').select('id,subject,category,status,priority,created_at,order_id').eq('user_id',currentUser.id).order('created_at',{ascending:false});
- const {data:orders}=await sb.from('orders').select('id,order_number,created_at').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(30);
- if(error)return alert(friendlyError(error));
- document.getElementById('supportBody').innerHTML=`<div class="card support-compose"><h3>Como podemos ajudar?</h3><form onsubmit="createSupportTicket(event)" class="form-grid"><input id="spSubject" class="wide" placeholder="Assunto" required><select id="spCategory"><option value="order">Pedido</option><option value="payment">Pagamento</option><option value="delivery">Entrega</option><option value="return">Troca / devolução</option><option value="account">Minha conta</option><option value="other">Outro</option></select><select id="spOrder"><option value="">Sem pedido específico</option>${(orders||[]).map(o=>`<option value="${o.id}">Pedido ${esc(o.order_number||o.id.slice(0,8))}</option>`).join('')}</select><textarea id="spMessage" class="wide" placeholder="Descreva o que aconteceu..." required></textarea><button class="wide">Enviar solicitação</button></form></div><div class="card"><h3>Meus atendimentos</h3>${(tickets||[]).map(t=>`<div class="ticket" onclick="openSupportTicket('${t.id}')" style="cursor:pointer"><div class="row" style="justify-content:space-between"><b>${esc(t.subject)}</b><span class="ticket-status">${supportStatusLabel[t.status]||t.status}</span></div><div class="mut">${supportCategoryLabel[t.category]||t.category} • ${new Date(t…1966 tokens truncated…lass="card"><h3>Amigos indicados ('+(friends.data||[]).length+')</h3>'+((friends.data||[]).map(x=>'<div class="list-item"><b>'+esc(referralStatusLabel(x.status))+'</b><div class="mut">'+new Date(x.created_at).toLocaleDateString('pt-BR')+(x.qualified_at?' • qualificada em '+new Date(x.qualified_at).toLocaleDateString('pt-BR'):'')+'</div></div>').join('')||'<p class="mut">Nenhuma indicação ainda.</p>')+'</div>'+
+ if(!currentUser)return…3244 tokens truncated…s="list-item"><b>'+esc(referralStatusLabel(x.status))+'</b><div class="mut">'+new Date(x.created_at).toLocaleDateString('pt-BR')+(x.qualified_at?' • qualificada em '+new Date(x.qualified_at).toLocaleDateString('pt-BR'):'')+'</div></div>').join('')||'<p class="mut">Nenhuma indicação ainda.</p>')+'</div>'+
   '<div class="card"><h3>Lojas indicadas ('+(stores.data||[]).length+')</h3>'+((stores.data||[]).map(x=>'<div class="list-item"><b>'+esc(x.store_name)+'</b><div class="mut">'+esc(x.city)+' • '+esc(referralStatusLabel(x.status))+'</div></div>').join('')||'<p class="mut">Nenhuma loja indicada ainda.</p>')+'</div></div>';
 }
 async function shareReferral(code){
@@ -888,8 +880,9 @@ async function showAccount(){
  ${membership?`<div class="menu-section"><button class="menu-row" onclick="openView('merchantPanel');loadMerchantPanel()"><span class="menu-icon">🏬</span><b>Painel do lojista</b><span class="menu-arrow">›</span></button></div>`:`<div class="menu-section"><button class="menu-row" onclick="openMerchantApplicationFromCustomer()"><span class="menu-icon">🏬</span><b>Quero vender no Smart Shop</b><span class="menu-arrow">›</span></button><button class="menu-row" onclick="openView('courierApply')"><span class="menu-icon">🚗</span><b>Quero ser entregador</b><span class="menu-arrow">›</span></button></div>`}
  <div class="menu-section">
   <button class="menu-row" onclick="openView('supportPanel');showSupportCenter()"><span class="menu-icon">❔</span><b>Suporte ao consumidor</b><span class="menu-arrow">›</span></button>
-  <button class="menu-row" onclick="openView('supportPanel');showSupportCenter()"><span class="menu-icon">ⓘ</span><b>Política de privacidade e termos</b><span class="menu-arrow">›</span></button>
-  <button class="menu-row" onclick="openView('supportPanel');showSupportCenter()"><span class="menu-icon">✉</span><b>Contato</b><span class="menu-arrow">›</span></button>
+  <button class="menu-row" onclick="showInfoPage('privacy')"><span class="menu-icon">ⓘ</span><b>Política de privacidade</b><span class="menu-arrow">›</span></button>
+  <button class="menu-row" onclick="showInfoPage('terms')"><span class="menu-icon">📄</span><b>Termos de uso</b><span class="menu-arrow">›</span></button>
+  <button class="menu-row" onclick="showInfoPage('contact')"><span class="menu-icon">✉</span><b>Contato</b><span class="menu-arrow">›</span></button>
   <button class="menu-row" onclick="signOut()"><span class="menu-icon">↪</span><b>Sair</b><span class="menu-arrow">›</span></button>
  </div>`;
 }

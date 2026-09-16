@@ -154,10 +154,11 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 @media(max-width:760px){.promo-slide{padding:19px;min-height:205px}.promo-slide h1{font-size:26px}.same-day-strip,.community-grid{grid-template-columns:1fr}.smart-logo small{display:none}}
 
 .delivery-location{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:11px 14px;margin-bottom:12px;cursor:pointer}.delivery-location b{display:block}.delivery-location .mut{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:720px}
+.home-welcome{display:none;background:linear-gradient(135deg,#0967d8,#147fe8 60%,#ff7a00 145%);color:#fff;border-radius:22px;padding:18px;margin-bottom:14px;box-shadow:0 10px 25px #0967d822}.home-welcome-top{display:flex;align-items:center;gap:12px}.home-avatar{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:#ffffff25;border:2px solid #ffffff55;font-size:24px}.home-welcome-name{flex:1}.home-welcome-name h2{margin:0 0 3px;font-size:22px}.home-welcome-name small{opacity:.9}.home-quick{display:flex;gap:8px}.home-quick button{width:42px;height:42px;padding:0;border-radius:13px;background:#ffffff20;color:#fff;font-size:18px;position:relative}.home-welcome-address{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:15px;padding-top:14px;border-top:1px solid #ffffff35;cursor:pointer}.home-welcome-address div{min-width:0}.home-welcome-address span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.store-pill-head{display:flex;align-items:center;gap:10px}.store-pill-logo{width:46px;height:46px;border-radius:12px;object-fit:cover;background:#f3f6fa;border:1px solid var(--line)}.store-pill-fallback{display:grid;place-items:center;font-size:22px}
 .search-history{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}.search-history button{background:#fff;color:var(--ink);border:1px solid var(--line);padding:7px 10px}.visual-categories{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px}.visual-category{background:#fff!important;color:var(--ink)!important;border:1px solid var(--line)!important;min-height:92px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px}.visual-category span{font-size:28px}.visual-category.on{border-color:var(--b)!important;background:#eef5ff!important;color:var(--b)!important}
 .merchant-steps{display:flex;gap:6px;margin:12px 0 18px}.merchant-step-dot{flex:1;height:7px;background:#dfe6ef;border-radius:99px}.merchant-step-dot.on,.merchant-step-dot.done{background:var(--b)}.merchant-step{display:none}.merchant-step.on{display:block}.merchant-step-actions{display:flex;justify-content:space-between;gap:10px;margin-top:18px}.merchant-review{background:#f7f9fc;border:1px solid var(--line);padding:14px;border-radius:12px;line-height:1.7}
 .mobile-bottom-nav{display:none}.mobile-cart-count{display:none;position:absolute;top:0;right:calc(50% - 22px);min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:#e53935;color:#fff;font:700 10px/17px Arial;text-align:center}
-@media(max-width:760px){body{padding-bottom:76px}.wrap{padding:14px 12px 18px}#app>nav{display:none}.mobile-bottom-nav{position:fixed;display:grid;grid-template-columns:repeat(4,1fr);left:0;right:0;bottom:0;z-index:70;background:#fff;border-top:1px solid var(--line);box-shadow:0 -6px 24px #0002;padding:7px 5px max(7px,env(safe-area-inset-bottom))}.mobile-bottom-nav button{background:transparent;color:#5b6678;padding:5px 2px;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:3px}.mobile-bottom-nav button span{font-size:20px}.mobile-bottom-nav button.on{color:var(--b)}.delivery-location{margin-top:2px}.visual-categories{grid-template-columns:repeat(3,1fr)}.promo-arrow{display:none!important}.account-menu{display:block}.account-hero{border-radius:18px}.profile-card{padding:14px}}
+@media(max-width:760px){body{padding-bottom:76px}.wrap{padding:14px 12px 18px}#app>nav{display:none}.mobile-bottom-nav{position:fixed;display:grid;grid-template-columns:repeat(4,1fr);left:0;right:0;bottom:0;z-index:70;background:#fff;border-top:1px solid var(--line);box-shadow:0 -6px 24px #0002;padding:7px 5px max(7px,env(safe-area-inset-bottom))}.mobile-bottom-nav button{background:transparent;color:#5b6678;padding:5px 2px;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:3px}.mobile-bottom-nav button span{font-size:20px}.mobile-bottom-nav button.on{color:var(--b)}.home-welcome{display:block}.delivery-location{display:none}.visual-categories{grid-template-columns:repeat(3,1fr)}.promo-arrow{display:none!important}.account-menu{display:block}.account-hero{border-radius:18px}.profile-card{padding:14px}.promo-slide{min-height:170px}.promo-slide h1{font-size:24px}}
 
 </style>
 
@@ -264,6 +265,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 <div id="courierPanel" class="view hide card"><h2>Entregas disponíveis</h2><div id="courierPanelBody" class="mut">Carregando...</div></div>
 
 <div id="homePanel" class="view hide market-shell">
+ <div id="homeWelcome" class="home-welcome"></div>
  <div id="homeDeliveryLocation" class="delivery-location" onclick="openDeliveryAddress()"><div>📍 <b>Entregar em</b><div class="mut">Escolha seu endereço de entrega</div></div><span>Alterar ›</span></div>
  <div class="promo-carousel" id="promoCarousel" aria-label="Destaques do Smart Shop"><div class="promo-track" id="promoTrack"></div><button class="promo-arrow prev" id="promoPrev" aria-label="Banner anterior" onclick="setSmartPromo(smartPromoIndex-1)">‹</button><button class="promo-arrow next" id="promoNext" aria-label="Próximo banner" onclick="setSmartPromo(smartPromoIndex+1)">›</button><div class="promo-dots" id="promoDots"></div></div>
  <div class="same-day-strip"><div class="benefit"><span>⚡</span><div><b>Entrega no mesmo dia</b><small>Conforme horário e disponibilidade da loja</small></div></div><div class="benefit"><span>📍</span><div><b>Comércio da região</b><small>Compre perto e fortaleça negócios locais</small></div></div><div class="benefit"><span>🕒</span><div><b>Horário da loja</b><small>Prazo exibido de acordo com o atendimento</small></div></div></div>
@@ -986,6 +988,19 @@ async function saveCustomerProfile(ev){
 }
 let addressCache=[];
 let addressReturnToCheckout=false;
+async function loadHomeWelcome(){
+ const el=document.getElementById('homeWelcome');if(!el)return;
+ if(!currentUser){
+   el.innerHTML=`<div class="home-welcome-top"><div class="home-avatar">👤</div><div class="home-welcome-name"><h2>Olá!</h2><small>Entre para receber ofertas da sua região</small></div><div class="home-quick"><button aria-label="Entrar" onclick="showAuthCard()">→</button></div></div><div class="home-welcome-address" onclick="showAuthCard()"><div><b>📍 Onde você quer receber?</b><span>Entre na conta e cadastre seu endereço</span></div><b>›</b></div>`;
+   return;
+ }
+ const [{data:p},{data:a}]=await Promise.all([
+   sb.from('profiles').select('full_name').eq('id',currentUser.id).maybeSingle(),
+   sb.from('addresses').select('street,number,district,city').eq('user_id',currentUser.id).order('is_default',{ascending:false}).order('created_at',{ascending:false}).limit(1).maybeSingle()
+ ]);
+ const name=(p?.full_name||currentUser.user_metadata?.full_name||'Cliente').split(' ')[0],qty=marketCart.reduce((sum,item)=>sum+item.qty,0),notif=document.getElementById('notifCount')?.textContent||'0';
+ el.innerHTML=`<div class="home-welcome-top"><div class="home-avatar">👤</div><div class="home-welcome-name"><h2>Olá, ${esc(name)}</h2><small>Ofertas selecionadas para você</small></div><div class="home-quick"><button aria-label="Notificações" onclick="showNotifications()">🔔${notif!=='0'?`<small class="mobile-cart-count" style="display:block">${esc(notif)}</small>`:''}</button><button aria-label="Carrinho" onclick="openMarketCheckout()">🛒${qty?`<small class="mobile-cart-count" style="display:block">${qty}</small>`:''}</button></div></div><div class="home-welcome-address" onclick="openDeliveryAddress()"><div><b>📍 Entregar em</b><span>${a?`${esc(a.street)}, ${esc(a.number)} • ${esc(a.district)}, ${esc(a.city)}`:'Cadastre seu endereço de entrega'}</span></div><b>›</b></div>`;
+}
 async function loadHomeDeliveryLocation(){
  const el=document.getElementById('homeDeliveryLocation');if(!el)return;
  if(!currentUser){el.innerHTML='<div>📍 <b>Onde você quer receber?</b><div class="mut">Entre na conta e escolha um endereço</div></div><span>Informar ›</span>';return}
@@ -1227,7 +1242,7 @@ async function toggleStoreFavorite(storeId,isFavorite){
 }
 async function ensureMarketData(){
  if(marketProducts.length)return true;
- const {data,error}=await sb.from('products').select('id,store_id,name,category,description,price,old_price,image_url,stock,created_at,stores(name,delivery_modes,business_hours)').eq('active',true).gt('stock',0).order('created_at',{ascending:false});
+ const {data,error}=await sb.from('products').select('id,store_id,name,category,description,price,old_price,image_url,stock,created_at,stores(name,logo_url,delivery_modes,business_hours)').eq('active',true).gt('stock',0).order('created_at',{ascending:false});
  if(error){
    const message='Não foi possível carregar as lojas e produtos agora: '+friendlyError(error);
    const ho=document.getElementById('homeOffers'), hs=document.getElementById('homeStores'), hn=document.getElementById('homeNew');
@@ -1310,7 +1325,7 @@ async function toggleBanner(id,active){ if(!hasAnyPlatformRole(['master','admin'
 async function deleteBanner(id){ if(!hasAnyPlatformRole(['master','admin','operations']))return alert('Você não tem permissão para excluir banners.');if(!confirm('Excluir este banner?'))return;const {error}=await sb.from('home_banners').delete().eq('id',id);if(error){alert(friendlyError(error));return}await loadBannerAdmin()}
 async function showHome(){
  const hb=document.getElementById('heroLoginBtn');if(hb)hb.style.display=currentUser?'none':'';
- await Promise.all([loadHomeBanners(),loadHomeDeliveryLocation()]);
+ await Promise.all([loadHomeBanners(),loadHomeDeliveryLocation(),loadHomeWelcome()]);
  const ok=await ensureMarketData();
  if(ok&&marketProducts.length){await loadReviewSummary(marketProducts.map(x=>x.id));await loadGrowthDiscovery();}
  if(currentUser)await loadSyncedFavorites();
@@ -1321,7 +1336,7 @@ function renderHome(){
  const hc=document.getElementById('homeCategories');if(hc)hc.innerHTML=HOME_CATEGORY_SHOWCASE.map(c=>{const available=liveCats.has(c.category);return `<button class="cat-card ${available?'':'coming'}" onclick="openHomeCategory(decodeURIComponent('${encodeURIComponent(c.category)}'))"><span class="cat-icon">${c.icon}</span><span class="cat-meta"><b>${esc(c.name)}</b><small>${available?'Ver produtos':'Em breve'}</small></span></button>`}).join('');
  const offers=marketProducts.filter(x=>x.old_price&&Number(x.old_price)>Number(x.price)).slice(0,8);
  const ho=document.getElementById('homeOffers');if(ho)ho.innerHTML=(offers.length?offers:marketProducts.slice(0,4)).map(productCard).join('');
- const stores=[...new Map(marketProducts.map(x=>[x.store_id,{id:x.store_id,name:x.stores?.name||'Loja',delivery_modes:x.stores?.delivery_modes||[],business_hours:x.stores?.business_hours||null}])).values()];
+ const stores=[...new Map(marketProducts.map(x=>[x.store_id,{id:x.store_id,name:x.stores?.name||'Loja',logo_url:x.stores?.logo_url||'',delivery_modes:x.stores?.delivery_modes||[],business_hours:x.stores?.business_hours||null}])).values()];
  const hs=document.getElementById('homeStores');if(hs)hs.innerHTML=stores.map(storePublicCard).join('');
  const opened=stores.filter(x=>storeOpenNow(x.id)),hos=document.getElementById('homeOpenStores');if(hos)hos.innerHTML=opened.map(storePublicCard).join('')||'<div class="card"><span class="mut">Nenhuma loja aberta neste momento. O catálogo continua disponível para consulta.</span></div>';
  const best=marketProducts.slice().sort((a,b)=>Number(productDiscovery[b.id]?.sold_quantity||0)-Number(productDiscovery[a.id]?.sold_quantity||0)).filter(x=>Number(productDiscovery[x.id]?.sold_quantity||0)>0).slice(0,8);
@@ -1369,12 +1384,12 @@ function storeOpenNow(storeId){
  const parts=t=>t.split(':').map(Number),a=parts(row.opens_at),b=parts(row.closes_at),mins=now.getHours()*60+now.getMinutes();return mins>=a[0]*60+a[1]&&mins<b[0]*60+b[1];
 }
 function storePublicCard(x){
- const q=storeQuality[x.id]||{},open=storeOpenNow(x.id);return '<div class="store-pill" onclick="openStorePage(\''+x.id+'\')"><b>'+esc(x.name)+'</b><span class="mut">'+(open?'🟢 Aberta agora':'⚪ Fechada agora')+(Number(q.review_count)?' • ★ '+Number(q.rating_average).toFixed(1):'')+'</span>'+(q.highlight_eligible?'<span class="tag">🏅 Loja Destaque</span>':'')+deliveryBadge(x)+'</div>';
+ const q=storeQuality[x.id]||{},open=storeOpenNow(x.id),logo=x.logo_url?'<img class="store-pill-logo" src="'+esc(x.logo_url)+'" alt="Logo da '+esc(x.name)+'">':'<span class="store-pill-logo store-pill-fallback">🏪</span>';return '<div class="store-pill" onclick="openStorePage(\''+x.id+'\')"><div class="store-pill-head">'+logo+'<div><b>'+esc(x.name)+'</b><span class="mut">'+(open?'🟢 Aberta agora':'⚪ Fechada agora')+(Number(q.review_count)?' • ★ '+Number(q.rating_average).toFixed(1):'')+'</span></div></div>'+(q.highlight_eligible?'<span class="tag">🏅 Loja Destaque</span>':'')+deliveryBadge(x)+'</div>';
 }
 async function showMarketplace(category=null){
  if(typeof category==='string'&&category){marketCategory=category;marketStore='';rememberCategoryInterest(category)}
  openView('marketplacePanel');
- const {data,error}=await sb.from('products').select('id,store_id,name,category,description,price,old_price,image_url,stock,created_at,stores(name,delivery_modes,business_hours)').eq('active',true).gt('stock',0).order('created_at',{ascending:false});
+ const {data,error}=await sb.from('products').select('id,store_id,name,category,description,price,old_price,image_url,stock,created_at,stores(name,logo_url,delivery_modes,business_hours)').eq('active',true).gt('stock',0).order('created_at',{ascending:false});
  if(error){alert(friendlyError(error));return}
  marketProducts=data||[];
  renderMarketFilters();renderSearchHistory();renderMarketProducts();renderMarketCart();renderHome();

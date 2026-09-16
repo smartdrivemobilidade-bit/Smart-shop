@@ -100,3 +100,11 @@ Toda alteração de banco deve ser aplicada por migration versionada e registrad
 - Migrations aplicadas: `20260914215933_smart_shop_v4_rls_performance_hardening.sql` e `20260914220211_smart_shop_v4_growth_table_least_privileges.sql`.
 
 - Teste de pré-validação identificou e corrigiu os privilégios de favoritos de produtos. Permissões técnicas `REFERENCES`, `TRIGGER` e `TRUNCATE` foram removidas dos papéis da API em todas as tabelas públicas. Migration: `20260914221140_smart_shop_v4_api_privilege_cleanup_favorites.sql`.
+
+## Frete por distância (16/09/2026)
+
+- O frete do parceiro Smart Shop é cotado no servidor a partir da cidade/coordenadas da loja e do endereço escolhido pelo cliente.
+- A cotação usa distância estimada por linha reta com fator de trajeto, valor inicial, preço por quilômetro, mínimo, máximo e distância máxima configuráveis pelo Master/Admin.
+- Retirada na loja permanece gratuita; a entrega própria mantém o valor definido pela loja.
+- Quando a coordenada exata não está disponível, a cotação usa a tabela de cidades cadastradas e sinaliza que a distância é estimada.
+- Migrations aplicadas: `20260916180000_smart_shop_v4_distance_freight.sql`, `20260916180100_fix_distance_freight_rounding.sql` e `20260916180200_refine_delivery_city_rls.sql`.

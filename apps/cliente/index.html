@@ -1055,6 +1055,8 @@ function openAddressForm(id=''){
  document.getElementById('addrId').value=a?.id||'';
  document.getElementById('addrCep').value=a?.cep||'';
  document.getElementById('addrCep').dataset.lookup='';
+ document.getElementById('addrLatitude').value=a?.latitude??'';
+ document.getElementById('addrLongitude').value=a?.longitude??'';
  const cepStatus=document.getElementById('addrCepStatus');if(cepStatus)cepStatus.textContent='';
  document.getElementById('addrStreet').value=a?.street||'';
  document.getElementById('addrNumber').value=a?.number||'';
@@ -1070,11 +1072,15 @@ function formatCep(input){
  input.value=digits.length>5?digits.slice(0,5)+'-'+digits.slice(5):digits;
  if(digits.length<8){
   input.dataset.lookup='';
+  document.getElementById('addrLatitude').value='';
+  document.getElementById('addrLongitude').value='';
   const status=document.getElementById('addrCepStatus');if(status)status.textContent='';
   return;
  }
  if(input.dataset.lookup===digits)return;
  input.dataset.lookup=digits;
+ document.getElementById('addrLatitude').value='';
+ document.getElementById('addrLongitude').value='';
  lookupCep(digits);
 }
 async function lookupCep(raw){
@@ -1088,10 +1094,23 @@ async function lookupCep(raw){
   if(data.erro){if(status)status.textContent='CEP não encontrado. Preencha o endereço manualmente.';return}
   const fill=(id,value)=>{const el=document.getElementById(id);if(el&&value)el.value=value};
   fill('addrStreet',data.logradouro);fill('addrDistrict',data.bairro);fill('addrCity',data.localidade);fill('addrState',data.uf);
+  await lookupCepCoordinates(digits);
   if(status)status.textContent='Endereço encontrado pelo CEP.';
  }catch(error){
   if(status)status.textContent='Não foi possível consultar o CEP agora. Você pode preencher manualmente.';
  }
+}
+async function lookupCepCoordinates(digits){
+ try{
+  const response=await fetch('https://brasilapi.com.br/api/cep/v2/'+digits);
+  if(!response.ok)return;
+  const data=await response.json(),coords=data?.location?.coordinates||{};
+  const lat=Number(coords.latitude),lng=Number(coords.longitude);
+  if(!Number.isFinite(lat)||!Number.isFinite(lng))return;
+  const latEl=document.getElementById('addrLatitude'),lngEl=document.getElementById('addrLongitude');
+  if(latEl)latEl.value=String(lat);
+  if(lngEl)lngEl.value=String(lng);
+ }catch(error){/* A tabela de cidades serve como fallback para a cotação. */}
 }
 function openCheckoutAddressForm(){
  addressReturnToCheckout=true;
@@ -1107,7 +1126,8 @@ function closeAddressForm(){
 async function saveAddress(ev){
  ev.preventDefault();
  const id=document.getElementById('addrId').value, makeDefault=document.getElementById('addrDefault').checked;
- const row={user_id:currentUser.id,cep:document.getElementById('addrCep').value.trim()||null,street:document.getElementById('addrStreet').value.trim(),number:document.getElementById('addrNumber').value.trim(),district:document.getElementById('addrDistrict').value.trim(),complement:document.getElementById('addrComplement').value.trim()||null,city:document.getElementById('addrCity').value.trim(),state:document.getElementById('addrState').value.trim().toUpperCase()};
+ const latText=document.getElementById('addrLatitude').value.trim(),lngText=document.getElementById('addrLongitude').value.trim(),latNumber=Number(latText),lngNumber=Number(lngText);
+ const row={user_id:currentUser.id,cep:document.getElementById('addrCep').value.trim()||null,street:document.getElementById('addrStreet').value.trim(),number:document.getElementById('addrNumber').value.trim(),district:document.getElementById('addrDistrict').value.trim(),complement:document.getElementById('addrComplement').value.trim()||null,city:document.getElementById('addrCity').value.trim(),state:document.getElementById('addrState').value.trim().toUpperCase(),latitude:Number.isFinite(latNumber)?latNumber:null,longitude:Number.isFinite(lngNumber)?lngNumber:null};
  let savedId=id;
  if(id){
    const {error}=await sb.from('addresses').update(row).eq('id',id);if(error){alert(friendlyError(error));return}
@@ -1602,9 +1622,11 @@ async function openMarketCheckout(){
  const cartStore=marketCart[0]?.stores||{},enabledModes=Array.isArray(cartStore.delivery_modes)&&cartStore.delivery_modes.length?cartStore.delivery_modes:['pickup','smart_partner'];
  if(!enabledModes.includes(checkoutMethod))checkoutMethod=enabledModes[0]||'pickup';
  const items=marketCart.map(x=>({product_id:x.id,variant_id:x.variant_id,quantity:x.qty}));
- const {data:q,error:qe}=await sb.rpc('quote_checkout_v2',{p_store_id:marketCart[0].store_id,p_items:items,p_delivery_method:checkoutMethod,p_coupon_code:marketCoupon||null});
+ const {data:q,error:qe}=await sb.rpc('quote_checkout_distance',{p_store_id:marketCart[0].store_id,p_items:items,p_delivery_method:checkoutMethod,p_coupon_code:marketCoupon||null});
  const quote=Array.isArray(q)?q[0]:q;
  let quoteError=qe?friendlyError(qe):null;
+ if(quoteError?.includes('delivery distance exceeds coverage'))quoteError='Este endereço está fora da área de entrega do parceiro Smart Shop.';
+ if(quoteError?.includes('delivery distance unavailable'))quoteError='Não foi possível calcular a distância para este endereço. Escolha outro endereço ou retire na loja.';
  if(qe&&marketCoupon){marketCoupon='';}
  const sub=Number(quote?.product_subtotal??marketSubtotal()),discount=Number(quote?.discount_amount||0),freight=Number(quote?.freight_amount||0),total=Number(quote?.total_amount??(sub+freight));
  document.getElementById('checkoutBody').innerHTML=`
@@ -1612,7 +1634,7 @@ async function openMarketCheckout(){
  <div class="checkout-box"><b>Endereço</b>${addrs.map(a=>`<label class="option-card ${checkoutAddressId===a.id?'on':''}"><input type="radio" name="marketAddr" value="${a.id}" ${checkoutAddressId===a.id?'checked':''} onchange="checkoutAddressId=this.value;openMarketCheckout()"> ${esc(a.street)}, ${esc(a.number)} - ${esc(a.district)}<div class="mut">${esc(a.city)} / ${esc(a.state)}</div></label>`).join('')}<button type="button" class="ghost" style="width:100%;margin-top:10px" onclick="openCheckoutAddressForm()">+ Entregar em outro endereço</button></div>
  <div class="checkout-box"><b>Recebimento</b>${enabledModes.length===1?`<div class="mut" style="margin:6px 0">Esta loja oferece uma única forma de recebimento.</div>`:''}${[['pickup','Retirar na loja','Você busca o pedido no estabelecimento.'],['store_delivery','Entrega feita pela loja','A própria loja utiliza seu entregador.'],['smart_partner','Parceiro Smart Shop','Entrega realizada por um entregador parceiro Smart Shop.']].filter(x=>enabledModes.includes(x[0])).map(x=>`<div class="option-card ${checkoutMethod===x[0]?'on':''}" onclick="checkoutMethod='${x[0]}';openMarketCheckout()"><b>${x[1]}</b><div class="mut" style="margin-top:4px">${x[2]}</div></div>`).join('')}</div>
  <div class="checkout-box"><b>Cupom</b><div class="row"><input id="marketCoupon" placeholder="Ex.: SMART10" value="${esc(marketCoupon)}" style="flex:1"><button class="ghost" onclick="marketCoupon=document.getElementById('marketCoupon').value.trim();openMarketCheckout()">Aplicar</button></div>${quoteError?`<div class="msg err">${esc(quoteError)}</div>`:marketCoupon&&quote?.coupon_code?`<div class="msg">Cupom ${esc(quote.coupon_code)} aplicado.</div>`:''}</div>
- <div class="checkout-box"><div class="row" style="justify-content:space-between"><span>Produtos</span><b>${money(sub)}</b></div>${discount>0?`<div class="row" style="justify-content:space-between;margin-top:8px"><span>Desconto</span><b>− ${money(discount)}</b></div>`:''}<div class="row" style="justify-content:space-between;margin-top:8px"><span>Frete</span><b>${freight>0?money(freight):'Grátis'}</b></div><hr><div class="row" style="justify-content:space-between;font-size:18px"><b>Total</b><b>${money(total)}</b></div><button id="checkoutConfirmBtn" style="width:100%;margin-top:14px" onclick="finishMarketCheckout()" ${qe?'disabled':''}>Confirmar pedido</button><p class="mut" style="margin-bottom:0">Pagamento permanece simulado nesta fase de testes.</p></div>`;
+ <div class="checkout-box"><div class="row" style="justify-content:space-between"><span>Produtos</span><b>${money(sub)}</b></div>${discount>0?`<div class="row" style="justify-content:space-between;margin-top:8px"><span>Desconto</span><b>− ${money(discount)}</b></div>`:''}<div class="row" style="justify-content:space-between;margin-top:8px"><span>Frete</span><b>${freight>0?money(freight):'Grátis'}</b></div>${quote?.pricing_note?`<div class="mut" style="margin-top:5px">${esc(String(quote.pricing_note))}</div>`:''}<hr><div class="row" style="justify-content:space-between;font-size:18px"><b>Total</b><b>${money(total)}</b></div><button id="checkoutConfirmBtn" style="width:100%;margin-top:14px" onclick="finishMarketCheckout()" ${qe?'disabled':''}>Confirmar pedido</button><p class="mut" style="margin-bottom:0">Pagamento permanece simulado nesta fase de testes.</p></div>`;
  document.getElementById('checkoutModal').classList.remove('hide');
 }
 function closeCheckoutModal(){document.getElementById('checkoutModal').classList.add('hide')}
@@ -1628,7 +1650,7 @@ async function finishMarketCheckout(){
  if(addrErr||!addr)return alert('O endereço selecionado não está mais disponível. Escolha um endereço novamente.');
 
  marketCoupon=(document.getElementById('marketCoupon')?.value||marketCoupon||'').trim();
- const {data,error:e}=await sb.rpc('create_checkout_order_v2',{p_store_id:marketCart[0].store_id,p_items:marketCart.map(x=>({product_id:x.id,variant_id:x.variant_id,quantity:x.qty})),p_address_id:checkoutAddressId,p_delivery_method:checkoutMethod,p_coupon_code:marketCoupon||null,p_checkout_token:(activeCheckoutToken||(activeCheckoutToken=(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random())))});
+ const {data,error:e}=await sb.rpc('create_checkout_order_distance',{p_store_id:marketCart[0].store_id,p_items:marketCart.map(x=>({product_id:x.id,variant_id:x.variant_id,quantity:x.qty})),p_address_id:checkoutAddressId,p_delivery_method:checkoutMethod,p_coupon_code:marketCoupon||null,p_checkout_token:(activeCheckoutToken||(activeCheckoutToken=(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random())))});
  if(e){
    let m=e.message||'Não foi possível criar o pedido.';
    if(m.includes('insufficient stock'))m='Um produto ficou sem estoque suficiente.';
@@ -1642,6 +1664,8 @@ async function finishMarketCheckout(){
    if(m.includes('coupon usage limit reached'))m='Este cupom atingiu o limite total de utilizações.';
    if(m.includes('product unavailable'))m='Um dos produtos não está mais disponível.';
    if(m.includes('store unavailable'))m='Esta loja não está disponível para novos pedidos.';
+   if(m.includes('delivery distance exceeds coverage'))m='Este endereço está fora da área de entrega do parceiro Smart Shop.';
+   if(m.includes('delivery distance unavailable'))m='Não foi possível calcular a distância para este endereço. Escolha outro endereço ou retire na loja.';
    alert(m);return;
  }
  closeCheckoutModal();marketCart=[];marketCoupon='';checkoutAddressId=null;activeCheckoutToken=null;renderMarketCart();
@@ -1981,6 +2005,8 @@ setInterval(()=>{if(smartPromoCount>1&&document.getElementById('homePanel')&&!do
  <div class="modal-card"><div class="row" style="justify-content:space-between"><h2 id="addressTitle" style="margin:0">Novo endereço</h2><button class="ghost" onclick="closeAddressForm()">Fechar</button></div>
  <form id="addressForm" onsubmit="saveAddress(event)" class="form-grid" style="margin-top:14px">
   <input type="hidden" id="addrId">
+  <input type="hidden" id="addrLatitude">
+  <input type="hidden" id="addrLongitude">
   <input id="addrCep" placeholder="CEP" maxlength="9" inputmode="numeric" autocomplete="postal-code" oninput="formatCep(this)" onblur="lookupCep(this.value)">
   <small id="addrCepStatus" class="mut wide" aria-live="polite"></small>
   <input id="addrStreet" placeholder="Rua / Avenida" required>

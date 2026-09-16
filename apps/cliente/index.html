@@ -1054,6 +1054,8 @@ function openAddressForm(id=''){
  document.getElementById('addressTitle').textContent=a?'Editar endereço':'Novo endereço';
  document.getElementById('addrId').value=a?.id||'';
  document.getElementById('addrCep').value=a?.cep||'';
+ document.getElementById('addrCep').dataset.lookup='';
+ const cepStatus=document.getElementById('addrCepStatus');if(cepStatus)cepStatus.textContent='';
  document.getElementById('addrStreet').value=a?.street||'';
  document.getElementById('addrNumber').value=a?.number||'';
  document.getElementById('addrDistrict').value=a?.district||'';
@@ -1062,6 +1064,34 @@ function openAddressForm(id=''){
  document.getElementById('addrState').value=a?.state||'MG';
  document.getElementById('addrDefault').checked=a?.is_default??!addressCache.length;
  document.getElementById('addressModal').classList.remove('hide');
+}
+function formatCep(input){
+ const digits=String(input.value||'').replace(/\D/g,'').slice(0,8);
+ input.value=digits.length>5?digits.slice(0,5)+'-'+digits.slice(5):digits;
+ if(digits.length<8){
+  input.dataset.lookup='';
+  const status=document.getElementById('addrCepStatus');if(status)status.textContent='';
+  return;
+ }
+ if(input.dataset.lookup===digits)return;
+ input.dataset.lookup=digits;
+ lookupCep(digits);
+}
+async function lookupCep(raw){
+ const digits=String(raw||'').replace(/\D/g,'').slice(0,8),status=document.getElementById('addrCepStatus');
+ if(digits.length!==8)return;
+ if(status){status.textContent='Consultando o CEP…';status.className='mut wide';}
+ try{
+  const response=await fetch('https://viacep.com.br/ws/'+digits+'/json/');
+  if(!response.ok)throw new Error('Falha na consulta');
+  const data=await response.json();
+  if(data.erro){if(status)status.textContent='CEP não encontrado. Preencha o endereço manualmente.';return}
+  const fill=(id,value)=>{const el=document.getElementById(id);if(el&&value)el.value=value};
+  fill('addrStreet',data.logradouro);fill('addrDistrict',data.bairro);fill('addrCity',data.localidade);fill('addrState',data.uf);
+  if(status)status.textContent='Endereço encontrado pelo CEP.';
+ }catch(error){
+  if(status)status.textContent='Não foi possível consultar o CEP agora. Você pode preencher manualmente.';
+ }
 }
 function openCheckoutAddressForm(){
  addressReturnToCheckout=true;
@@ -1951,7 +1981,8 @@ setInterval(()=>{if(smartPromoCount>1&&document.getElementById('homePanel')&&!do
  <div class="modal-card"><div class="row" style="justify-content:space-between"><h2 id="addressTitle" style="margin:0">Novo endereço</h2><button class="ghost" onclick="closeAddressForm()">Fechar</button></div>
  <form id="addressForm" onsubmit="saveAddress(event)" class="form-grid" style="margin-top:14px">
   <input type="hidden" id="addrId">
-  <input id="addrCep" placeholder="CEP" maxlength="9">
+  <input id="addrCep" placeholder="CEP" maxlength="9" inputmode="numeric" autocomplete="postal-code" oninput="formatCep(this)" onblur="lookupCep(this.value)">
+  <small id="addrCepStatus" class="mut wide" aria-live="polite"></small>
   <input id="addrStreet" placeholder="Rua / Avenida" required>
   <input id="addrNumber" placeholder="Número" required>
   <input id="addrDistrict" placeholder="Bairro" required>

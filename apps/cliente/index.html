@@ -1,5 +1,5 @@
-Warning: truncated output (original token count: 53244)
-Total output lines: 1974
+Warning: truncated output (original token count: 53718)
+Total output lines: 1978
 
 <!doctype html>
 <html lang="pt-BR">
@@ -61,6 +61,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 .option-card{border:1px solid var(--line);border-radius:12px;padding:12px;margin:7px 0;cursor:pointer}.option-card.on{border-color:var(--b);background:#eef5ff}
 .modal-bg{position:fixed;inset:0;background:#0008;display:flex;align-items:flex-end;justify-content:center;z-index:50;padding:14px}
 .modal-bg.hide{display:none}.modal-card{background:#fff;width:min(620px,100%);max-height:88vh;overflow:auto;border-radius:22px 22px 16px 16px;padding:20px}
+.product-modal-top{display:flex;align-items:center;justify-content:space-between;gap:10px}.product-modal-actions{position:sticky;bottom:-20px;background:#fff;padding:14px 0 0;margin-top:16px;border-top:1px solid var(--line)}.product-modal-store{display:flex;align-items:center;gap:7px;color:var(--b);font-weight:700;cursor:pointer}.product-modal-store:hover{text-decoration:underline}.product-detail-meta{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}.product-description{background:#f7f9fc;border-radius:12px;padding:11px 13px;margin:12px 0}.product-description summary{cursor:pointer;font-weight:800;color:var(--b)}
 .section-title{display:flex;align-items:center;justify-content:space-between;margin:18px 0 10px}.section-title h3{margin:0}
 @media(max-width:980px){.product-grid{grid-template-columns:repeat(3,1fr)}}@media(max-width:760px){.product-grid{grid-template-columns:repeat(2,1fr)}.market-top{padding:18px}.product-card{min-height:290px}.product-card img{height:125px}}
 
@@ -823,27 +824,7 @@ async function loadMasterFinance(){
  <div class="card"><div class="row" style="justify-content:space-between"><h3>Valores disponíveis para repasse</h3>${avail.some(x=>x.beneficiary_type!=='platform')?`<button onclick="markAllVisiblePaid()">Marcar repasses como pagos</button>`:''}</div>${avail.map(x=>`<div class="ledger-row"><label><input type="checkbox" class="ledger-check" value="${x.id}" ${x.beneficiary_type==='platform'?'disabled':''}> <b>${x.beneficiary_type==='merchant'?'Lojista':x.beneficiary_type==='courier'?'Entregador':'Smart Shop'}</b> — <span class="money-positive">${money(x.amount)}</span></label><div class="mut">${esc(x.stores?.name||'')} • ${x.entry_type} • ${new Date(x.created_at).toLocaleString('pt-BR')}</div></div>`).join('')||'<p class="mut">Nenhum valor aguardando repasse.</p>'}</div>
  <div class="card"><h3>Histórico pago</h3>${paid.slice(0,50).map(x=>`<div class="ledger-row"><b>${x.beneficiary_type==='merchant'?'Lojista':x.beneficiary_type==='courier'?'Entregador':'Smart Shop'} — ${money(x.amount)}</b><div class="mut">${esc(x.stores?.name||'')} • pago em ${x.paid_at?new Date(x.paid_at).toLocaleString('pt-BR'):'-'}</div></div>`).join('')||'<p class="mut">Nenhum repasse marcado como pago.</p>'}</div>`;
 }
-async function markAllVisiblePaid(){
- const ids=[...document.querySelectorAll('.ledger-check:checked')].map(x=>x.value);
- if(!ids.length)return alert('Selecione os repasses que foram pagos.');
- if(!confirm(`Confirmar ${ids.length} repasse(s) como pago(s)?`))return;
- const {data,error}=await sb.rpc('mark_ledger_paid',{p_ids:ids});if(error){alert(friendlyError(error));return}
- alert(`${data||ids.length} repasse(s) atualizado(s).`);await loadMasterFinance();
-}
-async function loadMasterSupport(){
- if(!hasAnyPlatformRole(['master','admin','support']))return alert('Você não tem permissão para acessar o Suporte administrativo.');
- if(!currentUser)return…3244 tokens truncated…s="list-item"><b>'+esc(referralStatusLabel(x.status))+'</b><div class="mut">'+new Date(x.created_at).toLocaleDateString('pt-BR')+(x.qualified_at?' • qualificada em '+new Date(x.qualified_at).toLocaleDateString('pt-BR'):'')+'</div></div>').join('')||'<p class="mut">Nenhuma indicação ainda.</p>')+'</div>'+
-  '<div class="card"><h3>Lojas indicadas ('+(stores.data||[]).length+')</h3>'+((stores.data||[]).map(x=>'<div class="list-item"><b>'+esc(x.store_name)+'</b><div class="mut">'+esc(x.city)+' • '+esc(referralStatusLabel(x.status))+'</div></div>').join('')||'<p class="mut">Nenhuma loja indicada ainda.</p>')+'</div></div>';
-}
-async function shareReferral(code){
- const url=location.origin+location.pathname+'?ref='+encodeURIComponent(code);
- const text='Conheça o Smart Shop e use meu código '+code;
- if(navigator.share){try{await navigator.share({title:'Smart Shop',text,url});return}catch(e){if(e.name==='AbortError')return}}
- try{await navigator.clipboard.writeText(text+' '+url);alert('Convite copiado.')}catch(e){prompt('Copie seu convite:',text+' '+url)}
-}
-async function claimReferral(event){
- event.preventDefault();const fd=new FormData(event.target);msg('claimReferralMsg','Salvando...');
- const {error}=await sb.rpc('claim_referral_code',{p_code:val(fd,'code')});
+async function markAllVisiblePaid()…3718 tokens truncated…,'code')});
  if(error)return msg('claimReferralMsg',esc(referralError(error)),true);
  msg('claimReferralMsg','Código aplicado. A indicação será qualificada após sua primeira compra entregue.');
 }
@@ -1370,17 +1351,20 @@ async function openProductModal(id){
  const gallery=(images||[]).length?(images||[]):x.image_url?[{image_url:x.image_url,position:0}]:[];
  modalProductId=id;modalVariantId=null;modalImageUrl=gallery[0]?.image_url||x.image_url||'';
  const b=document.getElementById('productModalBody');
- b.innerHTML=`<div class="row" style="justify-content:space-between"><span class="tag">${esc(x.category||'Produto')}</span><button class="ghost" onclick="closeProductModal()">Fechar</button></div>
- ${modalImageUrl?`<img id="productMainImage" src="${esc(modalImageUrl)}" class="product-main-image">`:''}
- ${gallery.length>1?`<div class="product-thumbs">${gallery.map((img,i)=>`<button class="${i===0?'on':''}" onclick="selectProductImage('${encodeURIComponent(img.image_url)}',this)"><img src="${esc(img.image_url)}" alt="Foto ${i+1}"></button>`).join('')}</div>`:''}
- <h2>${esc(x.name)}</h2><p class="mut">${esc(x.stores?.name||'Loja')}</p><p>${esc(x.description||'Produto disponível no Smart Shop.')}</p>
+ const description=x.description||'Produto disponível no Smart Shop.',quality=productDiscovery[id]||{},storeName=x.stores?.name||'Loja parceira',hasDelivery=(x.stores?.delivery_modes||[]).some(mode=>mode==='smart_partner'||mode==='store_delivery'),favorite=isFav(id);
+ b.innerHTML=`<div class="product-modal-top"><span class="tag">${esc(x.category||'Produto')}</span><div class="row"><button class="heart" style="position:static" aria-label="Favoritar produto" onclick="toggleModalFavorite('${id}',this)">${favorite?'♥':'♡'}</button><button class="ghost" onclick="closeProductModal()">Fechar</button></div></div>
+ ${modalImageUrl?`<img id="productMainImage" src="${esc(modalImageUrl)}" class="product-main-image" alt="${esc(x.name)}">`:'<div class="product-main-image" style="display:grid;place-items:center;font-size:48px">🛍️</div>'}
+ ${gallery.length>1?`<div class="product-thumbs">${gallery.map((img,i)=>`<button class="${i===0?'on':''}" onclick="selectProductImage('${encodeURIComponent(img.image_url)}',this)"><img src="${esc(img.image_url)}" alt="Foto ${i+1} de ${esc(x.name)}"></button>`).join('')}</div>`:''}
+ <h2>${esc(x.name)}</h2><div class="product-modal-store" onclick="openStorePage('${x.store_id}')">🏪 ${esc(storeName)} ›</div><div class="product-detail-meta">${reviewBadge(id)}${hasDelivery?deliveryBadge(x.stores):'<span class="tag">Retirada na loja</span>'}${Number(x.stock)>0?`<span class="tag">${Number(x.stock)} disponível(is)</span>`:''}</div>
+ <details class="product-description" ${description.length<280?'open':''}><summary>Descrição do produto</summary><p style="white-space:pre-line;margin-bottom:0">${esc(description)}</p></details>
  ${x.old_price?`<div class="price-old">R$ ${Number(x.old_price).toFixed(2).replace('.',',')}</div>`:''}<div class="price-now">R$ ${Number(x.price).toFixed(2).replace('.',',')}</div>
- ${(variants||[]).length?`<div style="margin-top:14px"><b>Escolha uma opção</b><div class="variant-grid">${variants.map(v=>`<button class="variant-option" ${Number(v.stock)<=0?'disabled':''} onclick="selectProductVariant('${v.id}',this)"><b>${esc([v.color,v.size].filter(Boolean).join(' • '))}</b><br><small>${v.stock>0?v.stock+' disponível(is)':'Esgotado'}</small></button>`).join('')}</div></div>`:''}
- <button style="width:100%" onclick="addModalProductToCart()">Adicionar ao carrinho</button>`;
+ ${(variants||[]).length?`<div style="margin-top:14px"><b>Escolha a cor, o tamanho ou a numeração</b><div class="variant-grid">${variants.map(v=>`<button class="variant-option" aria-pressed="false" ${Number(v.stock)<=0?'disabled':''} onclick="selectProductVariant('${v.id}',this)"><b>${esc([v.color,v.size].filter(Boolean).join(' • ')||'Opção')}</b><br><small>${v.stock>0?v.stock+' disponível(is)':'Esgotado'}</small></button>`).join('')}</div></div>`:''}
+ <div class="product-modal-actions"><button style="width:100%" onclick="addModalProductToCart()">Adicionar ao carrinho</button></div>`;
  document.getElementById('productModal').classList.remove('hide');
 }
+async function toggleModalFavorite(id,button){await toggleFavorite(id);if(button)button.textContent=isFav(id)?'♥':'♡'}
 function selectProductImage(encoded,button){modalImageUrl=decodeURIComponent(encoded);const img=document.getElementById('productMainImage');if(img)img.src=modalImageUrl;document.querySelectorAll('.product-thumbs button').forEach(x=>x.classList.remove('on'));button.classList.add('on')}
-function selectProductVariant(id,button){modalVariantId=id;document.querySelectorAll('.variant-option').forEach(x=>x.classList.remove('on'));button.classList.add('on')}
+function selectProductVariant(id,button){modalVariantId=id;document.querySelectorAll('.variant-option').forEach(x=>{x.classList.remove('on');x.setAttribute('aria-pressed','false')});button.classList.add('on');button.setAttribute('aria-pressed','true')}
 async function addModalProductToCart(){
  const {data:variants}=await sb.from('product_variants').select('id,color,size,sku,stock').eq('product_id',modalProductId).eq('active',true);
  if(variants?.length&&!modalVariantId)return alert('Escolha a cor, o tamanho ou a numeração antes de continuar.');

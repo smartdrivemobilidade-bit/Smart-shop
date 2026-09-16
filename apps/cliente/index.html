@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 53718)
-Total output lines: 1978
-
 <!doctype html>
 <html lang="pt-BR">
 <head>
@@ -824,7 +821,154 @@ async function loadMasterFinance(){
  <div class="card"><div class="row" style="justify-content:space-between"><h3>Valores disponíveis para repasse</h3>${avail.some(x=>x.beneficiary_type!=='platform')?`<button onclick="markAllVisiblePaid()">Marcar repasses como pagos</button>`:''}</div>${avail.map(x=>`<div class="ledger-row"><label><input type="checkbox" class="ledger-check" value="${x.id}" ${x.beneficiary_type==='platform'?'disabled':''}> <b>${x.beneficiary_type==='merchant'?'Lojista':x.beneficiary_type==='courier'?'Entregador':'Smart Shop'}</b> — <span class="money-positive">${money(x.amount)}</span></label><div class="mut">${esc(x.stores?.name||'')} • ${x.entry_type} • ${new Date(x.created_at).toLocaleString('pt-BR')}</div></div>`).join('')||'<p class="mut">Nenhum valor aguardando repasse.</p>'}</div>
  <div class="card"><h3>Histórico pago</h3>${paid.slice(0,50).map(x=>`<div class="ledger-row"><b>${x.beneficiary_type==='merchant'?'Lojista':x.beneficiary_type==='courier'?'Entregador':'Smart Shop'} — ${money(x.amount)}</b><div class="mut">${esc(x.stores?.name||'')} • pago em ${x.paid_at?new Date(x.paid_at).toLocaleString('pt-BR'):'-'}</div></div>`).join('')||'<p class="mut">Nenhum repasse marcado como pago.</p>'}</div>`;
 }
-async function markAllVisiblePaid()…3718 tokens truncated…,'code')});
+async function markAllVisiblePaid(){
+ const ids=[...document.querySelectorAll('.ledger-check:checked')].map(x=>x.value);
+ if(!ids.length)return alert('Selecione os repasses que foram pagos.');
+ if(!confirm(`Confirmar ${ids.length} repasse(s) como pago(s)?`))return;
+ const {data,error}=await sb.rpc('mark_ledger_paid',{p_ids:ids});if(error){alert(friendlyError(error));return}
+ alert(`${data||ids.length} repasse(s) atualizado(s).`);await loadMasterFinance();
+}
+async function loadMasterSupport(){
+ if(!hasAnyPlatformRole(['master','admin','support']))return alert('Você não tem permissão para acessar o Suporte administrativo.');
+ if(!currentUser)return alert('Entre na conta administrativa.');
+ const {data,error}=await sb.from('support_tickets').select('id,user_id,subject,category,status,priority,created_at,order_id').order('created_at',{ascending:false}).limit(100);
+ const el=document.getElementById('masterSupportBody');
+ if(error){el.innerHTML='<div class="card">Área restrita ao Master/Admin/Suporte.</div>';return}
+ const open=(data||[]).filter(t=>!['resolved','closed'].includes(t.status)).length;
+ el.innerHTML=`<div class="metric-grid"><div class="card"><b>${open}</b><div class="mut">Em aberto</div></div><div class="card"><b>${(data||[]).length}</b><div class="mut">Chamados recentes</div></div></div><div class="card">${(data||[]).map(t=>`<div class="ticket" onclick="openMasterTicket('${t.id}')" style="cursor:pointer"><div class="row" style="justify-content:space-between"><b>${esc(t.subject)}</b><span class="ticket-status">${supportStatusLabel[t.status]||t.status}</span></div><div class="mut">${supportCategoryLabel[t.category]||t.category} • prioridade ${t.priority} • ${new Date(t.created_at).toLocaleString('pt-BR')}</div></div>`).join('')||'<p class="mut">Nenhum chamado.</p>'}</div>`;
+}
+async function openMasterTicket(id){
+ const [{data:t,error},{data:msgs}]=await Promise.all([sb.from('support_tickets').select('*').eq('id',id).single(),sb.from('support_messages').select('*').eq('ticket_id',id).order('created_at',{ascending:true})]);
+ if(error)return alert(friendlyError(error));
+ document.getElementById('masterSupportBody').innerHTML=`<button class="ghost" data-platform-roles="master,admin,support" onclick="loadMasterSupport()">← Voltar</button><div class="card"><h2>${esc(t.subject)}</h2><div class="form-grid"><label>Status<select id="adminTicketStatus"><option value="open">Aberto</option><option value="in_progress">Em atendimento</option><option value="waiting_user">Aguardando cliente</option><option value="resolved">Resolvido</option><option value="closed">Fechado</option></select></label><label>Prioridade<select id="adminTicketPriority"><option value="low">Baixa</option><option value="normal">Normal</option><option value="high">Alta</option><option value="urgent">Urgente</option></select></label><button class="wide" onclick="updateMasterTicket('${id}')">Salvar atendimento</button></div><hr>${(msgs||[]).map(m=>`<div class="review-card"><b>${m.sender_type==='customer'?'Cliente':'Smart Shop'}</b><p>${esc(m.body)}</p><span class="mut">${new Date(m.created_at).toLocaleString('pt-BR')}</span></div>`).join('')}<div class="support-compose"><textarea id="adminTicketReply" placeholder="Responder ao cliente..."></textarea><button style="width:100%" onclick="replySupportTicket('${id}',true)">Enviar resposta</button></div></div>`;
+ document.getElementById('adminTicketStatus').value=t.status;document.getElementById('adminTicketPriority').value=t.priority;
+}
+async function updateMasterTicket(id){
+ const {error}=await sb.rpc('admin_update_support_ticket',{p_ticket_id:id,p_status:document.getElementById('adminTicketStatus').value,p_priority:document.getElementById('adminTicketPriority').value});
+ if(error){alert(friendlyError(error));return}alert('Atendimento atualizado.');await openMasterTicket(id);
+}
+async function showSupportCenter(){
+ if(!currentUser)return alert('Entre na sua conta para acessar a Central de Ajuda.');
+ const {data:tickets,error}=await sb.from('support_tickets').select('id,subject,category,status,priority,created_at,order_id').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+ const {data:orders}=await sb.from('orders').select('id,order_number,created_at').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(30);
+ if(error)return alert(friendlyError(error));
+ document.getElementById('supportBody').innerHTML=`<div class="card support-compose"><h3>Como podemos ajudar?</h3><form onsubmit="createSupportTicket(event)" class="form-grid"><input id="spSubject" class="wide" placeholder="Assunto" required><select id="spCategory"><option value="order">Pedido</option><option value="payment">Pagamento</option><option value="delivery">Entrega</option><option value="return">Troca / devolução</option><option value="account">Minha conta</option><option value="other">Outro</option></select><select id="spOrder"><option value="">Sem pedido específico</option>${(orders||[]).map(o=>`<option value="${o.id}">Pedido ${esc(o.order_number||o.id.slice(0,8))}</option>`).join('')}</select><textarea id="spMessage" class="wide" placeholder="Descreva o que aconteceu..." required></textarea><button class="wide">Enviar solicitação</button></form></div><div class="card"><h3>Meus atendimentos</h3>${(tickets||[]).map(t=>`<div class="ticket" onclick="openSupportTicket('${t.id}')" style="cursor:pointer"><div class="row" style="justify-content:space-between"><b>${esc(t.subject)}</b><span class="ticket-status">${supportStatusLabel[t.status]||t.status}</span></div><div class="mut">${supportCategoryLabel[t.category]||t.category} • ${new Date(t.created_at).toLocaleString('pt-BR')}</div></div>`).join('')||'<p class="mut">Você ainda não abriu nenhum atendimento.</p>'}</div>`;
+}
+async function createSupportTicket(ev){
+ ev.preventDefault();
+ const orderId=document.getElementById('spOrder').value||null;
+ const {error}=await sb.rpc('create_support_ticket',{p_subject:document.getElementById('spSubject').value.trim(),p_category:document.getElementById('spCategory').value,p_message:document.getElementById('spMessage').value.trim(),p_order_id:orderId});
+ if(error){alert(friendlyError(error));return} alert('Solicitação enviada. Você poderá acompanhar por aqui.'); await showSupportCenter();
+}
+async function openSupportTicket(id){
+ const [{data:t,error},{data:msgs}]=await Promise.all([sb.from('support_tickets').select('*').eq('id',id).single(),sb.from('support_messages').select('*').eq('ticket_id',id).order('created_at',{ascending:true})]);
+ if(error)return alert(friendlyError(error));
+ document.getElementById('supportBody').innerHTML=`<button class="ghost" onclick="showSupportCenter()">← Voltar</button><div class="card"><h2>${esc(t.subject)}</h2><span class="ticket-status">${supportStatusLabel[t.status]||t.status}</span><p class="mut">${supportCategoryLabel[t.category]||t.category}</p>${(msgs||[]).map(m=>`<div class="review-card"><b>${m.sender_type==='customer'?'Você':'Smart Shop'}</b><p>${esc(m.body)}</p><span class="mut">${new Date(m.created_at).toLocaleString('pt-BR')}</span></div>`).join('')}<div class="support-compose"><textarea id="ticketReply" placeholder="Escreva sua resposta..."></textarea><button style="width:100%" onclick="replySupportTicket('${id}')">Enviar resposta</button></div></div>`;
+}
+
+let myPlatformRoles=[];
+async function refreshPlatformAccess(){
+ myPlatformRoles=[];
+ if(currentUser){
+  const {data,error}=await sb.rpc('get_my_platform_roles');
+  if(!error&&Array.isArray(data))myPlatformRoles=data;
+ }
+ applyPlatformVisibility();
+}
+function hasAnyPlatformRole(roles){
+ return roles.some(r=>myPlatformRoles.includes(r));
+}
+function applyPlatformVisibility(){
+ document.querySelectorAll('[data-platform-roles]').forEach(el=>{
+  const roles=(el.dataset.platformRoles||'').split(',').filter(Boolean);
+  el.style.display=hasAnyPlatformRole(roles)?'':'none';
+ });
+}
+function openMerchantApplicationFromCustomer(){
+ if(!currentUser){showAuthCard();alert('Entre ou crie sua conta para iniciar o cadastro da sua loja.');return}
+ merchantFormStep=0;renderMerchantStep();openView('merchantApply');
+}
+const HOME_CATEGORY_SHOWCASE=[
+ {icon:'👗',name:'Moda',category:'Moda'},
+ {icon:'👟',name:'Calçados',category:'Calçados'},
+ {icon:'💄',name:'Beleza',category:'Beleza'},
+ {icon:'💊',name:'Farmácia',category:'Farmácia'},
+ {icon:'🛒',name:'Mercado',category:'Mercado'},
+ {icon:'🐾',name:'Pet Shop',category:'Pet Shop'},
+ {icon:'🏠',name:'Casa e Decoração',category:'Casa e Decoração'},
+ {icon:'📱',name:'Eletrônicos',category:'Eletrônicos'},
+ {icon:'✏️',name:'Papelaria',category:'Papelaria'},
+ {icon:'🧸',name:'Brinquedos',category:'Brinquedos'},
+ {icon:'👜',name:'Acessórios',category:'Acessórios'},
+ {icon:'🔧',name:'Autopeças',category:'Autopeças'},
+ {icon:'🍔',name:'Alimentação',category:'Alimentação'},
+ {icon:'🎁',name:'Presentes',category:'Presentes'},
+ {icon:'🏋️',name:'Esporte e Fitness',category:'Esporte e Fitness'},
+ {icon:'📚',name:'Livros',category:'Livros'},
+ {icon:'🔥',name:'Gás e Água',category:'Gás e Água'}
+];
+function openHomeCategory(category){
+ rememberCategoryInterest(category);
+ marketCategory=category;marketStore='';openView('marketplacePanel');showMarketplace();
+}
+const DEMO_STORE_SHOWCASE=[
+ {icon:'💊',name:'Saúde & Bem-Estar',category:'Farmácia'},
+ {icon:'🐾',name:'Mundo Pet',category:'Pet Shop'},
+ {icon:'🏠',name:'Casa & Estilo',category:'Casa e Decoração'},
+ {icon:'🧸',name:'Brinca Mais',category:'Brinquedos'},
+ {icon:'✏️',name:'Papel & Cia',category:'Papelaria'},
+ {icon:'💄',name:'Beleza Local',category:'Beleza'},
+ {icon:'🛒',name:'Mercado da Região',category:'Mercado'},
+ {icon:'🔧',name:'Auto Center Local',category:'Autopeças'},
+ {icon:'🍔',name:'Sabor da Cidade',category:'Alimentação'},
+ {icon:'👟',name:'Passo Certo',category:'Calçados'},
+ {icon:'🎁',name:'Presentes & Cia',category:'Presentes'},
+ {icon:'📱',name:'Conecta Tech',category:'Eletrônicos'},
+ {icon:'🔥',name:'Gás & Água Express',category:'Gás e Água'}
+];
+function renderDemoStoreShowcase(){
+ const el=document.getElementById('demoStores');if(!el)return;
+ el.innerHTML=DEMO_STORE_SHOWCASE.map(x=>`<div class="demo-store-card"><div class="demo-store-icon">${x.icon}</div><b>${esc(x.name)}</b><div class="mut">${esc(x.category)}</div><span class="demo-badge">Em breve</span></div>`).join('');
+}
+
+function referralStatusLabel(status){
+ return ({registered:'Cadastrado',qualified:'Compra entregue',rewarded:'Benefício liberado',pending:'Pendente',invalid:'Inválido',new:'Recebida',contacted:'Contato iniciado',interested:'Interessada',onboarding:'Em cadastro',converted:'Loja cadastrada',not_interested:'Sem interesse',duplicate:'Duplicada'})[status]||status;
+}
+function referralError(error){
+ const code=(error&&error.message)||'';
+ if(code.includes('SELF_REFERRAL'))return 'Você não pode usar seu próprio código.';
+ if(code.includes('ALREADY_CLAIMED'))return 'Esta conta já está vinculada a uma indicação.';
+ if(code.includes('FIRST_ORDER_ALREADY'))return 'O código precisa ser informado antes da primeira compra entregue.';
+ if(code.includes('INVALID_REFERRAL'))return 'Código inválido ou inativo.';
+ if(code.includes('CONTACT_REQUIRED'))return 'Informe um contato ou responsável pela loja.';
+ return code||'Não foi possível concluir.';
+}
+async function showReferrals(){
+ if(!currentUser)return showAuthCard();
+ const el=document.getElementById('referralBody');el.innerHTML='<div class="card">Carregando indicações...</div>';
+ const codeResult=await sb.rpc('get_or_create_my_referral_code');
+ const [friends,stores]=await Promise.all([
+  sb.from('referrals').select('id,status,created_at,qualified_at,first_order_id').eq('referrer_user_id',currentUser.id).order('created_at',{ascending:false}),
+  sb.from('store_referrals').select('id,store_name,city,status,created_at').eq('referrer_user_id',currentUser.id).order('created_at',{ascending:false})
+ ]);
+ if(codeResult.error){el.innerHTML='<div class="msg err">'+esc(referralError(codeResult.error))+'</div>';return}
+ const code=codeResult.data;
+ const preset=new URLSearchParams(location.search).get('ref')||'';
+ el.innerHTML='<div class="grid2">'+
+  '<div class="card"><h3>Indique um amigo</h3><p class="mut">Compartilhe seu código. A indicação é qualificada somente depois da primeira compra válida ser entregue. O benefício ainda depende das regras comerciais do programa.</p><div class="row"><input value="'+esc(code)+'" readonly aria-label="Seu código de indicação"><button onclick="shareReferral(\''+esc(code)+'\')">Compartilhar</button></div><hr><h4>Recebeu um código?</h4><form onsubmit="claimReferral(event)"><div class="row"><input name="code" value="'+esc(preset)+'" placeholder="SMART-XXXXXXXX" required><button>Usar código</button></div></form><div id="claimReferralMsg"></div></div>'+
+  '<div class="card"><h3>Indique uma loja</h3><form onsubmit="submitStoreReferral(event)" class="form-grid"><input name="store_name" placeholder="Nome da loja *" required><input name="contact_name" placeholder="Responsável"><input name="phone_whatsapp" placeholder="WhatsApp"><input name="category" placeholder="Categoria"><input name="city" placeholder="Cidade *" value="Mateus Leme" required><textarea name="notes" placeholder="Observações"></textarea><button>Enviar ao Smart Shop</button></form><div id="storeReferralMsg"></div></div></div>'+
+  '<div class="grid2"><div class="card"><h3>Amigos indicados ('+(friends.data||[]).length+')</h3>'+((friends.data||[]).map(x=>'<div class="list-item"><b>'+esc(referralStatusLabel(x.status))+'</b><div class="mut">'+new Date(x.created_at).toLocaleDateString('pt-BR')+(x.qualified_at?' • qualificada em '+new Date(x.qualified_at).toLocaleDateString('pt-BR'):'')+'</div></div>').join('')||'<p class="mut">Nenhuma indicação ainda.</p>')+'</div>'+
+  '<div class="card"><h3>Lojas indicadas ('+(stores.data||[]).length+')</h3>'+((stores.data||[]).map(x=>'<div class="list-item"><b>'+esc(x.store_name)+'</b><div class="mut">'+esc(x.city)+' • '+esc(referralStatusLabel(x.status))+'</div></div>').join('')||'<p class="mut">Nenhuma loja indicada ainda.</p>')+'</div></div>';
+}
+async function shareReferral(code){
+ const url=location.origin+location.pathname+'?ref='+encodeURIComponent(code);
+ const text='Conheça o Smart Shop e use meu código '+code;
+ if(navigator.share){try{await navigator.share({title:'Smart Shop',text,url});return}catch(e){if(e.name==='AbortError')return}}
+ try{await navigator.clipboard.writeText(text+' '+url);alert('Convite copiado.')}catch(e){prompt('Copie seu convite:',text+' '+url)}
+}
+async function claimReferral(event){
+ event.preventDefault();const fd=new FormData(event.target);msg('claimReferralMsg','Salvando...');
+ const {error}=await sb.rpc('claim_referral_code',{p_code:val(fd,'code')});
  if(error)return msg('claimReferralMsg',esc(referralError(error)),true);
  msg('claimReferralMsg','Código aplicado. A indicação será qualificada após sua primeira compra entregue.');
 }
@@ -1781,7 +1925,11 @@ function esc(v){return String(v??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&l
  await showHome(); openView('homePanel');
 })();
 
-let smartPromoIndex=0,smartPromoCount=0;
+// Use var here because the initial page bootstrap runs immediately before this
+// section and the banner loader updates these values during that first render.
+// A block-scoped let would remain in the temporal dead zone and leave the app
+// showing only the header while the home view stayed hidden.
+var smartPromoIndex=0,smartPromoCount=0;
 function setSmartPromo(i){const t=document.getElementById('promoTrack'),dots=document.querySelectorAll('#promoDots .promo-dot');if(!t||!smartPromoCount)return;smartPromoIndex=(i+smartPromoCount)%smartPromoCount;t.style.transform=`translateX(-${smartPromoIndex*100}%)`;dots.forEach((d,n)=>d.classList.toggle('on',n===smartPromoIndex));}
 setInterval(()=>{if(smartPromoCount>1&&document.getElementById('homePanel')&&!document.getElementById('homePanel').classList.contains('hide'))setSmartPromo(smartPromoIndex+1)},5500);
 </script>

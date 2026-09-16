@@ -119,3 +119,4 @@ version,name,status
 20260916180000,smart_shop_v4_distance_freight,APPLIED
 20260916180100,fix_distance_freight_rounding,APPLIED
 20260916180200,refine_delivery_city_rls,APPLIED
+20260916190000,align_smart_partner_tariff,APPLIED

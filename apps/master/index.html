@@ -622,7 +622,7 @@ async function loadCommerceAdmin(){
  const financeCards=canFinanceSettings?`
  <div class="card"><h3>Comissão da plataforma</h3><p class="mut">Somente Master/Admin. Percentual aplicado aos produtos vendidos; o frete permanece separado.</p><form onsubmit="saveCommission(event)"><input id="commissionRate" type="number" min="0" max="100" step="0.1" value="${rate}"><button style="margin-left:6px">Salvar comissão</button></form><p><b>Atual:</b> ${rate.toFixed(1).replace('.',',')}%</p></div>
  <div class="card"><h3>Comissão sobre o frete</h3><p class="mut">Percentual da Smart Shop sobre o frete. A alteração vale somente para novos pedidos.</p><form onsubmit="saveFreightCommission(event)"><input id="freightCommissionRate" type="number" min="0" max="100" step="0.1" value="${freightCommissionRate}"><button style="margin-left:6px">Salvar taxa do frete</button></form><p><b>Atual:</b> ${freightCommissionRate.toFixed(1).replace('.',',')}% • Entregador: ${(100-freightCommissionRate).toFixed(1).replace('.',',')}%</p></div>
- <div class="card full"><h3>Valores de entrega</h3><p class="mut">Somente Master/Admin. Valores-base usados no checkout. Retirada na loja permanece R$ 0,00.</p><form onsubmit="saveFreightSettings(event)" class="form-grid"><label>Entrega Smart Shop<input id="smartFreight" type="number" min="0" step="0.01" value="${Number(freight.smart_partner_freight||0).toFixed(2)}"></label><label>Entrega da própria loja<input id="storeFreight" type="number" min="0" step="0.01" value="${Number(freight.store_delivery_freight||0).toFixed(2)}"></label><button class="wide">Salvar valores de entrega</button></form></div>`:'';
+ <div class="card full"><h3>Valores de entrega</h3><p class="mut">Somente Master/Admin. O parceiro Smart Shop usa uma estimativa por distância; a retirada permanece grátis e a entrega própria usa o valor definido pela loja.</p><form onsubmit="saveFreightSettings(event)" class="form-grid"><label>Frete local de reserva<input id="smartFreight" type="number" min="0" step="0.01" value="${Number(freight.smart_partner_freight||0).toFixed(2)}"></label><label>Entrega da própria loja<input id="storeFreight" type="number" min="0" step="0.01" value="${Number(freight.store_delivery_freight||0).toFixed(2)}"></label><label>Valor inicial do parceiro (R$)<input id="smartBaseFreight" type="number" min="0" step="0.01" value="${Number(freight.smart_partner_base_freight??8).toFixed(2)}"></label><label>Valor por quilômetro (R$)<input id="smartPerKm" type="number" min="0" step="0.01" value="${Number(freight.smart_partner_per_km??0.75).toFixed(2)}"></label><label>Frete mínimo do parceiro (R$)<input id="smartMinFreight" type="number" min="0" step="0.01" value="${Number(freight.smart_partner_min_freight??12).toFixed(2)}"></label><label>Frete máximo do parceiro (R$)<input id="smartMaxFreight" type="number" min="0" step="0.01" value="${Number(freight.smart_partner_max_freight??60).toFixed(2)}"></label><label>Distância máxima atendida (km)<input id="smartMaxDistance" type="number" min="1" step="1" value="${Number(freight.smart_partner_max_distance_km??40).toFixed(0)}"></label><button class="wide">Salvar valores de entrega</button></form></div>`:'';
  el.innerHTML=`<div class="admin-commerce">
  <div class="card"><h3>Novo cupom</h3><p class="mut">Master, Admin e Operações podem criar e administrar campanhas promocionais.</p><form onsubmit="createAdminCoupon(event)" class="form-grid"><input id="cpId" type="hidden"><input id="cpCode" placeholder="Código (ex.: BEMVINDO10)" required><select id="cpType"><option value="percent">Percentual (%)</option><option value="fixed">Valor fixo (R$)</option></select><input id="cpValue" type="number" step="0.01" min="0.01" placeholder="Desconto" required><input id="cpMin" type="number" step="0.01" min="0" value="0" placeholder="Pedido mínimo"><input id="cpLimit" type="number" min="1" placeholder="Limite total (opcional)"><input id="cpUser" type="number" min="1" value="1" placeholder="Por cliente"><select id="cpScope" onchange="updateCouponScopeFields()"><option value="platform">Toda a plataforma</option><option value="store">Loja específica</option><option value="category">Categoria específica</option></select><select id="cpStore"><option value="">Selecione a loja</option>${(couponStores||[]).map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select><input id="cpCategory" placeholder="Categoria"><select id="cpFunding"><option value="platform">Custeado pelo Smart Shop</option><option value="merchant">Custeado pela loja</option><option value="shared">Custeio compartilhado</option></select><div><label>Início da validade</label><input id="cpStart" type="datetime-local"></div><div><label>Fim da validade</label><input id="cpEnd" type="datetime-local"></div><button id="cpSaveBtn" class="wide">Salvar cupom</button></form></div>
  ${financeCards}
@@ -664,12 +664,19 @@ async function toggleCoupon(id,active){ if(!hasAnyPlatformRole(['master','admin'
 async function saveFreightSettings(ev){
  ev.preventDefault();
  if(!hasAnyPlatformRole(['master','admin']))return alert('Somente Master ou Admin pode alterar valores de entrega.');
- const smart=Number(document.getElementById('smartFreight').value),store=Number(document.getElementById('storeFreight').value);
- if(smart<0||store<0)return alert('O frete não pode ser negativo.');
- const a=await sb.rpc('set_platform_setting',{p_key:'smart_partner_freight',p_value:smart});
- if(a.error){alert(friendlyError(a.error));return}
- const b=await sb.rpc('set_platform_setting',{p_key:'store_delivery_freight',p_value:store});
- if(b.error){alert(friendlyError(b.error));return}
+ const settings=[
+  ['smart_partner_freight',Number(document.getElementById('smartFreight').value)],
+  ['store_delivery_freight',Number(document.getElementById('storeFreight').value)],
+  ['smart_partner_base_freight',Number(document.getElementById('smartBaseFreight').value)],
+  ['smart_partner_per_km',Number(document.getElementById('smartPerKm').value)],
+  ['smart_partner_min_freight',Number(document.getElementById('smartMinFreight').value)],
+  ['smart_partner_max_freight',Number(document.getElementById('smartMaxFreight').value)],
+  ['smart_partner_max_distance_km',Number(document.getElementById('smartMaxDistance').value)]
+ ];
+ const values=settings.map(([,value])=>value),min=values[4],max=values[5];
+ if(values.some(value=>!Number.isFinite(value)||value<0)||values[6]<=0)return alert('Informe valores de frete válidos e uma distância maior que zero.');
+ if(max<min)return alert('O frete máximo deve ser maior ou igual ao frete mínimo.');
+ for(const [key,value] of settings){const {error}=await sb.rpc('set_platform_setting',{p_key:key,p_value:value});if(error){alert(friendlyError(error));return}}
  alert('Valores de entrega atualizados.');
  await loadCommerceAdmin();
 }

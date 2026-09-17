@@ -1116,18 +1116,23 @@ async function lookupCepCoordinates(digits){
 function genericCep(cep){return String(cep||'').replace(/\D/g,'').endsWith('000')}
 async function geocodeAddressCoordinates(address){
  const street=[address?.street,address?.number].filter(Boolean).join(', ').trim();
- const parts=[street,address?.district,address?.city,address?.state,'Brasil'].map(x=>String(x||'').trim()).filter(Boolean);
+ const fullParts=[street,address?.district,address?.city,address?.state,'Brasil'].map(x=>String(x||'').trim()).filter(Boolean);
+ const streetParts=[[address?.street,address?.city,address?.state,'Brasil'],[address?.street,address?.city,'Brasil']].map(parts=>parts.map(x=>String(x||'').trim()).filter(Boolean).join(', '));
  if(!street||!address?.city||!address?.state)return null;
- const key=parts.join('|').toLowerCase();
+ const key=fullParts.join('|').toLowerCase();
  if(addressGeocodeCache.has(key))return addressGeocodeCache.get(key);
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),4500);
  try{
-  const url='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=br&q='+encodeURIComponent(parts.join(', '));
-  const response=await fetch(url,{signal:controller.signal});
-  if(!response.ok)return null;
-  const row=(await response.json())?.[0],latitude=Number(row?.lat),longitude=Number(row?.lon);
-  if(!Number.isFinite(latitude)||!Number.isFinite(longitude))return null;
-  const result={latitude,longitude};addressGeocodeCache.set(key,result);return result;
+  for(const query of [fullParts.join(', '),...streetParts]){
+   const url='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=br&q='+encodeURIComponent(query);
+   const response=await fetch(url,{signal:controller.signal});
+   if(!response.ok)continue;
+   const row=(await response.json())?.[0],latitude=Number(row?.lat),longitude=Number(row?.lon);
+   if(Number.isFinite(latitude)&&Number.isFinite(longitude)){
+    const result={latitude,longitude};addressGeocodeCache.set(key,result);return result;
+   }
+  }
+  return null;
  }catch(error){return null}
  finally{clearTimeout(timer)}
 }
